@@ -1,5 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { defaultScenarioId, scenarioListings } from "@/data/scenarios";
+
+const ctaHref =
+  scenarioListings.length > 1
+    ? "/scenarios"
+    : `/simulator/${defaultScenarioId}`;
 
 export default function LandingPage() {
   return (
@@ -24,7 +30,7 @@ export default function LandingPage() {
           you&apos;ll see exactly how your day added up.
         </p>
         <Link
-          href="/simulator"
+          href={ctaHref}
           className="mt-10 rounded-lg bg-accent px-8 py-3 text-base font-semibold text-surface transition-colors hover:bg-accent/90"
         >
           Start the workday
