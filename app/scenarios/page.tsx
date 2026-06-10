@@ -1,6 +1,23 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { scenarioListings } from "@/data/scenarios";
+import { socialMetadata } from "@/lib/site";
+
+const PAGE_TITLE = "Pick a workday";
+const PAGE_DESCRIPTION =
+  "Choose a simulated workday. Each one is a different kind of pressure, with the same job: ship safely.";
+
+export const metadata: Metadata = {
+  title: PAGE_TITLE,
+  description: PAGE_DESCRIPTION,
+  ...socialMetadata({
+    title: `${PAGE_TITLE} · ShipDay`,
+    description: PAGE_DESCRIPTION,
+    card: "/og/card.svg",
+    path: "/scenarios",
+  }),
+};
 
 const DIFFICULTY_STYLES: Record<string, string> = {
   starter: "border-good/40 text-good",

@@ -215,3 +215,59 @@ deploys without servers, environment variables, or API keys. The closeout
 check therefore verifies the build route table (every route marked static
 or SSG), and smoke tests the served pages, rather than switching the
 project to a different output mode for the check.
+
+# Decision log: v3 autonomous build
+
+Audit trail for the v3 run (launch pass plus the v3 feature set). One entry
+per decision, tagged with the milestone it belongs to. Milestone numbers
+restart at 1 for this run.
+
+## Milestone 1
+
+### M1: Social cards are committed SVG, not build-generated PNG
+
+The acceptance criterion is that the card assets "exist in the repository,"
+so the cards are committed image files rather than images produced at build
+time. The build environment has no raster tooling (rsvg-convert, ImageMagick,
+inkscape are all absent), and next/og only resolves inside the Next build
+pipeline, so producing a committed PNG was not possible without a new
+dependency. SVG keeps the cards committed, deterministic, dependency free,
+and fully static. The tradeoff: some social scrapers prefer raster formats
+for og:image, so a future run with raster tooling could rasterize the same
+SVG source to PNG. The tags are emitted on every route and the assets are in
+the repository, which is what the milestone asks for.
+
+### M1: Cards are generated from the registry by a dev script
+
+`scripts/generate-og-cards.ts` (run with `npm run cards`) writes one product
+card plus one card per registered scenario into `public/og`, reading the
+scenario name, tagline, and difficulty from the registry. This keeps the
+per-scenario cards in sync with the registry instead of being hand-copied
+strings that can drift. The script uses only Node built-ins and the existing
+tsx dev dependency, so it adds no runtime dependency and the generated SVGs
+are the committed artifacts.
+
+### M1: Favicon is an SVG icon via the file convention
+
+`app/icon.svg` uses the framework metadata file convention, which Next wires
+into the rendered `<link rel="icon">` automatically. A single scalable SVG
+covers the favicon role for modern browsers. A rasterized apple-icon.png was
+not added because the environment has no raster tooling and the convention
+does not accept SVG for apple-icon; the SVG icon is the committed asset and
+the conservative choice given the constraint.
+
+### M1: metadataBase reads optional platform variables with a fallback
+
+Absolute Open Graph URLs need a base. `lib/site.ts` reads NEXT_PUBLIC_SITE_URL
+or the Vercel-injected VERCEL_URL when present and falls back to localhost
+otherwise. No environment variable has to be set for the app to build or
+deploy; the variables are read only if the platform provides them. This keeps
+the "no required environment variables" rule while still emitting correct
+absolute URLs on a real deploy.
+
+### M1: The redirect route carries no metadata
+
+`/simulator` is a server-side redirect to scenario 1 and renders no HTML of
+its own, so it emits no metadata tags. Every route that renders HTML (the
+landing page, the scenario picker, and each scenario) emits the full Open
+Graph and Twitter tag set, which is what the acceptance covers.

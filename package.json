@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "cards": "tsx scripts/generate-og-cards.ts",
     "verify": "tsx lib/simulator/__tests__/verify.ts"
   },
   "dependencies": {
