@@ -20,4 +20,6 @@ export const FLAGS = {
   // Added for The Broken Build: diagnosis discipline.
   reproducedFailure: "reproduced-failure",
   bisectedHistory: "bisected-history",
+  // Added for Friday Deploy: rollback readiness.
+  preparedRollback: "prepared-rollback",
 } as const;

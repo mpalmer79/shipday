@@ -85,3 +85,32 @@ verify script and applied to all registered scenarios, not only scenario 2.
 Scenario 1 already satisfied them (max 40.2 percent, min 2.9 percent), so
 this adds a guard without changing any existing behavior, and future
 scenarios get the same tuning gate for free.
+
+## Milestone 3
+
+### M3: One new flag, prepared-rollback
+
+Friday Deploy is partly about rollback readiness, and no existing flag
+expresses "wrote the revert procedure before deploying." The behavior
+matters to the incident rule (shipping unvalidated without a rollback plan
+is what turns a bad value into a Saturday incident), so it earns a flag.
+Blast-radius mapping reuses inspected-existing-code and scoping reuses
+metric impacts, so one flag covers the milestone.
+
+### M3: Scenario 3 spans 2:00 PM to 4:30 PM, not 9:00 AM to 4:00 PM
+
+Milestone 3 inherits scenario 2's structural requirements, which include a
+9:00 AM to 4:00 PM span, but the stated premise starts at 2:00 PM on a
+Friday. The premise wins: structural requirements are read as six steps
+with four to five options each, and the times run 2:00 PM to 4:30 PM in
+half-hour beats. Outcomes land at 4:50 PM (the window closes at 5:00 PM),
+which also keeps the report's fixed 5:00 PM beat coherent.
+
+### M3: Distribution regression implemented as exact pinned counts
+
+The milestone requires confirming scenarios 1 and 2 did not shift. The
+verify script now pins the exact outcome counts for tuned scenarios and
+fails on any deviation, which is the strictest possible regression and
+costs nothing extra to run. Scenario 3 is pinned as well after its tuning
+settled, so milestones 4 through 6 cannot silently move any distribution.
+A deliberate retune must update the pinned counts and this log together.

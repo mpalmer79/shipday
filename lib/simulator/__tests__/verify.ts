@@ -26,6 +26,38 @@ import { END_STEP_ID } from "../types";
 const MAX_OUTCOME_SHARE = 0.45;
 const MIN_OUTCOME_SHARE = 0.02;
 
+/**
+ * Pinned distributions. Tuned scenarios are frozen here so later changes
+ * cannot silently shift their balance. A deliberate retune must update
+ * these counts and the decision log together.
+ */
+const EXPECTED_DISTRIBUTIONS: Record<
+  string,
+  Partial<Record<OutcomeId, number>>
+> = {
+  "just-add-a-button": {
+    "safe-rollout": 998,
+    "minor-issue": 2058,
+    "customer-incident": 151,
+    "responsible-delay": 1263,
+    overcontrolled: 650,
+  },
+  "the-broken-build": {
+    "safe-rollout": 951,
+    "minor-issue": 2697,
+    "customer-incident": 481,
+    "responsible-delay": 1545,
+    overcontrolled: 726,
+  },
+  "friday-deploy": {
+    "safe-rollout": 962,
+    "minor-issue": 1662,
+    "customer-incident": 106,
+    "responsible-delay": 1020,
+    overcontrolled: 346,
+  },
+};
+
 // --- Phase 1: engine assertions (against scenario 1) ------------------
 
 const scenario1 = scenarios.find((s) => s.id === "just-add-a-button")!;
@@ -177,6 +209,17 @@ for (const scenario of scenarios) {
       share >= MIN_OUTCOME_SHARE,
       `Outcome "${outcome.id}" below ${MIN_OUTCOME_SHARE * 100}% in ${scenario.id}: ${(share * 100).toFixed(1)}%`
     );
+  }
+
+  const expected = EXPECTED_DISTRIBUTIONS[scenario.id];
+  if (expected) {
+    for (const [outcomeId, expectedCount] of Object.entries(expected)) {
+      assert.equal(
+        counts.get(outcomeId as OutcomeId) ?? 0,
+        expectedCount,
+        `Distribution regression in ${scenario.id}: ${outcomeId}`
+      );
+    }
   }
 }
 
