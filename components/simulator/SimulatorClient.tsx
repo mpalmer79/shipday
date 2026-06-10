@@ -97,13 +97,14 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
 
   return (
     <AppShell>
+      <h1 className="sr-only">{scenario.name}</h1>
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[240px_minmax(0,1fr)_280px]">
-        <div className="order-2 flex flex-col gap-4 lg:order-1">
+        <div className="order-3 flex flex-col gap-4 lg:order-1">
           <WorkdayStatus beats={workdayBeats} currentIndex={currentBeatIndex} />
           {!state.completed && <Timeline decisions={state.decisions} />}
         </div>
 
-        <div className="order-1 flex flex-col gap-4 lg:order-2">
+        <div className="order-2 flex flex-col gap-4 lg:order-2">
           {currentStep && (
             <>
               <ScenarioCard step={currentStep} />
@@ -152,7 +153,7 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
           )}
         </div>
 
-        <div className="order-3">
+        <div className="order-1 lg:order-3">
           <MetricsDashboard
             metrics={state.metrics}
             lastImpact={lastDecision?.impact}

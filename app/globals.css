@@ -10,4 +10,9 @@
   ::selection {
     @apply bg-accent-soft text-ink;
   }
+
+  /* Visible keyboard focus for every interactive element. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-surface;
+  }
 }

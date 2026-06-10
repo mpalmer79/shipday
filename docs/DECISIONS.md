@@ -271,3 +271,73 @@ absolute URLs on a real deploy.
 its own, so it emits no metadata tags. Every route that renders HTML (the
 landing page, the scenario picker, and each scenario) emits the full Open
 Graph and Twitter tag set, which is what the acceptance covers.
+
+## Milestone 2
+
+### M2: Mobile and accessibility audit
+
+Each route was audited at narrow viewport widths and for keyboard,
+semantics, and contrast. Findings, fixes, and what passed unchanged:
+
+Landing page (`/`):
+- Narrow viewport: single centered column, already fluid. Passed unchanged.
+- Keyboard: the "Start the workday" call to action is a link, focusable and
+  operable. A visible focus ring was added globally (see below).
+- Semantics: one h1 ("ShipDay"), `header` and `main` landmarks from the app
+  shell. Passed unchanged.
+- Contrast: body copy uses ink and ink-muted, both well above AA. Passed
+  unchanged.
+
+Scenario picker (`/scenarios`):
+- Narrow viewport: the card grid is one column below the small breakpoint,
+  two columns above. Passed unchanged.
+- Keyboard: each scenario card is a link, focusable and operable, now with a
+  visible focus ring.
+- Semantics: one h1 ("Pick a workday"), each card title is an h2. The
+  difficulty pill is decorative text inside the link. Passed unchanged.
+- Contrast: difficulty pills use good, warn, and bad text on the dark
+  surface, all above AA.
+
+Simulator (`/simulator/[scenarioId]`):
+- Narrow viewport: the three-column grid collapsed to one column, but the
+  metrics column (which holds the risk meter) rendered after the main column,
+  so the risk meter sat below the decision panel. Fixed: on mobile the
+  metrics column is ordered first so the risk meter is visible without
+  scrolling past the decision panel; the desktop three-column order is
+  unchanged. The narrow-screen order is now risk and metrics, then the
+  scenario and decisions, then the workday timeline.
+- h1: the page had no h1 (the step title is an h2). Fixed: a screen-reader
+  only h1 carrying the scenario name was added, so the page has exactly one
+  h1 without changing the visual design.
+- Decision options: were buttons inside a div. Fixed: they are now a labeled
+  list (a section with an h3 label and a `ul` of `li` buttons), so the option
+  set is announced as a list with its heading.
+- Metrics: wrapped in a labeled region ("Current metrics") so the risk meter
+  and metric cards are a recognizable landmark.
+- Keyboard: decision options, the replay Previous and Next controls, the
+  "Run the day again", "Replay the day", and "Download report" buttons are
+  all native buttons, focusable and operable, now with a visible focus ring.
+- Buttons are buttons, lists are lists: the workday status, timeline, system
+  signals, report timeline, strong decisions, missed signals, replay paths
+  not taken, and decision options are all real lists; the interactive
+  controls are all native buttons with text labels (accessible names).
+- Images: the app renders no inline images. The committed social cards and
+  the favicon carry alt text and aria-labels (Milestone 1). Passed unchanged.
+
+Global fix:
+- A `:focus-visible` rule in `app/globals.css` gives every interactive
+  element a consistent accent focus ring with an offset, replacing the
+  inconsistent browser defaults.
+
+### M2: Contrast met AA without token changes
+
+The milestone scopes token adjustment to the risk meter bands and metric
+deltas. Measured against the surface-raised card background (#161b24), the
+band and delta colors are good 9.91:1, warn 10.34:1, and bad 6.24:1, all
+above the AA threshold of 4.5:1 for normal text, so no token was changed. A
+noted item outside this scope: ink-faint (#5e6b80) is 3.20:1 on surface-
+raised, below AA for normal text. It is used only for secondary and
+decorative labels (timestamps, faint captions), never for the bands or
+deltas the milestone covers. Changing it would ripple across the whole UI
+and is outside the conservative scope of this milestone, so it is left as a
+known item rather than altered here.
