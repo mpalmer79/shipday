@@ -13,7 +13,7 @@ function riskTone(value: number) {
     return { bar: "bg-bad", text: "text-bad", label: "High" };
   }
   if (value >= THRESHOLD_AMBER) {
-    return { bar: "bg-warn", text: "text-warn", label: "Elevated" };
+    return { bar: "bg-warn", text: "text-warn", label: "Raised" };
   }
   return { bar: "bg-good", text: "text-good", label: "Controlled" };
 }

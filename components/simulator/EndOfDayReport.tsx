@@ -1,21 +1,19 @@
-import type { EndOfDayReport as Report, MetricKey } from "@/lib/simulator";
-import { METRIC_LABELS } from "./MetricsDashboard";
-
-const METRIC_ORDER: MetricKey[] = [
-  "quality",
-  "speed",
-  "risk",
-  "trust",
-  "focus",
-  "testConfidence",
-];
+import type { EndOfDayReport as Report } from "@/lib/simulator";
+import { METRIC_LABELS, METRIC_ORDER } from "@/lib/simulator";
 
 type EndOfDayReportProps = {
   report: Report;
   onRestart: () => void;
+  onReplay?: () => void;
+  onDownload?: () => void;
 };
 
-export function EndOfDayReport({ report, onRestart }: EndOfDayReportProps) {
+export function EndOfDayReport({
+  report,
+  onRestart,
+  onReplay,
+  onDownload,
+}: EndOfDayReportProps) {
   return (
     <div className="flex flex-col gap-5">
       <div className="rounded-lg border border-surface-line bg-surface-raised p-5">
@@ -114,13 +112,33 @@ export function EndOfDayReport({ report, onRestart }: EndOfDayReportProps) {
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={onRestart}
-        className="self-start rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-accent/90"
-      >
-        Run the day again
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onRestart}
+          className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-accent/90"
+        >
+          Run the day again
+        </button>
+        {onReplay && (
+          <button
+            type="button"
+            onClick={onReplay}
+            className="rounded-lg border border-surface-line px-6 py-2.5 text-sm font-medium transition-colors hover:border-accent"
+          >
+            Replay the day
+          </button>
+        )}
+        {onDownload && (
+          <button
+            type="button"
+            onClick={onDownload}
+            className="rounded-lg border border-surface-line px-6 py-2.5 text-sm font-medium transition-colors hover:border-accent"
+          >
+            Download report
+          </button>
+        )}
+      </div>
     </div>
   );
 }

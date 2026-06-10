@@ -1,5 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { defaultScenarioId, scenarioListings } from "@/data/scenarios";
+
+const ctaHref =
+  scenarioListings.length > 1
+    ? "/scenarios"
+    : `/simulator/${defaultScenarioId}`;
 
 export default function LandingPage() {
   return (
@@ -16,15 +22,15 @@ export default function LandingPage() {
           under pressure.
         </p>
         <p className="mt-6 max-w-xl text-base leading-relaxed text-ink-muted">
-          It&apos;s 9:00 AM. The ticket says &ldquo;just add a button.&rdquo;
-          Between now and the end of the day you&apos;ll face ambiguous
-          requirements, a confident AI suggestion, a failing test nobody owns,
-          and a deadline that won&apos;t move. Every decision shifts your
-          quality, speed, risk, and the trust people place in you. At 5:00 PM,
-          you&apos;ll see exactly how your day added up.
+          Three workdays, each one decision at a time: a ticket that says
+          &ldquo;just add a button,&rdquo; a red main with a 3:00 PM release,
+          and a Friday config change with the team half gone. Every choice
+          shifts your quality, speed, risk, and the trust people place in
+          you. At the end of the day you see exactly how it added up, can
+          replay every decision, and can take the report with you.
         </p>
         <Link
-          href="/simulator"
+          href={ctaHref}
           className="mt-10 rounded-lg bg-accent px-8 py-3 text-base font-semibold text-surface transition-colors hover:bg-accent/90"
         >
           Start the workday

@@ -10,3 +10,7 @@ export {
 } from "./engine";
 export { evaluateCondition, getOutcome, resolveOutcome } from "./outcomes";
 export { generateReport } from "./report";
+export { reconstructRun } from "./replay";
+export type { ReplayFrame, ReconstructedRun } from "./replay";
+export { METRIC_LABELS, METRIC_ORDER } from "./metrics";
+export { reportFilename, reportToMarkdown } from "./exportReport";

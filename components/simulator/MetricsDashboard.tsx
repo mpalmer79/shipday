@@ -1,15 +1,7 @@
 import type { DecisionImpact, MetricKey, Metrics } from "@/lib/simulator";
+import { METRIC_LABELS } from "@/lib/simulator";
 import { MetricCard } from "./MetricCard";
 import { RiskMeter } from "./RiskMeter";
-
-export const METRIC_LABELS: Record<MetricKey, string> = {
-  quality: "Code Quality",
-  speed: "Delivery Speed",
-  risk: "Risk",
-  trust: "Stakeholder Trust",
-  focus: "Focus",
-  testConfidence: "Test Confidence",
-};
 
 const SMALL_METRICS: MetricKey[] = [
   "quality",
