@@ -144,6 +144,29 @@ for (const scenario of scenarios) {
       );
     }
   }
+  // Copy rules: no em dashes, no marketing vocabulary, anywhere in the
+  // scenario's strings (narratives, options, consequences, lessons,
+  // outcomes, snippets, signals).
+  const serialized = JSON.stringify(scenario);
+  assert.ok(
+    !serialized.includes("\u2014"),
+    `Em dash found in ${scenario.id} copy`
+  );
+  for (const banned of [
+    "seamless",
+    "robust",
+    "delve",
+    "leverage",
+    "elevate",
+    "supercharge",
+    "game-changing",
+  ]) {
+    assert.ok(
+      !serialized.toLowerCase().includes(banned),
+      `Banned word "${banned}" found in ${scenario.id} copy`
+    );
+  }
+
   const outcomeIds = new Set(scenario.outcomes.map((o) => o.id));
   assert.equal(outcomeIds.size, 5, `${scenario.id} must define 5 outcomes`);
   for (const rule of scenario.outcomeRules) {
@@ -200,6 +223,10 @@ function enumerateRuns(scenario: Scenario): Distribution {
       assert.ok(markdown.includes("## Final metrics"));
       assert.ok(markdown.includes("## How the day unfolded"));
       assert.ok(markdown.includes("## The staff-level lesson"));
+      assert.ok(
+        !markdown.includes("\u2014"),
+        "exported report must not contain em dashes"
+      );
       assert.equal(
         (markdown.match(/^### /gm) ?? []).length,
         state.decisions.length,

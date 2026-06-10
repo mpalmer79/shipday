@@ -40,7 +40,7 @@ export const justAddAButton: Scenario = {
       time: "9:00 AM",
       title: "The ticket arrives",
       narrative:
-        "Priya (PM): “Hey! Quick one for today — can we add an 'Apply discount' button to checkout? Marketing wants it live for the weekend promo. Should be simple, right?”",
+        "Priya (PM): “Hey! Quick one for today: can we add an 'Apply discount' button to checkout? Marketing wants it live for the weekend promo. Should be simple, right?”",
       context:
         "The ticket is one sentence long. Checkout is the most revenue-sensitive surface in the product, and you haven't touched its pricing logic in months.",
       options: [
@@ -48,14 +48,14 @@ export const justAddAButton: Scenario = {
           id: "start-coding",
           label: "Start coding immediately",
           description:
-            "It's just a button. Open the editor and get moving — momentum matters.",
+            "It's just a button. Open the editor and get moving. Momentum matters.",
           impact: { speed: 10, focus: -5, risk: 10, quality: -5 },
           nextStepId: "requirements-unclear",
           flags: [FLAGS.skippedValidation],
           consequence:
             "You're moving fast, but you're building on assumptions you haven't checked.",
           lesson:
-            "Speed at the start of a task is cheap. Speed at the end — after rework — is what actually matters.",
+            "Speed at the start of a task is cheap. Speed at the end, after rework, is what actually matters.",
         },
         {
           id: "ask-questions",
@@ -66,7 +66,7 @@ export const justAddAButton: Scenario = {
           nextStepId: "requirements-unclear",
           flags: [FLAGS.askedClarifyingQuestions],
           consequence:
-            "Priya admits she hadn't thought about promo codes. “Good catch — let me check with marketing.”",
+            "Priya admits she hadn't thought about promo codes. “Good catch, let me check with marketing.”",
           lesson:
             "A two-minute question this morning is cheaper than a rollback tonight.",
         },
@@ -92,7 +92,7 @@ export const justAddAButton: Scenario = {
           nextStepId: "requirements-unclear",
           flags: [FLAGS.inspectedExistingCode],
           consequence:
-            "There's a pricing test suite — older than you expected, but it covers promo interactions.",
+            "There's a pricing test suite. Older than you expected, but it covers promo interactions.",
           lesson:
             "Tests are documentation of what the system promises. Read the promises before changing them.",
         },
@@ -116,7 +116,7 @@ export const justAddAButton: Scenario = {
           nextStepId: "ai-suggestion",
           flags: [FLAGS.skippedValidation],
           consequence:
-            "You're unblocked — on top of a guess about how money moves through the system.",
+            "You're unblocked, on top of a guess about how money moves through the system.",
           lesson:
             "An unvalidated assumption about pricing is a financial decision someone else didn't get to make.",
         },
@@ -124,7 +124,7 @@ export const justAddAButton: Scenario = {
           id: "ask-product",
           label: "Ask product for a written rule",
           description:
-            "Ping Priya: “Need a decision — does this stack with promo codes? One line in the ticket is fine.”",
+            "Ping Priya: “Need a decision: does this stack with promo codes? One line in the ticket is fine.”",
           impact: { speed: -5, quality: 10, trust: 5, risk: -10 },
           nextStepId: "ai-suggestion",
           flags: [FLAGS.askedClarifyingQuestions],
@@ -154,7 +154,7 @@ export const justAddAButton: Scenario = {
           impact: { quality: 5, risk: -5, speed: -5 },
           nextStepId: "ai-suggestion",
           consequence:
-            "Safe and defensible — though product may still want different behavior once they see it.",
+            "Safe and defensible, though product may still want different behavior once they see it.",
           lesson:
             "When you must guess, guess in the direction that loses the least money and document that you guessed.",
         },
@@ -218,13 +218,13 @@ export const justAddAButton: Scenario = {
           consequence:
             "Slower, but every line is one you can defend. The afternoon will be tight.",
           lesson:
-            "Sometimes the tool isn't wrong — it's just not worth the verification cost. Knowing when is judgment.",
+            "Sometimes the tool isn't wrong. It's just not worth the verification cost. Knowing when is judgment.",
         },
         {
           id: "run-tests-first",
           label: "Run the existing tests against it first",
           description:
-            "Don't review by eye — let the pricing suite tell you whether this code keeps the system's promises.",
+            "Don't review by eye. Let the pricing suite tell you whether this code keeps the system's promises.",
           impact: { testConfidence: 15, risk: -10, speed: -5 },
           nextStepId: "tests-fail",
           flags: [FLAGS.reviewedAiCode],
@@ -240,13 +240,13 @@ export const justAddAButton: Scenario = {
       time: "1:00 PM",
       title: "A test breaks",
       narrative:
-        "CI goes red. `pricing.promo_interaction` is failing — a test someone wrote two years ago, asserting that promo and discount amounts never combine on a single cart.",
+        "CI goes red. `pricing.promo_interaction` is failing: a test someone wrote two years ago, asserting that promo and discount amounts never combine on a single cart.",
       context:
         "The test is old, the author left the company, and it's the only thing standing between your change and a green build.",
       systemSignals: [
-        "❌ CI: pricing.promo_interaction — FAILED (expected total 41.30, received 33.04)",
-        "✓ CI: checkout.render_discount_button — passed",
-        "✓ CI: cart.subtotal_calculation — passed",
+        "❌ CI: pricing.promo_interaction: FAILED (expected total 41.30, received 33.04)",
+        "✓ CI: checkout.render_discount_button: passed",
+        "✓ CI: cart.subtotal_calculation: passed",
         "⚠️  Last edit to failing test: 2 years ago, by a deleted account",
       ],
       options: [
@@ -280,14 +280,14 @@ export const justAddAButton: Scenario = {
           id: "update-test",
           label: "Update the test to match the new rule",
           description:
-            "The business rule changed — encode the new no-stacking behavior explicitly and keep the coverage.",
+            "The business rule changed: encode the new no-stacking behavior explicitly and keep the coverage.",
           impact: { quality: 5, testConfidence: 10, risk: -5 },
           nextStepId: "stakeholder-pressure",
           flags: [FLAGS.investigatedTest],
           consequence:
             "The suite now asserts the new behavior on purpose, instead of the old behavior by accident.",
           lesson:
-            "Tests should change when requirements change — deliberately, with the new rule spelled out.",
+            "Tests should change when requirements change: deliberately, with the new rule spelled out.",
         },
         {
           id: "push-forward",
@@ -311,7 +311,7 @@ export const justAddAButton: Scenario = {
       narrative:
         "Priya again, now with her manager cc'd: “Marketing locked the promo announcement for tomorrow 8 AM. We really need this live today. Where are we?”",
       context:
-        "The feature works on your machine. You know exactly which corners were cut today — and nobody asking for the release does.",
+        "The feature works on your machine. You know exactly which corners were cut today, and nobody asking for the release does.",
       options: [
         {
           id: "ship-today",
@@ -372,7 +372,7 @@ export const justAddAButton: Scenario = {
       time: "4:00 PM",
       title: "The release call",
       narrative:
-        "Everything's staged. The deploy button is right there. One more decision and the day is over — one way or another.",
+        "Everything's staged. The deploy button is right there. One more decision and the day is over, one way or another.",
       context:
         "You know today's full history: what was verified, what was guessed, what was skipped. Nobody else has that picture. The release decision is really a risk decision, and it's yours.",
       options: [
@@ -425,7 +425,7 @@ export const justAddAButton: Scenario = {
           consequence:
             "At 7:50 AM, marketing finds out the promo has no button. You weren't there for the conversation.",
           lesson:
-            "Blocking a risky release can be the right call — but silence converts caution into unreliability.",
+            "Blocking a risky release can be the right call, but silence converts caution into unreliability.",
         },
       ],
     },
@@ -444,7 +444,7 @@ export const justAddAButton: Scenario = {
       time: "4:30 PM",
       title: "Minor Production Issue",
       summary:
-        "The release mostly works, but an unverified edge case surfaces in a handful of carts overnight. It's caught and patched by morning — a small fire, but one that a different set of choices would have prevented entirely.",
+        "The release mostly works, but an unverified edge case surfaces in a handful of carts overnight. It's caught and patched by morning: a small fire, but one that a different set of choices would have prevented entirely.",
       tone: "mixed",
     },
     {
@@ -452,7 +452,7 @@ export const justAddAButton: Scenario = {
       time: "4:30 PM",
       title: "Customer Impact Incident",
       summary:
-        "Within hours, carts start charging customers the wrong amounts. Support tickets pile up, the deploy is rolled back at midnight, and tomorrow starts with an incident review instead of a promo. The shortcuts taken today all showed up at once — in production.",
+        "Within hours, carts start charging customers the wrong amounts. Support tickets pile up, the deploy is rolled back at midnight, and tomorrow starts with an incident review instead of a promo. The shortcuts taken today all showed up at once, in production.",
       tone: "negative",
     },
     {
@@ -460,7 +460,7 @@ export const justAddAButton: Scenario = {
       time: "4:30 PM",
       title: "Responsible Delay",
       summary:
-        "The feature doesn't ship today — and everyone knows exactly why, what it would have cost to force it, and when it lands instead. Marketing adjusts by an hour. The launch goes out clean in the morning. Slower than hoped, safer than feared.",
+        "The feature doesn't ship today, and everyone knows exactly why, what it would have cost to force it, and when it lands instead. Marketing adjusts by an hour. The launch goes out clean in the morning. Slower than hoped, safer than feared.",
       tone: "neutral",
     },
     {
@@ -468,7 +468,7 @@ export const justAddAButton: Scenario = {
       time: "4:30 PM",
       title: "Overcontrolled Delivery",
       summary:
-        "The release is blocked — which may even have been the right call — but nobody was told why, or when to expect it. Marketing finds out at launch time. The caution was real; the silence is what people will remember.",
+        "The release is blocked (which may even have been the right call), but nobody was told why, or when to expect it. Marketing finds out at launch time. The caution was real; the silence is what people will remember.",
       tone: "negative",
     },
   ],

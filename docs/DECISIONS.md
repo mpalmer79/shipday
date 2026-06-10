@@ -174,3 +174,44 @@ MetricsDashboard component. Importing UI components from `lib` would
 invert the dependency direction, so the labels and display order moved to
 `lib/simulator/metrics.ts` and the three components that used local copies
 now import them. Pure relocation; no values changed.
+
+## Milestone 6
+
+### M6: Copy rules enforced by assertions, not just by the sweep
+
+The em dash and banned word rules are now verified mechanically: the
+verify script serializes every registered scenario and asserts the strings
+contain no em dash and none of the banned words, and asserts every
+exported report is em dash free. A one-time sweep proves the repository is
+clean today; the assertions keep it clean. The detector itself references
+the em dash via a unicode escape so no source file contains the literal
+character, and the banned word list in the verify script is detector code,
+not copy, so the words appear there in plain form.
+
+### M6: RiskMeter label "Elevated" renamed to "Raised"
+
+The banned word list includes "elevate". The middle risk band was labeled
+"Elevated", which is ordinary risk terminology rather than marketing
+language, but the most conservative reading of the rule covers stems, so
+the label is now "Raised". The word "elevator" in scenario 3 (a phone in
+an elevator) is an unrelated word and stays.
+
+### M6: Pre-existing copy edits limited to em dash removal plus two fixes
+
+The sweep touched scenario 1 and the report module only where em dashes
+were replaced with periods, commas, colons, or parentheses, preserving
+meaning sentence by sentence. Two substantive fixes rode along: the shared
+missed-signal copy for deleted-failing-test referenced scenario 1's
+double-discounting incident while the flag is now also used by scenario 2,
+so it was generalized; and the landing page paragraph still pitched only
+scenario 1, so it now describes all three workdays, replay, and the
+downloadable report. Distribution pins confirm no behavioral change.
+
+### M6: "Fresh static export check" read as build output verification
+
+The project does not use the static export config option; it is a default
+build in which every route prerenders statically, which is what Vercel
+deploys without servers, environment variables, or API keys. The closeout
+check therefore verifies the build route table (every route marked static
+or SSG), and smoke tests the served pages, rather than switching the
+project to a different output mode for the check.
