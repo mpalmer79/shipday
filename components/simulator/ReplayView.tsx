@@ -1,17 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { MetricKey, ReplayFrame } from "@/lib/simulator";
-import { METRIC_LABELS } from "./MetricsDashboard";
-
-const METRIC_ORDER: MetricKey[] = [
-  "quality",
-  "speed",
-  "risk",
-  "trust",
-  "focus",
-  "testConfidence",
-];
+import type { ReplayFrame } from "@/lib/simulator";
+import { METRIC_LABELS, METRIC_ORDER } from "@/lib/simulator";
 
 function formatDelta(delta: number): string {
   return delta > 0 ? `+${delta}` : `${delta}`;

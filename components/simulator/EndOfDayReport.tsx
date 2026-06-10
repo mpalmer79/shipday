@@ -1,25 +1,18 @@
-import type { EndOfDayReport as Report, MetricKey } from "@/lib/simulator";
-import { METRIC_LABELS } from "./MetricsDashboard";
-
-const METRIC_ORDER: MetricKey[] = [
-  "quality",
-  "speed",
-  "risk",
-  "trust",
-  "focus",
-  "testConfidence",
-];
+import type { EndOfDayReport as Report } from "@/lib/simulator";
+import { METRIC_LABELS, METRIC_ORDER } from "@/lib/simulator";
 
 type EndOfDayReportProps = {
   report: Report;
   onRestart: () => void;
   onReplay?: () => void;
+  onDownload?: () => void;
 };
 
 export function EndOfDayReport({
   report,
   onRestart,
   onReplay,
+  onDownload,
 }: EndOfDayReportProps) {
   return (
     <div className="flex flex-col gap-5">
@@ -134,6 +127,15 @@ export function EndOfDayReport({
             className="rounded-lg border border-surface-line px-6 py-2.5 text-sm font-medium transition-colors hover:border-accent"
           >
             Replay the day
+          </button>
+        )}
+        {onDownload && (
+          <button
+            type="button"
+            onClick={onDownload}
+            className="rounded-lg border border-surface-line px-6 py-2.5 text-sm font-medium transition-colors hover:border-accent"
+          >
+            Download report
           </button>
         )}
       </div>

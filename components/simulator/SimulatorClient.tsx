@@ -22,6 +22,8 @@ import {
   generateReport,
   getCurrentStep,
   reconstructRun,
+  reportFilename,
+  reportToMarkdown,
   type SimulatorState,
 } from "@/lib/simulator";
 
@@ -67,6 +69,23 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
         : null,
     [scenario, state]
   );
+
+  function downloadReport() {
+    if (!report) {
+      return;
+    }
+    const runDate = new Date();
+    const markdown = reportToMarkdown(scenario, report, runDate);
+    const blob = new Blob([markdown], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = reportFilename(scenario, runDate);
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
 
   const currentStep = state.completed
     ? null
@@ -121,6 +140,7 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
                     ? () => setView("replay")
                     : undefined
                 }
+                onDownload={downloadReport}
               />
             </>
           )}

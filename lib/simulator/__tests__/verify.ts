@@ -21,6 +21,7 @@ import {
 } from "../engine";
 import { generateReport } from "../report";
 import { reconstructRun } from "../replay";
+import { reportFilename, reportToMarkdown } from "../exportReport";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
 import { END_STEP_ID } from "../types";
 
@@ -156,6 +157,14 @@ for (const scenario of scenarios) {
 
 // --- Phase 3: exhaustive playtest per scenario ------------------------
 
+const EXPORT_DATE = new Date("2026-01-01T00:00:00Z");
+
+{
+  // Filename is stable and filesystem-safe.
+  const name = reportFilename(scenarios[0], EXPORT_DATE);
+  assert.equal(name, "shipday-just-add-a-button-2026-01-01.md");
+}
+
 export type Distribution = {
   totalRuns: number;
   counts: Map<OutcomeId, number>;
@@ -183,6 +192,18 @@ function enumerateRuns(scenario: Scenario): Distribution {
       assert.deepEqual(
         replay.frames[replay.frames.length - 1].metricsAfter,
         state.metrics
+      );
+      // The exported report must carry every required section.
+      const markdown = reportToMarkdown(scenario, report, EXPORT_DATE);
+      assert.ok(markdown.includes(`# ShipDay report: ${scenario.name}`));
+      assert.ok(markdown.includes(`Outcome: ${report.outcome.title}`));
+      assert.ok(markdown.includes("## Final metrics"));
+      assert.ok(markdown.includes("## How the day unfolded"));
+      assert.ok(markdown.includes("## The staff-level lesson"));
+      assert.equal(
+        (markdown.match(/^### /gm) ?? []).length,
+        state.decisions.length,
+        "one timeline section per decision"
       );
       return;
     }

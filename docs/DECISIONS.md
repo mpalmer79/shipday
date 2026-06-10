@@ -145,3 +145,32 @@ server-rendered with real reconstructed frames for one run per outcome per
 scenario (15 renders) and checked for its key sections. The smoke script
 was a one-off check, not committed, since it duplicates what the verify
 assertions and the build already guard.
+
+## Milestone 5
+
+### M5: Download format is plain markdown
+
+The milestone allows standalone HTML or plain markdown. Markdown was
+chosen: the report is entirely textual, markdown opens cleanly in any
+editor or viewer with zero styling code to write or maintain, it is
+greppable and diffable, and it cannot drag in the escaping and inline-CSS
+surface a hand-built HTML document would. The generator is a pure function
+in `lib/simulator/exportReport.ts` with the run date passed in as an
+argument, so it stays deterministic and testable; the browser-only code is
+limited to the Blob download in the client component.
+
+### M5: Date of run is the download timestamp
+
+The simulator does not track wall-clock time (runs are deterministic and
+restartable), so there is no stored "run completed at" moment. The date
+written into the file is the moment the user downloads the report, which
+is accurate to within the length of a session and avoids adding clock
+state to the engine for a metadata line.
+
+### M5: Metric labels moved from a component to the library
+
+The exporter needs the human-readable metric names, which lived in the
+MetricsDashboard component. Importing UI components from `lib` would
+invert the dependency direction, so the labels and display order moved to
+`lib/simulator/metrics.ts` and the three components that used local copies
+now import them. Pure relocation; no values changed.
