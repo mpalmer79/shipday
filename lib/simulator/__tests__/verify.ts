@@ -20,6 +20,7 @@ import {
   SimulatorError,
 } from "../engine";
 import { generateReport } from "../report";
+import { reconstructRun } from "../replay";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
 import { END_STEP_ID } from "../types";
 
@@ -173,6 +174,16 @@ function enumerateRuns(scenario: Scenario): Distribution {
       const report = generateReport(scenario, state);
       assert.equal(report.timeline.length, state.decisions.length);
       assert.ok(report.staffLevelLesson.length > 0);
+      // Replaying the decision trail must reproduce the run exactly.
+      const replay = reconstructRun(scenario, state.decisions);
+      assert.deepEqual(replay.finalState.metrics, state.metrics);
+      assert.equal(replay.finalState.outcomeId, state.outcomeId);
+      assert.equal(replay.finalState.completed, true);
+      assert.equal(replay.frames.length, state.decisions.length);
+      assert.deepEqual(
+        replay.frames[replay.frames.length - 1].metricsAfter,
+        state.metrics
+      );
       return;
     }
     const step = getCurrentStep(scenario, state);

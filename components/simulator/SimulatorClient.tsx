@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useReducer } from "react";
+import { useMemo, useReducer, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { DecisionPanel } from "@/components/simulator/DecisionPanel";
 import { CodeReviewCard } from "@/components/simulator/CodeReviewCard";
@@ -9,6 +9,7 @@ import { MetricsDashboard } from "@/components/simulator/MetricsDashboard";
 import { OutcomeBadge } from "@/components/simulator/OutcomeBadge";
 import { ScenarioCard } from "@/components/simulator/ScenarioCard";
 import { SystemSignals } from "@/components/simulator/SystemSignals";
+import { ReplayView } from "@/components/simulator/ReplayView";
 import { Timeline } from "@/components/simulator/Timeline";
 import {
   WorkdayStatus,
@@ -20,6 +21,7 @@ import {
   createInitialState,
   generateReport,
   getCurrentStep,
+  reconstructRun,
   type SimulatorState,
 } from "@/lib/simulator";
 
@@ -42,6 +44,7 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
     scenario,
     createInitialState
   );
+  const [view, setView] = useState<"report" | "replay">("report");
 
   const workdayBeats: WorkdayBeat[] = useMemo(
     () => [
@@ -54,6 +57,14 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
 
   const report = useMemo(
     () => (state.completed ? generateReport(scenario, state) : null),
+    [scenario, state]
+  );
+
+  const replayFrames = useMemo(
+    () =>
+      state.completed
+        ? reconstructRun(scenario, state.decisions).frames
+        : null,
     [scenario, state]
   );
 
@@ -96,14 +107,28 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
               />
             </>
           )}
-          {report && (
+          {report && view === "report" && (
             <>
               <OutcomeBadge outcome={report.outcome} />
               <EndOfDayReport
                 report={report}
-                onRestart={() => dispatch({ type: "restart" })}
+                onRestart={() => {
+                  setView("report");
+                  dispatch({ type: "restart" });
+                }}
+                onReplay={
+                  replayFrames && replayFrames.length > 0
+                    ? () => setView("replay")
+                    : undefined
+                }
               />
             </>
+          )}
+          {report && view === "replay" && replayFrames && (
+            <ReplayView
+              frames={replayFrames}
+              onBack={() => setView("report")}
+            />
           )}
         </div>
 

@@ -114,3 +114,34 @@ fails on any deviation, which is the strictest possible regression and
 costs nothing extra to run. Scenario 3 is pinned as well after its tuning
 settled, so milestones 4 through 6 cannot silently move any distribution.
 A deliberate retune must update the pinned counts and this log together.
+
+## Milestone 4
+
+### M4: Replay view state is component state, not simulator state
+
+The milestone forbids storing new state for replay. The simulator state is
+untouched: replay is reconstructed on demand by a pure function
+(`reconstructRun`) from the scenario plus the recorded decision trail, and
+every intermediate metric snapshot is recomputed through the engine itself,
+so replay cannot disagree with the original run. The only additions are
+two pieces of view state in the client component (report-or-replay toggle,
+current frame index), which is presentation state in the same category as
+the timeline's expand toggle.
+
+### M4: Replay reconstruction validates the trail it is given
+
+`reconstructRun` throws if a decision record's step id does not match the
+step the engine expects, or if the recorded option id does not exist in
+that step. Records always come from the engine today, so this cannot fire
+in the app; it exists so that any future source of decision trails (an
+imported run, a shared link) fails loudly instead of replaying garbage.
+
+### M4: Replay UI verified by rendering, not by hand
+
+The acceptance requires the replay UI to work for all five outcome types.
+Beyond the engine assertions (replay reproduces exact final metrics and
+outcome for every enumerated path in all three scenarios), the view was
+server-rendered with real reconstructed frames for one run per outcome per
+scenario (15 renders) and checked for its key sections. The smoke script
+was a one-off check, not committed, since it duplicates what the verify
+assertions and the build already guard.
