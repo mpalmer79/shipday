@@ -1,5 +1,6 @@
 import type { Scenario } from "@/lib/simulator/types";
 import { justAddAButton } from "./just-add-a-button";
+import { theBrokenBuild } from "./the-broken-build";
 
 export type ScenarioDifficulty = "starter" | "intermediate" | "advanced";
 
@@ -18,6 +19,7 @@ type RegistryEntry = {
 
 const registry: readonly RegistryEntry[] = [
   { scenario: justAddAButton, difficulty: "starter" },
+  { scenario: theBrokenBuild, difficulty: "intermediate" },
 ];
 
 export const scenarios: readonly Scenario[] = registry.map((e) => e.scenario);
@@ -46,4 +48,4 @@ export function findScenario(id: string): Scenario | undefined {
   return scenarios.find((s) => s.id === id);
 }
 
-export { justAddAButton };
+export { justAddAButton, theBrokenBuild };

@@ -1,25 +1,7 @@
 import type { Scenario } from "@/lib/simulator/types";
 import { END_STEP_ID } from "@/lib/simulator/types";
 
-/**
- * Flag vocabulary for Scenario 1. Outcome rules and report heuristics
- * reference these constants; nothing else should use raw strings.
- */
-export const FLAGS = {
-  askedClarifyingQuestions: "asked-clarifying-questions",
-  inspectedExistingCode: "inspected-existing-code",
-  acceptedAiUnreviewed: "accepted-ai-unreviewed",
-  reviewedAiCode: "reviewed-ai-code",
-  deletedFailingTest: "deleted-failing-test",
-  investigatedTest: "investigated-test",
-  usedFeatureFlag: "used-feature-flag",
-  stagedRelease: "staged-release",
-  shippedDirect: "shipped-direct",
-  delayedRelease: "delayed-release",
-  blockedRelease: "blocked-release",
-  communicatedTradeoffs: "communicated-tradeoffs",
-  skippedValidation: "skipped-validation",
-} as const;
+import { FLAGS } from "./flags";
 
 const AI_SUGGESTION_SNIPPET = `function applyDiscount(cart: Cart, code: DiscountCode): Cart {
   const discount = code.percent
