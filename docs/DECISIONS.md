@@ -487,3 +487,77 @@ branching scenario the panel now shows the path taken plus the current step
 rather than a false linear preview. Linear scenarios keep the full preview
 unchanged. Branching is detected as any step whose options lead to more than
 one distinct next step.
+
+## Milestone 5
+
+### M5: The schema is a hand-written validator, not a schema library
+
+The scenario "schema" is expressed as a validator in `lib/simulator/validate.ts`
+rather than a JSON Schema document plus a runtime library. This adds no
+runtime dependency (a hard rule of the run), keeps the schema and the
+TypeScript types in one language, and lets each check return a specific,
+readable message (the milestone's actual requirement) rather than a generic
+schema-path error. The validator treats every field as untrusted: it checks
+the type of each value before reading it, and it collects all errors in one
+pass instead of failing on the first.
+
+### M5: Validator checks correctness and safety, not authoring guidelines
+
+The validator enforces what the engine needs to run safely: known metric
+keys, real step and option ids, next steps that exist, conditions that are
+well formed, rules and the fallback that reference defined outcomes, and
+flags in rules that some option actually sets. It does not enforce the
+authoring guideline that built-in steps carry four or five options; an
+imported step needs at least one option to be a step. The four-to-five rule
+is a content standard for the built-in scenarios, checked separately in the
+playtest, not a property of a valid scenario.
+
+### M5: SimulatorClient takes a scenario object, not an id
+
+To play a scenario that is not in the registry (one imported at runtime),
+the simulator can no longer resolve its scenario by id through the registry.
+SimulatorClient now takes the Scenario object directly, and its reducer is a
+pure factory bound to that scenario. This is a deliberate change to the v2
+design (a module-level reducer that looked the scenario up by id). The
+factory is still a pure, module-level function; the only difference is that
+the scenario is closed over rather than fetched, which is what lets an
+imported scenario play through the exact same component and engine as a
+built-in. The route page now passes the resolved scenario object.
+
+### M5: Imported scenarios live in memory only
+
+The import page holds the parsed scenario in component state and passes it to
+the simulator. Nothing is written to localStorage, IndexedDB, cookies, or
+any network endpoint, so the app stays static and stores nothing. Reloading
+the page clears the imported scenario, which is the intended scope ("imported
+scenarios live in memory only").
+
+### M5: Structural lint and its conservative never-fire check
+
+`lib/simulator/lint.ts` reports three structural problems usable against any
+scenario: steps unreachable from the initial step (breadth-first over the
+next-step graph), dead flags (read by a rule but set by no option), and
+outcome rules whose condition can never be true. The never-fire check is a
+conservative static analysis: it reports a rule only when the condition is
+provably unsatisfiable (a metric threshold outside the clamped range, a
+required flag no option sets, or a single allOf that both requires and
+forbids the same flag). It will not flag every dead rule (full reachability
+across priorities is path dependent), but it never reports a false positive.
+The lint runs over every built-in scenario in verify and all four are clean.
+
+### M5: Verify asserts validator rejections and a valid play-through
+
+Verify includes a phase that round-trips a built-in scenario through the
+validator and plays it to a known outcome, then feeds eleven distinct
+malformed inputs (eleven, where the milestone asks for at least eight) and
+asserts each is rejected with the specific expected message. The cases cover
+a non-object, a missing required array, unknown metric keys (in initial
+metrics and in an option impact), a dangling next step, a bad initial step, a
+duplicate step id, an undefined flag in a rule, a malformed condition kind,
+an invalid tone, and a rule whose outcome is not defined.
+
+### M5: Header navigation added for discoverability
+
+The header gained a nav landmark with links to the scenario picker and the
+importer, so the new route is reachable without typing the URL. The links
+inherit the global focus styles from Milestone 2.

@@ -15,7 +15,6 @@ import {
   WorkdayStatus,
   type WorkdayBeat,
 } from "@/components/simulator/WorkdayStatus";
-import { getScenario } from "@/data/scenarios";
 import {
   applyDecision,
   createInitialState,
@@ -24,28 +23,34 @@ import {
   reconstructRun,
   reportFilename,
   reportToMarkdown,
+  type Scenario,
   type SimulatorState,
 } from "@/lib/simulator";
 
 type Action = { type: "decide"; optionId: string } | { type: "restart" };
 
-function reducer(state: SimulatorState, action: Action): SimulatorState {
-  const scenario = getScenario(state.scenarioId);
-  switch (action.type) {
-    case "decide":
-      return applyDecision(scenario, state, action.optionId);
-    case "restart":
-      return createInitialState(scenario);
-  }
+/**
+ * Reducer factory bound to a scenario. Keeping it a pure factory lets the
+ * simulator run any scenario, including one imported at runtime that is not
+ * in the registry, without the reducer reaching for global lookup.
+ */
+function makeReducer(scenario: Scenario) {
+  return function reducer(
+    state: SimulatorState,
+    action: Action
+  ): SimulatorState {
+    switch (action.type) {
+      case "decide":
+        return applyDecision(scenario, state, action.optionId);
+      case "restart":
+        return createInitialState(scenario);
+    }
+  };
 }
 
-export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
-  const scenario = getScenario(scenarioId);
-  const [state, dispatch] = useReducer(
-    reducer,
-    scenario,
-    createInitialState
-  );
+export function SimulatorClient({ scenario }: { scenario: Scenario }) {
+  const reducer = useMemo(() => makeReducer(scenario), [scenario]);
+  const [state, dispatch] = useReducer(reducer, scenario, createInitialState);
   const [view, setView] = useState<"report" | "replay">("report");
 
   const currentStep = state.completed

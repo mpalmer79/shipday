@@ -22,6 +22,8 @@ import {
 import { generateReport } from "../report";
 import { reconstructRun } from "../replay";
 import { reportFilename, reportToMarkdown } from "../exportReport";
+import { lintScenario } from "../lint";
+import { parseScenarioJson, validateScenario, OUTCOME_IDS } from "../validate";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
 import { END_STEP_ID } from "../types";
 
@@ -183,6 +185,14 @@ for (const scenario of scenarios) {
     );
   }
   assert.ok(outcomeIds.has(scenario.fallbackOutcomeId));
+
+  // Structural lint: every built-in scenario must be clean.
+  const lintProblems = lintScenario(scenario);
+  assert.equal(
+    lintProblems.length,
+    0,
+    `Lint problems in ${scenario.id}: ${lintProblems.join("; ")}`
+  );
 }
 
 // --- Phase 3: exhaustive playtest per scenario ------------------------
@@ -399,5 +409,161 @@ console.log(
     .map((s) => `${(s.share * 100).toFixed(2)}%`)
     .join(" -> ")}`
 );
+
+// --- Phase 4: scenario import validator ------------------------------
+
+{
+  // A real scenario round-trips through the validator and plays to an end.
+  const valid = parseScenarioJson(JSON.stringify(scenario1));
+  assert.ok(valid.ok, "a built-in scenario must validate as JSON");
+  if (valid.ok) {
+    let state = createInitialState(valid.scenario);
+    while (!state.completed) {
+      const step = getCurrentStep(valid.scenario, state);
+      state = applyDecision(valid.scenario, state, step.options[0].id);
+    }
+    assert.ok(
+      OUTCOME_IDS.includes(state.outcomeId!),
+      "a validated scenario must play to a known outcome"
+    );
+  }
+
+  // The validator rejects malformed input with specific messages. Each case
+  // mutates a clone of a valid scenario to break exactly one thing.
+  const clone = () => JSON.parse(JSON.stringify(scenario1));
+  const rejections: { name: string; input: unknown; expect: string }[] = [];
+
+  rejections.push({
+    name: "not an object",
+    input: "this is not a scenario",
+    expect: "must be a JSON object",
+  });
+
+  {
+    const s = clone();
+    delete s.steps;
+    rejections.push({
+      name: "missing steps",
+      input: s,
+      expect: "steps must be a non-empty array",
+    });
+  }
+
+  {
+    const s = clone();
+    s.initialMetrics.energy = 5;
+    rejections.push({
+      name: "unknown metric key",
+      input: s,
+      expect: 'unknown metric key "energy"',
+    });
+  }
+
+  {
+    const s = clone();
+    s.steps[0].options[0].nextStepId = "nowhere";
+    rejections.push({
+      name: "dangling nextStepId",
+      input: s,
+      expect: 'points at unknown step "nowhere"',
+    });
+  }
+
+  {
+    const s = clone();
+    s.initialStepId = "missing-step";
+    rejections.push({
+      name: "bad initialStepId",
+      input: s,
+      expect: 'initialStepId "missing-step" does not match any step',
+    });
+  }
+
+  {
+    const s = clone();
+    s.steps[1].id = s.steps[0].id;
+    rejections.push({
+      name: "duplicate step id",
+      input: s,
+      expect: "is a duplicate step id",
+    });
+  }
+
+  {
+    const s = clone();
+    s.outcomeRules.push({
+      outcomeId: "minor-issue",
+      priority: 99,
+      when: { kind: "hasFlag", flag: "never-set-flag" },
+    });
+    rejections.push({
+      name: "rule references undefined flag",
+      input: s,
+      expect: 'flag "never-set-flag" that no option ever sets',
+    });
+  }
+
+  {
+    const s = clone();
+    s.outcomeRules[0].when = { kind: "frobnicate" };
+    rejections.push({
+      name: "malformed condition kind",
+      input: s,
+      expect: 'unknown condition kind "frobnicate"',
+    });
+  }
+
+  {
+    const s = clone();
+    s.outcomes[0].tone = "spicy";
+    rejections.push({
+      name: "invalid tone",
+      input: s,
+      expect: "tone must be one of",
+    });
+  }
+
+  {
+    const s = clone();
+    s.steps[0].options[0].impact.energy = 3;
+    rejections.push({
+      name: "impact unknown metric",
+      input: s,
+      expect: 'unknown metric key "energy"',
+    });
+  }
+
+  {
+    const s = clone();
+    s.outcomes = s.outcomes.filter(
+      (o: { id: string }) => o.id !== "customer-incident"
+    );
+    rejections.push({
+      name: "rule outcome has no matching outcome",
+      input: s,
+      expect: 'outcomeId "customer-incident" has no matching outcome',
+    });
+  }
+
+  assert.ok(
+    rejections.length >= 8,
+    "expected at least 8 malformed-input rejection cases"
+  );
+
+  for (const { name, input, expect } of rejections) {
+    const result = validateScenario(input);
+    assert.equal(result.ok, false, `expected rejection for: ${name}`);
+    if (!result.ok) {
+      assert.ok(
+        result.errors.some((e) => e.includes(expect)),
+        `rejection "${name}" should report "${expect}"; got: ${result.errors.join(" | ")}`
+      );
+    }
+  }
+
+  console.log(
+    `\nImport validator: ${rejections.length} malformed inputs rejected with specific messages.`
+  );
+}
 
 console.log("\nAll verification checks passed.");
