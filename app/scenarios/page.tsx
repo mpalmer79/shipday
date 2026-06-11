@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { scenarioListings } from "@/data/scenarios";
+
+export const metadata: Metadata = {
+  title: "Scenarios",
+  description:
+    "Pick a workday: simulated engineering days with different pressures and the same job, shipping safely.",
+};
 
 const DIFFICULTY_STYLES: Record<string, string> = {
   starter: "border-good/40 text-good",
