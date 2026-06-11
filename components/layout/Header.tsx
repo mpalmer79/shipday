@@ -18,6 +18,12 @@ export function Header() {
             Scenarios
           </Link>
           <Link
+            href="/import"
+            className="hidden text-ink-muted transition-colors hover:text-ink sm:inline"
+          >
+            Import
+          </Link>
+          <Link
             href="/compare"
             className="text-ink-muted transition-colors hover:text-ink"
           >

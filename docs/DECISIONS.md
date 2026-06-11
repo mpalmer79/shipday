@@ -546,3 +546,39 @@ the two acceptance properties for all four scenarios: a run compared with
 itself reports zero differing choices, the same outcome, and a zero metric
 delta; and two known runs report the exact metric delta and the exact
 number of differing choices computed independently from the trails.
+
+## v3 Milestone 7
+
+### M7: Importer-facing strings covered by copy-rule assertions
+
+The scenario copy-rule assertions already cover all four built-in scenarios
+through the registry loop. Milestone 7 extends them to importer-facing
+strings: verify now collects the validator error messages from the twelve
+malformed cases plus the lint warnings from a deliberately broken scenario
+and asserts none contain an em dash or a banned word. The static UI copy in
+the import and compare pages is covered by the repository-wide sweep, which
+is clean.
+
+### M7: Decision-log mentions of a banned word are audit text, not copy
+
+The repository sweep is clean except for the v2 Milestone 6 decision-log
+entry that names the old "Elevated" risk label to explain why it was
+renamed. That is audit text documenting a past change, the same category as
+the banned-word list inside the verify detector, not copy shipped in the
+product. It is left as written so the audit trail stays accurate.
+
+### M7: Header navigation added
+
+With five top-level destinations (home, scenarios, import, compare, and the
+simulator) the header gained a small nav with Scenarios, Import, and Compare
+links so the new pages are reachable without typing URLs. Import is hidden
+on the narrowest viewports to keep the bar from wrapping; it stays reachable
+from the scenarios page link.
+
+### M7: Final state
+
+verify and build are green. Every route prerenders static or SSG with no
+server functions, environment variables, or API keys, so the app stays
+deployable as a static site. All nine routes were smoke-tested (the eight
+pages plus the simulator redirect). The exhaustive walk covers 19,712 paths
+across four scenarios in about half a second.

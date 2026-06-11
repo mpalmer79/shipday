@@ -586,6 +586,7 @@ const malformed: Malformed[] = [
 ];
 
 let rejected = 0;
+const importerMessages: string[] = [];
 for (const test of malformed) {
   const input = baseScenario();
   test.mutate(input);
@@ -596,10 +597,49 @@ for (const test of malformed) {
       result.errors.some((e) => test.expect.test(e)),
       `${test.name}: expected message matching ${test.expect}, got ${result.errors.join("; ")}`
     );
+    importerMessages.push(...result.errors);
     rejected += 1;
   }
 }
 assert.ok(rejected >= 8, `importer must reject at least 8 cases, rejected ${rejected}`);
+
+// Importer-facing strings (validator errors and lint warnings) obey the
+// same copy rules as scenario data: no em dashes, no banned words.
+{
+  const broken = baseScenario();
+  (broken.steps as Record<string, unknown>[]).push({
+    id: "orphan",
+    time: "9:00 AM",
+    title: "Orphan",
+    narrative: "n",
+    context: "c",
+    options: [
+      { id: "x", label: "X", description: "d", impact: {}, nextStepId: "__end__" },
+    ],
+  });
+  const result = validateScenario(broken);
+  if (result.ok) {
+    importerMessages.push(...lintScenario(result.scenario));
+  }
+  const banned = [
+    "seamless",
+    "robust",
+    "delve",
+    "leverage",
+    "elevate",
+    "supercharge",
+    "game-changing",
+  ];
+  for (const msg of importerMessages) {
+    assert.ok(!msg.includes("\u2014"), `Em dash in importer message: ${msg}`);
+    for (const word of banned) {
+      assert.ok(
+        !msg.toLowerCase().includes(word),
+        `Banned word "${word}" in importer message: ${msg}`
+      );
+    }
+  }
+}
 
 // Non-JSON input is rejected with a parse error, not a crash.
 {
