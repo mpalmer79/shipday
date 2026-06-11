@@ -52,6 +52,16 @@ export default function ScenariosPage() {
             </Link>
           ))}
         </div>
+        <p className="mt-8 text-sm text-ink-muted">
+          Have your own?{" "}
+          <Link
+            href="/import"
+            className="font-medium text-accent hover:underline"
+          >
+            Import a scenario from JSON
+          </Link>
+          .
+        </p>
       </div>
     </AppShell>
   );

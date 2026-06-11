@@ -39,8 +39,9 @@ export default async function ScenarioPage({
   params: Promise<{ scenarioId: string }>;
 }) {
   const { scenarioId } = await params;
-  if (!findScenario(scenarioId)) {
+  const scenario = findScenario(scenarioId);
+  if (!scenario) {
     notFound();
   }
-  return <SimulatorClient scenarioId={scenarioId} />;
+  return <SimulatorClient scenario={scenario} />;
 }

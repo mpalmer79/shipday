@@ -454,3 +454,59 @@ outcomes inside the 2 to 45 percent bounds. New scenario, so the pins are
 recorded as initial values, not a before-and-after change: safe-rollout
 1092, minor-issue 1156, customer-incident 606, responsible-delay 909,
 overcontrolled 333.
+
+## v3 Milestone 5
+
+### M5: Hand-written validator, no schema dependency
+
+Scenario validation is a hand-written function in lib/simulator/import.ts,
+not a JSON Schema plus a runtime validator library. A schema library would
+be a new runtime dependency, which the ground rules discourage, and the
+engine's types are the real contract anyway. The validator mirrors those
+types, treats all input as untrusted, and collects every problem it can
+find rather than failing on the first, so the importer shows a full list.
+It checks unknown and missing metric keys, non-string and non-number
+fields, duplicate step and option ids, the initial step resolving, option
+nextStepId targets existing (or the end sentinel), outcome ids and tones
+from the known sets, outcome rules referencing defined outcomes, rule
+conditions referencing only flags some option sets, well-formed condition
+trees, and the fallback outcome being defined.
+
+### M5: Undefined flag in a rule is a validation error, not just a lint
+
+The milestone lists "outcome rules referencing undefined flags" among the
+validator errors. A flag is undefined when no option sets it. Such a
+reference is treated as a hard validation error (the importer rejects it),
+and the structural lint separately reports the same family of issue as a
+warning for built-in scenarios. The two do not conflict: import rejects it
+outright, lint surfaces it without blocking.
+
+### M5: Structural lint is static and conservative
+
+lintScenario reports unreachable steps (no path from the initial step
+reaches them), flags referenced in rules but set by no option, and outcome
+rules that can never fire. The never-fire check is a conservative static
+satisfiability test over the condition tree given the settable flags and
+the 0 to 100 metric range: it catches a required flag nothing sets,
+contradictory metric bounds, and a flag required present and absent in the
+same allOf, without claiming to prove general satisfiability. Verify asserts
+all four built-in scenarios lint clean.
+
+### M5: SimulatorClient takes a scenario object, not an id
+
+To play an imported scenario that is not in the registry, SimulatorClient
+now receives a Scenario object directly instead of a scenario id it looks
+up. The route page resolves the id to the registry object and passes it;
+the import page passes the validated in-memory object. The reducer closes
+over the scenario rather than resolving it from the registry by id, so the
+engine path is identical for built-in and imported scenarios. Scenario data
+is plain serializable JSON, so passing it from the server component to the
+client component is safe.
+
+### M5: Imported scenarios live only in memory
+
+The import page validates in the browser and holds the result in component
+state. There is no persistence, no storage API, no upload. Reloading the
+page clears it. This keeps the app static and backend-free and avoids
+storing untrusted data anywhere. A link from the scenarios page points to
+the importer for discoverability.

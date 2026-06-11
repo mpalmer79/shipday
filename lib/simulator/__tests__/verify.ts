@@ -22,6 +22,7 @@ import {
 import { generateReport } from "../report";
 import { reconstructRun } from "../replay";
 import { reportFilename, reportToMarkdown } from "../exportReport";
+import { parseScenarioJson, validateScenario, lintScenario } from "../import";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
 import { END_STEP_ID } from "../types";
 
@@ -404,4 +405,209 @@ assert.ok(
   `Registry walk must stay under 10s, took ${walkSeconds.toFixed(2)}s`
 );
 
-console.log("\nAll verification checks passed.");
+// --- Phase 4: structural lint over the registry ----------------------
+
+for (const scenario of scenarios) {
+  const warnings = lintScenario(scenario);
+  assert.equal(
+    warnings.length,
+    0,
+    `Lint warnings in built-in ${scenario.id}: ${warnings.join("; ")}`
+  );
+}
+
+// --- Phase 5: importer round-trip and rejection of malformed input ---
+
+// A valid scenario survives a JSON round-trip and plays end to end.
+{
+  const json = JSON.stringify(scenarios[0]);
+  const result = parseScenarioJson(json);
+  assert.ok(result.ok, "round-tripped scenario must validate");
+  if (result.ok) {
+    let state = createInitialState(result.scenario);
+    while (!state.completed) {
+      const step = getCurrentStep(result.scenario, state);
+      state = applyDecision(result.scenario, state, step.options[0].id);
+    }
+    assert.ok(state.outcomeId, "imported scenario must reach an outcome");
+  }
+}
+
+// A minimal valid scenario, used as the base for malformed variants.
+function baseScenario(): Record<string, unknown> {
+  return {
+    id: "t",
+    name: "T",
+    tagline: "t",
+    initialStepId: "a",
+    initialMetrics: {
+      quality: 50,
+      speed: 50,
+      risk: 30,
+      trust: 50,
+      focus: 50,
+      testConfidence: 50,
+    },
+    steps: [
+      {
+        id: "a",
+        time: "9:00 AM",
+        title: "A",
+        narrative: "n",
+        context: "c",
+        options: [
+          {
+            id: "go",
+            label: "Go",
+            description: "d",
+            impact: { risk: 5 },
+            nextStepId: "__end__",
+            flags: ["did-go"],
+          },
+        ],
+      },
+    ],
+    outcomes: [
+      { id: "minor-issue", time: "5:00 PM", title: "M", summary: "s", tone: "mixed" },
+    ],
+    outcomeRules: [],
+    fallbackOutcomeId: "minor-issue",
+  };
+}
+
+// The base must itself be valid, so each rejection isolates one fault.
+assert.ok(validateScenario(baseScenario()).ok, "base scenario must be valid");
+
+type Malformed = { name: string; mutate: (s: Record<string, unknown>) => void; expect: RegExp };
+
+const malformed: Malformed[] = [
+  {
+    name: "unknown metric key",
+    mutate: (s) => {
+      (s.initialMetrics as Record<string, unknown>).speeed = 1;
+    },
+    expect: /unknown metric key "speeed"/,
+  },
+  {
+    name: "missing metric key",
+    mutate: (s) => {
+      delete (s.initialMetrics as Record<string, unknown>).focus;
+    },
+    expect: /missing metric "focus"/,
+  },
+  {
+    name: "non-numeric metric",
+    mutate: (s) => {
+      (s.initialMetrics as Record<string, unknown>).risk = "high";
+    },
+    expect: /initialMetrics\.risk must be a number/,
+  },
+  {
+    name: "duplicate step id",
+    mutate: (s) => {
+      (s.steps as unknown[]).push((s.steps as unknown[])[0]);
+    },
+    expect: /Duplicate step id "a"/,
+  },
+  {
+    name: "initialStepId not a step",
+    mutate: (s) => {
+      s.initialStepId = "nope";
+    },
+    expect: /initialStepId "nope" is not a defined step/,
+  },
+  {
+    name: "option points at missing step",
+    mutate: (s) => {
+      const step = (s.steps as Record<string, unknown>[])[0];
+      (step.options as Record<string, unknown>[])[0].nextStepId = "ghost";
+    },
+    expect: /points at unknown step "ghost"/,
+  },
+  {
+    name: "rule references undefined outcome",
+    mutate: (s) => {
+      (s.outcomeRules as unknown[]).push({
+        outcomeId: "safe-rollout",
+        priority: 1,
+        when: { kind: "metricAtLeast", metric: "risk", value: 50 },
+      });
+    },
+    expect: /references outcome "safe-rollout" which is not defined/,
+  },
+  {
+    name: "rule references unset flag",
+    mutate: (s) => {
+      (s.outcomeRules as unknown[]).push({
+        outcomeId: "minor-issue",
+        priority: 1,
+        when: { kind: "hasFlag", flag: "never-set" },
+      });
+    },
+    expect: /references flag "never-set" that no option sets/,
+  },
+  {
+    name: "malformed condition kind",
+    mutate: (s) => {
+      (s.outcomeRules as unknown[]).push({
+        outcomeId: "minor-issue",
+        priority: 1,
+        when: { kind: "alwaysTrue" },
+      });
+    },
+    expect: /unknown condition kind "alwaysTrue"/,
+  },
+  {
+    name: "condition unknown metric",
+    mutate: (s) => {
+      (s.outcomeRules as unknown[]).push({
+        outcomeId: "minor-issue",
+        priority: 1,
+        when: { kind: "metricAtLeast", metric: "vibes", value: 1 },
+      });
+    },
+    expect: /uses unknown metric "vibes"/,
+  },
+  {
+    name: "fallback not a defined outcome",
+    mutate: (s) => {
+      s.fallbackOutcomeId = "safe-rollout";
+    },
+    expect: /fallbackOutcomeId "safe-rollout" is not a defined outcome/,
+  },
+  {
+    name: "missing top-level field",
+    mutate: (s) => {
+      delete s.tagline;
+    },
+    expect: /Field "tagline" must be a string/,
+  },
+];
+
+let rejected = 0;
+for (const test of malformed) {
+  const input = baseScenario();
+  test.mutate(input);
+  const result = validateScenario(input);
+  assert.equal(result.ok, false, `${test.name} must be rejected`);
+  if (!result.ok) {
+    assert.ok(
+      result.errors.some((e) => test.expect.test(e)),
+      `${test.name}: expected message matching ${test.expect}, got ${result.errors.join("; ")}`
+    );
+    rejected += 1;
+  }
+}
+assert.ok(rejected >= 8, `importer must reject at least 8 cases, rejected ${rejected}`);
+
+// Non-JSON input is rejected with a parse error, not a crash.
+{
+  const result = parseScenarioJson("{ not json");
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.ok(result.errors[0].startsWith("Invalid JSON:"));
+  }
+}
+
+console.log(`\nImporter rejected ${rejected} malformed inputs with specific messages.`);
+console.log("All verification checks passed.");

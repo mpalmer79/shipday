@@ -15,7 +15,6 @@ import {
   WorkdayStatus,
   type WorkdayBeat,
 } from "@/components/simulator/WorkdayStatus";
-import { getScenario } from "@/data/scenarios";
 import {
   applyDecision,
   createInitialState,
@@ -24,13 +23,17 @@ import {
   reconstructRun,
   reportFilename,
   reportToMarkdown,
+  type Scenario,
   type SimulatorState,
 } from "@/lib/simulator";
 
 type Action = { type: "decide"; optionId: string } | { type: "restart" };
 
-function reducer(state: SimulatorState, action: Action): SimulatorState {
-  const scenario = getScenario(state.scenarioId);
+function reduce(
+  scenario: Scenario,
+  state: SimulatorState,
+  action: Action
+): SimulatorState {
   switch (action.type) {
     case "decide":
       return applyDecision(scenario, state, action.optionId);
@@ -39,10 +42,9 @@ function reducer(state: SimulatorState, action: Action): SimulatorState {
   }
 }
 
-export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
-  const scenario = getScenario(scenarioId);
+export function SimulatorClient({ scenario }: { scenario: Scenario }) {
   const [state, dispatch] = useReducer(
-    reducer,
+    (s: SimulatorState, a: Action) => reduce(scenario, s, a),
     scenario,
     createInitialState
   );
