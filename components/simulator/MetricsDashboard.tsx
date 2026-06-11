@@ -23,7 +23,7 @@ export function MetricsDashboard({
   decisionCount,
 }: MetricsDashboardProps) {
   return (
-    <div className="flex flex-col gap-3">
+    <section aria-label="Your metrics" className="flex flex-col gap-3">
       <RiskMeter
         value={metrics.risk}
         delta={lastImpact?.risk}
@@ -40,6 +40,6 @@ export function MetricsDashboard({
           />
         ))}
       </div>
-    </div>
+    </section>
   );
 }

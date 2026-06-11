@@ -10,4 +10,24 @@
   ::selection {
     @apply bg-accent-soft text-ink;
   }
+
+  /* Visible keyboard focus for every interactive element. Mouse clicks
+     do not trigger it (focus-visible), so the ring appears only for
+     keyboard and assistive-tech navigation. */
+  a:focus-visible,
+  button:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-surface;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

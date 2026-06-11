@@ -256,3 +256,69 @@ The simulator pages currently render no h1 (the scenario card uses an h2),
 which the prerendered HTML confirms. This is semantic structure, which is
 Milestone 2's scope, so it is recorded here and fixed there rather than
 expanding Milestone 1 beyond metadata and identity.
+
+## v3 Milestone 2
+
+### M2: Mobile column order puts the risk meter first
+
+On desktop the simulator is three columns (workday, center, metrics). On a
+single column the v2 order placed the metrics dashboard last, so the risk
+meter sat below the decision panel and required scrolling past it. The three
+grid children now carry explicit mobile and desktop order classes: metrics
+is order-1 on mobile (lg:order-3 on desktop), the center column is order-2,
+and the workday and timeline column is order-3 on mobile (lg:order-1). The
+risk meter is now the first content after the page heading on narrow
+viewports, visible without scrolling past the decision panel, and the
+desktop layout is unchanged.
+
+### M2: ink-faint token darkened to meet WCAG AA
+
+The mandated contrast pairs all passed AA against their backgrounds before
+any change: risk bands good 9.9, warn 10.3, bad 6.2, and the metric delta
+colors use the same good and bad tokens. The broader audit found one failing
+token: ink-faint (#5e6b80) measured 3.2 on surface-raised, 3.5 on surface,
+and 2.9 on surface-overlay, below the 4.5 needed for small text. It is used
+for small secondary labels (times, captions, the tagline). It was darkened
+to #8190a8, which measures 5.3, 5.8, and 4.8 against the three backgrounds,
+clearing AA everywhere while staying visibly lighter than ink-muted so the
+hierarchy is preserved. This is the only token changed.
+
+### M2: Global keyboard focus and reduced-motion handling
+
+A single focus-visible rule in globals.css gives every link, button,
+textarea, and tabbable element a visible accent focus ring, applied only for
+keyboard and assistive-tech navigation (focus-visible), not mouse clicks.
+This covers the decision options, scenario picker cards, replay controls,
+download and restart buttons, and the timeline toggle in one place rather
+than per component. A prefers-reduced-motion block also neutralizes the risk
+pulse and delta-fade animations for users who request reduced motion, which
+the v2 motion was missing.
+
+### M2: Page-by-page accessibility audit
+
+Landing (/): one h1 (ShipDay), header and main landmarks, the call to
+action is a real link with text, supporting copy uses ink-muted (7.0 contrast).
+Checked heading order, link names, contrast. Fixed: none needed. Passed
+unchanged except for the global focus ring now applying to the call to
+action.
+
+Scenarios (/scenarios): one h1 (Pick a workday), each scenario is a real
+anchor with its name and tagline as the accessible name, difficulty shown as
+text not color alone. Checked card semantics, keyboard reachability, heading
+order. Fixed: focus ring via the global rule. Passed unchanged: card markup
+was already a list of links.
+
+Simulator (/simulator/[scenarioId], covering the play, report, and replay
+views): added a single h1 with the scenario name (the page previously had no
+h1; the step title is an h2 under it, the decision prompt an h3). Wrapped the
+metrics dashboard in a section labelled "Your metrics". The risk level is
+conveyed by a text label (Controlled, Raised, High) alongside color, and
+metric deltas carry an explicit plus or minus sign, so no state is color
+only. Decision options, replay Previous and Next, download, and restart are
+all native buttons with text labels. Checked: h1 presence, landmark, button
+semantics, color-only signals, mobile order, focus. Fixed: missing h1,
+unlabelled metrics region, mobile risk-meter position. Passed unchanged:
+buttons were already native and labelled.
+
+Redirect (/simulator) and not-found: the redirect emits no UI of its own and
+the not-found page is the framework default; neither needed changes.
