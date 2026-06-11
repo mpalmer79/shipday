@@ -322,3 +322,62 @@ buttons were already native and labelled.
 
 Redirect (/simulator) and not-found: the redirect emits no UI of its own and
 the not-found page is the framework default; neither needed changes.
+
+## v3 Milestone 3
+
+### M3: Missed-signal copy moved into scenario data with shared fallback
+
+The Scenario type gained an optional `missedSignals` map keyed by flag.
+`generateReport` now prefers the scenario-specific text for a set flag and
+falls back to the shared `MISSED_SIGNAL_COPY` only when the scenario does
+not define one. All three scenarios now carry their own missed-signal copy
+for the negative flags they can set, so the report speaks in each day's
+specifics (promo double-discounting, order-sync coverage, shared config
+units) instead of generic copy. The shared map is unchanged and still
+covers any flag a scenario does not override, including imported scenarios.
+This is report copy only and does not affect outcome distributions.
+
+### M3: Strong decisions curated by an explicit marker
+
+DecisionOption gained an optional `strong` boolean, carried through the
+engine into DecisionRecord. The report now selects strong decisions by the
+marker when a scenario curates any (all three built-in scenarios do), and
+falls back to the previous metric heuristic only for scenarios that mark
+none (legacy or imported data). The heuristic function is kept and renamed
+to make its fallback role explicit. Markers were set deliberately, roughly
+two per step, on the options that embody the disciplined call at each beat.
+Verify now asserts every reported strong decision was marked and that each
+built-in scenario marks at least one option. This is report selection only
+and does not affect outcome distributions.
+
+### M3: Difficulty curve and distribution pin updates
+
+The incident rate (share of paths ending in Customer Impact Incident) now
+rises with the scenario's difficulty label: starter, intermediate,
+advanced. Target curve: roughly 3 percent, 6 to 7 percent, and 9 to 10
+percent. Before this run the rates were 2.9, 7.5, and 2.6 percent, so the
+advanced scenario was the easiest, which inverted the intended progression.
+Two scenarios were retuned by adjusting only their incident outcome rule
+thresholds (no copy or impact changes), and all five outcomes stay within
+the 2 to 45 percent bounds in every scenario.
+
+just-add-a-button (starter): unchanged at 2.9 percent incident. Pins
+unchanged: safe-rollout 998, minor-issue 2058, customer-incident 151,
+responsible-delay 1263, overcontrolled 650.
+
+the-broken-build (intermediate): incident outcome rule bare risk threshold
+raised from 70 to 74, bringing incident from 7.5 to 6.9 percent. Pins
+before: safe-rollout 951, minor-issue 2697, customer-incident 481,
+responsible-delay 1545, overcontrolled 726. Pins after: safe-rollout 951,
+minor-issue 2735, customer-incident 439, responsible-delay 1545,
+overcontrolled 730.
+
+friday-deploy (advanced): incident outcome rule broadened, bare risk
+threshold lowered from 70 to 50, and the secondary clause changed from
+(shipped-direct and skipped-validation and lacks prepared-rollback and risk
+at least 55) to (shipped-direct and lacks prepared-rollback and risk at
+least 35), bringing incident from 2.6 to 9.5 percent. Pins before:
+safe-rollout 962, minor-issue 1662, customer-incident 106,
+responsible-delay 1020, overcontrolled 346. Pins after: safe-rollout 934,
+minor-issue 1444, customer-incident 389, responsible-delay 1002,
+overcontrolled 327.

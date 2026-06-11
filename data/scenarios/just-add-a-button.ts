@@ -59,6 +59,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "ask-questions",
+          strong: true,
           label: "Ask Priya clarifying questions",
           description:
             "What exactly should the discount apply to? Which users see it? What happens with existing promos?",
@@ -72,6 +73,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "inspect-checkout",
+          strong: true,
           label: "Read the existing checkout code first",
           description:
             "Spend twenty minutes understanding how pricing, promos, and totals flow before writing anything.",
@@ -122,6 +124,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "ask-product",
+          strong: true,
           label: "Ask product for a written rule",
           description:
             "Ping Priya: “Need a decision: does this stack with promo codes? One line in the ticket is fine.”",
@@ -184,6 +187,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "review-line-by-line",
+          strong: true,
           label: "Review it line by line",
           description:
             "Walk through every branch. Check the negative-total case. Check the promo interaction.",
@@ -222,6 +226,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "run-tests-first",
+          strong: true,
           label: "Run the existing tests against it first",
           description:
             "Don't review by eye. Let the pricing suite tell you whether this code keeps the system's promises.",
@@ -265,6 +270,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "investigate-test",
+          strong: true,
           label: "Investigate why the test exists",
           description:
             "Dig through git blame and the old PR. Find out what incident or decision created this assertion.",
@@ -278,6 +284,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "update-test",
+          strong: true,
           label: "Update the test to match the new rule",
           description:
             "The business rule changed: encode the new no-stacking behavior explicitly and keep the coverage.",
@@ -328,6 +335,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "feature-flag",
+          strong: true,
           label: "Ship it behind a feature flag",
           description:
             "Deploy dark today, flip it on for the promo once it's verified in production.",
@@ -341,6 +349,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "delay-explain",
+          strong: true,
           label: "Push back with a clear explanation",
           description:
             "“It can be live tomorrow morning with the pricing edge cases verified. Today means untested money math. Your call.”",
@@ -390,6 +399,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "flagged-staged",
+          strong: true,
           label: "Staged rollout behind the flag",
           description:
             "5% of traffic tonight, watch the dashboards, ramp to 100% before the promo.",
@@ -403,6 +413,7 @@ export const justAddAButton: Scenario = {
         },
         {
           id: "hold-communicate",
+          strong: true,
           label: "Hold the release and say why",
           description:
             "Don't ship tonight. Send a short note: what's not verified, what it could cost, when it will be ready.",
@@ -534,4 +545,16 @@ export const justAddAButton: Scenario = {
     },
   ],
   fallbackOutcomeId: "minor-issue",
+  missedSignals: {
+    [FLAGS.skippedValidation]:
+      "The discount rules were ambiguous from the first ticket, and the gaps got filled with assumptions about pricing instead of answers from product.",
+    [FLAGS.acceptedAiUnreviewed]:
+      "The generated discount code went into checkout with nobody able to explain what it did when a discount exceeded the subtotal.",
+    [FLAGS.deletedFailingTest]:
+      "The promo-interaction test was a fence built after a real double-discount incident. Removing it to get green removed the only thing watching for a repeat.",
+    [FLAGS.shippedDirect]:
+      "The discount reached every cart at once, with no flag to turn it off once the pricing edge cases surfaced.",
+    [FLAGS.blockedRelease]:
+      "Holding the discount may have been right, but marketing learned the promo had no button at launch time instead of from you.",
+  },
 };

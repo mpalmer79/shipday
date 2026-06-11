@@ -61,6 +61,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "reproduce-locally",
+          strong: true,
           label: "Reproduce the failure locally",
           description:
             "Pull main, run the failing test in a loop, and get the failure happening on your own machine before touching anything.",
@@ -74,6 +75,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "read-failure-output",
+          strong: true,
           label: "Read the full failure output first",
           description:
             "Before running anything, read the CI logs end to end. The failure already happened five times; the evidence is sitting there.",
@@ -138,6 +140,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "run-twenty-times",
+          strong: true,
           label: "Run it twenty times and characterize it",
           description:
             "Loop the test and record the pattern: failure rate, which assertion, how late the event is.",
@@ -151,6 +154,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "read-for-race",
+          strong: true,
           label: "Read the test for the race condition",
           description:
             "The sleep is the tell. Trace what the test actually waits for versus what it should wait for.",
@@ -188,6 +192,7 @@ export const theBrokenBuild: Scenario = {
       options: [
         {
           id: "bisect-commits",
+          strong: true,
           label: "Bisect the eleven commits",
           description:
             "Run the failing test against each commit since the last green build and find exactly where the failure rate jumped.",
@@ -238,6 +243,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "branch-from-green",
+          strong: true,
           label: "Cut the release from the last green commit",
           description:
             "Build today's release candidate from yesterday's green build and leave the diagnosis on main where it cannot hurt anyone.",
@@ -261,6 +267,7 @@ export const theBrokenBuild: Scenario = {
       options: [
         {
           id: "fix-both",
+          strong: true,
           label: "Fix the ordering and rewrite the test",
           description:
             "Gate the sync event until subscribers attach, and make the test wait on the event instead of sleeping.",
@@ -335,6 +342,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "status-with-risk",
+          strong: true,
           label: "Give the exact state, including what is unverified",
           description:
             "Two sentences: what failed, what is fixed, what has not been proven yet, and what could still go wrong tonight.",
@@ -361,6 +369,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "canary-proposal",
+          strong: true,
           label: "Propose shipping to the canary fleet only",
           description:
             "Give a conditional go: the 3:00 PM train ships to the 5 percent canary fleet, full rollout after two clean hours.",
@@ -398,6 +407,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "canary-release",
+          strong: true,
           label: "Canary fleet tonight, full fleet after soak",
           description:
             "5 percent of traffic overnight with order-sync alerts on, ramp in the morning if the graphs stay flat.",
@@ -411,6 +421,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "hold-communicate",
+          strong: true,
           label: "Hold the pipeline and say exactly why",
           description:
             "Pull order-sync from tonight's train. Write down what is unverified, what it risks, and the ship date.",
@@ -487,7 +498,7 @@ export const theBrokenBuild: Scenario = {
       when: {
         kind: "anyOf",
         conditions: [
-          { kind: "metricAtLeast", metric: "risk", value: 70 },
+          { kind: "metricAtLeast", metric: "risk", value: 74 },
           {
             kind: "allOf",
             conditions: [
@@ -542,4 +553,14 @@ export const theBrokenBuild: Scenario = {
     },
   ],
   fallbackOutcomeId: "minor-issue",
+  missedSignals: {
+    [FLAGS.skippedValidation]:
+      "The red build was treated as noise to clear rather than a signal to understand, so the day moved on guesses instead of evidence.",
+    [FLAGS.deletedFailingTest]:
+      "The order-sync test was the only integration check on the code this release changes most. Deleting it to get green left that path uncovered.",
+    [FLAGS.shippedDirect]:
+      "The pipeline went to the whole fleet at once, so the ordering hazard, if real, reached every order before anyone could watch a smaller slice.",
+    [FLAGS.blockedRelease]:
+      "Holding order sync may have been right, but three teams found the gap from the deploy manifest instead of from you.",
+  },
 };

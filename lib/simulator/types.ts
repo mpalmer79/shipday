@@ -22,6 +22,12 @@ export type DecisionOption = {
   flags?: FlagId[];
   consequence?: string;
   lesson?: string;
+  /**
+   * Marks an option as a deliberately strong call for the end-of-day
+   * report. Curated per scenario. When a scenario marks no options, the
+   * report falls back to a heuristic over metric impacts.
+   */
+  strong?: boolean;
 };
 
 export type ScenarioStep = {
@@ -80,6 +86,12 @@ export type Scenario = {
   outcomeRules: OutcomeRule[];
   /** Guarantees outcome resolution always terminates. */
   fallbackOutcomeId: OutcomeId;
+  /**
+   * Scenario-specific missed-signal copy, keyed by flag. Preferred over
+   * the shared flag-keyed fallback when a flag is set. Lets each scenario
+   * speak in its own specifics instead of generic copy.
+   */
+  missedSignals?: Record<FlagId, string>;
 };
 
 export type DecisionRecord = {
@@ -91,6 +103,8 @@ export type DecisionRecord = {
   impact: DecisionImpact;
   consequence?: string;
   lesson?: string;
+  /** Carried from the chosen option's curated strong marker. */
+  strong?: boolean;
 };
 
 export type SimulatorState = {

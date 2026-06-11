@@ -51,6 +51,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "find-consumers",
+          strong: true,
           label: "Find everything that reads the value",
           description:
             "Search the codebase for retry_timeout before touching it. Config keys have a habit of being shared.",
@@ -77,6 +78,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "check-the-clock",
+          strong: true,
           label: "Check the window, the calendar, and on-call",
           description:
             "Before deciding anything, get the constraints straight: who is around, who carries the pager tonight, and what the window allows.",
@@ -119,6 +121,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "map-blast-radius",
+          strong: true,
           label: "Trace what each consumer does with the value",
           description:
             "Read all three call sites properly. Units, defaults, retry loops: know exactly what 90 means to each service.",
@@ -145,6 +148,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "scope-to-tenant",
+          strong: true,
           label: "Scope the change to the requesting customer",
           description:
             "Make the override tenant-specific instead of global. The customer gets 90, everyone else keeps 30.",
@@ -182,6 +186,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "staging-dry-run",
+          strong: true,
           label: "Apply it in staging and watch all three services",
           description:
             "Push the value to staging and watch each consumer's logs and retry behavior for half an hour.",
@@ -194,6 +199,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "write-rollback-plan",
+          strong: true,
           label: "Write the rollback before the deploy",
           description:
             "Exact revert steps, how long they take, what to watch, and who can run them if you are unreachable. On the wiki before the deploy exists.",
@@ -244,6 +250,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "pull-oncall",
+          strong: true,
           label: "Ask the outgoing on-call for fifteen minutes",
           description:
             "They are around until 6:00 PM and will inherit tonight either way. Walk them through the change and the consumers.",
@@ -268,6 +275,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "gate-behind-flag",
+          strong: true,
           label: "Put the new value behind a rollout flag",
           description:
             "Wrap the override in a flag with gradual rollout, so the change ships dark and turns on in controlled steps.",
@@ -305,6 +313,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "explain-friday-math",
+          strong: true,
           label: "Explain what a 4:50 PM Friday deploy means",
           description:
             "Lay it out for Marcus: the on-call handoff, the empty Saturday roster, and what the customer actually risks if it goes wrong at midnight.",
@@ -331,6 +340,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "tenant-canary-today",
+          strong: true,
           label: "Ship it today for this tenant only",
           description:
             "Split the difference: the requesting customer gets the change today, scoped to them, with their traffic as the canary.",
@@ -368,6 +378,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "deploy-scoped",
+          strong: true,
           label: "Deploy the scoped change and watch it through handoff",
           description:
             "Ship the tenant-scoped version, stay through the 6:00 PM handoff, and brief Riya on what to watch.",
@@ -381,6 +392,7 @@ export const fridayDeploy: Scenario = {
         },
         {
           id: "hold-with-note",
+          strong: true,
           label: "Hold for Monday and tell everyone now",
           description:
             "Do not ship. Send Marcus, the customer, and Riya the same short note: what is ready, why it waits, when it lands.",
@@ -457,14 +469,13 @@ export const fridayDeploy: Scenario = {
       when: {
         kind: "anyOf",
         conditions: [
-          { kind: "metricAtLeast", metric: "risk", value: 70 },
+          { kind: "metricAtLeast", metric: "risk", value: 50 },
           {
             kind: "allOf",
             conditions: [
               { kind: "hasFlag", flag: FLAGS.shippedDirect },
-              { kind: "hasFlag", flag: FLAGS.skippedValidation },
               { kind: "lacksFlag", flag: FLAGS.preparedRollback },
-              { kind: "metricAtLeast", metric: "risk", value: 55 },
+              { kind: "metricAtLeast", metric: "risk", value: 35 },
             ],
           },
         ],
@@ -513,4 +524,12 @@ export const fridayDeploy: Scenario = {
     },
   ],
   fallbackOutcomeId: "minor-issue",
+  missedSignals: {
+    [FLAGS.skippedValidation]:
+      "The config key was shared across three services, and the change shipped on the assumption it meant the same thing to each of them.",
+    [FLAGS.shippedDirect]:
+      "The new value reached all three consumers globally on a Friday evening, the hours with the least coverage and the slowest response.",
+    [FLAGS.blockedRelease]:
+      "Holding the change may have been right, but the customer planned a weekend around a fix that never arrived and never got explained.",
+  },
 };

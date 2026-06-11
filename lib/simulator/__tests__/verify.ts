@@ -46,17 +46,17 @@ const EXPECTED_DISTRIBUTIONS: Record<
   },
   "the-broken-build": {
     "safe-rollout": 951,
-    "minor-issue": 2697,
-    "customer-incident": 481,
+    "minor-issue": 2735,
+    "customer-incident": 439,
     "responsible-delay": 1545,
-    overcontrolled: 726,
+    overcontrolled: 730,
   },
   "friday-deploy": {
-    "safe-rollout": 962,
-    "minor-issue": 1662,
-    "customer-incident": 106,
-    "responsible-delay": 1020,
-    overcontrolled: 346,
+    "safe-rollout": 934,
+    "minor-issue": 1444,
+    "customer-incident": 389,
+    "responsible-delay": 1002,
+    overcontrolled: 327,
   },
 };
 
@@ -176,6 +176,12 @@ for (const scenario of scenarios) {
     );
   }
   assert.ok(outcomeIds.has(scenario.fallbackOutcomeId));
+
+  // Built-in scenarios curate strong decisions deliberately.
+  assert.ok(
+    scenario.steps.some((step) => step.options.some((o) => o.strong)),
+    `${scenario.id} must mark at least one option strong`
+  );
 }
 
 // --- Phase 3: exhaustive playtest per scenario ------------------------
@@ -232,6 +238,26 @@ function enumerateRuns(scenario: Scenario): Distribution {
         state.decisions.length,
         "one timeline section per decision"
       );
+      // Curated strong decisions: every reported strong decision was
+      // explicitly marked in the scenario data, not inferred.
+      for (const strong of report.strongDecisions) {
+        assert.equal(
+          strong.strong,
+          true,
+          `Reported strong decision ${strong.optionId} must be marked strong`
+        );
+      }
+      // Scenario-specific missed-signal copy takes precedence over the
+      // shared fallback whenever the scenario defines it for a set flag.
+      for (const flag of state.flags) {
+        const specific = scenario.missedSignals?.[flag];
+        if (specific) {
+          assert.ok(
+            report.missedSignals.includes(specific),
+            `Missed signal for ${flag} should use scenario copy in ${scenario.id}`
+          );
+        }
+      }
       return;
     }
     const step = getCurrentStep(scenario, state);

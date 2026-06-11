@@ -9,15 +9,30 @@ import type {
 import { getOutcome } from "./outcomes";
 
 /**
- * A decision reads as "strong" when its net effect protected the system:
- * it reduced risk or invested in quality / test confidence without
- * gambling. Heuristic by design, tuned alongside scenario copy.
+ * Heuristic fallback for scenarios that do not curate strong decisions: a
+ * decision reads as strong when its net effect protected the system,
+ * reducing risk while not losing quality or test confidence. Used only
+ * when a scenario marks no options strong (for example legacy or imported
+ * data without curation).
  */
-function isStrongDecision(decision: DecisionRecord): boolean {
+function isStrongByHeuristic(decision: DecisionRecord): boolean {
   const risk = decision.impact.risk ?? 0;
   const quality = decision.impact.quality ?? 0;
   const testConfidence = decision.impact.testConfidence ?? 0;
   return risk < 0 && quality + testConfidence >= 0;
+}
+
+function selectStrongDecisions(
+  scenario: Scenario,
+  decisions: DecisionRecord[]
+): DecisionRecord[] {
+  const scenarioCurates = scenario.steps.some((step) =>
+    step.options.some((option) => option.strong)
+  );
+  if (scenarioCurates) {
+    return decisions.filter((decision) => decision.strong);
+  }
+  return decisions.filter(isStrongByHeuristic);
 }
 
 /** Flags that indicate a warning sign was visible and ignored. */
@@ -34,9 +49,12 @@ const MISSED_SIGNAL_COPY: Record<FlagId, string> = {
     "Holding the release was defensible, but nobody who depended on it was told, so caution read as unreliability.",
 };
 
-function deriveMissedSignals(state: SimulatorState): string[] {
+function deriveMissedSignals(
+  scenario: Scenario,
+  state: SimulatorState
+): string[] {
   return state.flags
-    .map((flag) => MISSED_SIGNAL_COPY[flag])
+    .map((flag) => scenario.missedSignals?.[flag] ?? MISSED_SIGNAL_COPY[flag])
     .filter((copy): copy is string => Boolean(copy));
 }
 
@@ -65,8 +83,8 @@ export function generateReport(
     outcome: getOutcome(scenario, state.outcomeId),
     finalMetrics: state.metrics,
     timeline: state.decisions,
-    strongDecisions: state.decisions.filter(isStrongDecision),
-    missedSignals: deriveMissedSignals(state),
+    strongDecisions: selectStrongDecisions(scenario, state.decisions),
+    missedSignals: deriveMissedSignals(scenario, state),
     staffLevelLesson: STAFF_LEVEL_LESSONS[state.outcomeId],
   };
 }
