@@ -420,3 +420,70 @@ to 9.06%. Pins before and after:
 All five outcomes remain reachable in every scenario within the 2 to 45
 percent bounds after tuning (the highest single share is The Broken Build's
 Minor Production Issue at 43.0 percent).
+
+## Milestone 4
+
+### M4: Scenario 4 (The Page) is the first branching scenario
+
+The engine already routes on `option.nextStepId`, so the steps were always a
+graph rather than a forced spine; no engine change was needed to branch. The
+Page has seven step definitions and a genuine branch at triage: two options
+(read the dashboards, reproduce the failure) route to a diagnose-first step,
+and two options (roll back on suspicion, flip the kill switch) route to an
+act-first step. The two paths reconverge at the root-cause step and share the
+fix and wrap-up steps. Every run is six decisions long. The branch follows
+from the triage choice, as the premise requires. One new flag, mitigated-
+impact, captures containing user impact before chasing the root cause, which
+no existing flag expressed (used-feature-flag is about releasing a feature
+behind a flag, staged-release is a canary). The scenario carries a stack
+trace as a codeSnippet and the page and post-mitigation state as
+systemSignals.
+
+### M4: A fourth difficulty tier, expert
+
+The Page is a live production incident and is the hardest scenario, so a
+fourth difficulty tier, expert, was added rather than labeling two scenarios
+advanced. The picker shows it with an accent-colored pill. The registry order
+remains the difficulty order, which the incident curve assertion depends on.
+
+### M4: The Page sits at the top of the incident curve
+
+The designed curve from Milestone 3 (incident rate rises with difficulty)
+extends to four scenarios: 2.95%, 6.55%, 9.06%, 12.60%. The Page was tuned to
+the highest incident rate, which fits a live incident where acting blindly or
+shipping a guess most easily makes things worse. All five outcomes are
+reachable within the 2 to 45 percent bounds (safe-rollout 32.9%, minor-issue
+28.4%, customer-incident 12.6%, responsible-delay 18.4%, overcontrolled
+7.8%). The Page's distribution is pinned. The existing three distributions
+are unchanged from where Milestone 3 left them.
+
+### M4: Exhaustive playtest walks branches with memoized path counting
+
+A memoized `countPaths` was added to the verify script. It computes the
+number of distinct runs from each step and memoizes by step id, which is
+correct because path count is purely structural (it does not depend on
+metrics or flags) and so stays linear even where paths reconverge. It throws
+on a cycle, which would make the count unbounded. The brute-force walk still
+visits every run, because outcomes depend on accumulated metrics and flags
+and so cannot be memoized; the memoized count cross-checks the walk (the two
+must agree), and the per-scenario path count is reported. The full registry
+walk (20,736 runs across four scenarios) is timed and asserted under ten
+seconds; it runs in well under one second.
+
+### M4: Replay and timeline keys are composite
+
+The decision lists in the report, the timeline, and the workday status keyed
+React elements by step id, which assumed one decision per step id within a
+run. The keys are now composite (step id plus the decision index), so a
+branching run that revisits a time or, in a future cyclic scenario, a step,
+cannot collide. Replay reconstruction already keys frames by index.
+
+### M4: Workday status is path-based for branching scenarios
+
+The workday status panel previewed every step of the day, which assumed a
+single upcoming spine. A branching scenario has no single spine to preview
+(The Page has two steps at 3:00 PM on mutually exclusive paths), so for a
+branching scenario the panel now shows the path taken plus the current step
+rather than a false linear preview. Linear scenarios keep the full preview
+unchanged. Branching is detected as any step whose options lead to more than
+one distinct next step.

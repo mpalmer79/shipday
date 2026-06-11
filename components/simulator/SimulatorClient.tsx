@@ -48,14 +48,44 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
   );
   const [view, setView] = useState<"report" | "replay">("report");
 
-  const workdayBeats: WorkdayBeat[] = useMemo(
-    () => [
-      ...scenario.steps.map((step) => ({ time: step.time, label: step.title })),
-      { time: scenario.outcomes[0].time, label: "How it lands" },
-      { time: "5:00 PM", label: "End-of-day report" },
-    ],
+  const currentStep = state.completed
+    ? null
+    : getCurrentStep(scenario, state);
+
+  // A branching scenario has no single upcoming spine to preview, so its
+  // workday is shown as the path taken plus the current step. A linear
+  // scenario keeps the full preview of every upcoming step.
+  const isBranching = useMemo(
+    () =>
+      scenario.steps.some(
+        (step) => new Set(step.options.map((o) => o.nextStepId)).size > 1
+      ),
     [scenario]
   );
+
+  const endBeats: WorkdayBeat[] = [
+    { time: scenario.outcomes[0].time, label: "How it lands" },
+    { time: "5:00 PM", label: "End-of-day report" },
+  ];
+
+  const workdayBeats: WorkdayBeat[] = isBranching
+    ? [
+        ...state.decisions.map((d) => ({
+          time: d.stepTime,
+          label: d.stepTitle,
+        })),
+        ...(currentStep
+          ? [{ time: currentStep.time, label: currentStep.title }]
+          : []),
+        ...endBeats,
+      ]
+    : [
+        ...scenario.steps.map((step) => ({
+          time: step.time,
+          label: step.title,
+        })),
+        ...endBeats,
+      ];
 
   const report = useMemo(
     () => (state.completed ? generateReport(scenario, state) : null),
@@ -87,9 +117,6 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
     URL.revokeObjectURL(url);
   }
 
-  const currentStep = state.completed
-    ? null
-    : getCurrentStep(scenario, state);
   const currentBeatIndex = state.completed
     ? workdayBeats.length - 1
     : state.decisions.length;

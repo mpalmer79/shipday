@@ -41,9 +41,9 @@ export function EndOfDayReport({
           How the day unfolded
         </h3>
         <ol className="mt-4 space-y-4">
-          {report.timeline.map((decision) => (
+          {report.timeline.map((decision, i) => (
             <li
-              key={decision.stepId}
+              key={`${decision.stepId}-${i}`}
               className="border-l-2 border-surface-line pl-4 text-sm"
             >
               <div className="flex items-baseline gap-2">
@@ -71,8 +71,8 @@ export function EndOfDayReport({
             Strong decisions
           </h3>
           <ul className="mt-3 space-y-3">
-            {report.strongDecisions.map((decision) => (
-              <li key={decision.stepId} className="text-sm">
+            {report.strongDecisions.map((decision, i) => (
+              <li key={`${decision.stepId}-${i}`} className="text-sm">
                 <span className="font-medium">{decision.optionLabel}</span>
                 {decision.lesson && (
                   <p className="mt-1 text-xs leading-relaxed text-ink-muted">

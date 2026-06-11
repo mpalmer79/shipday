@@ -23,6 +23,7 @@ const DIFFICULTY_STYLES: Record<string, string> = {
   starter: "border-good/40 text-good",
   intermediate: "border-warn/40 text-warn",
   advanced: "border-bad/40 text-bad",
+  expert: "border-accent/40 text-accent",
 };
 
 export default function ScenariosPage() {

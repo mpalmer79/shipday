@@ -58,6 +58,13 @@ const EXPECTED_DISTRIBUTIONS: Record<
     "responsible-delay": 1005,
     overcontrolled: 328,
   },
+  "the-page": {
+    "safe-rollout": 1682,
+    "minor-issue": 1452,
+    "customer-incident": 645,
+    "responsible-delay": 942,
+    overcontrolled: 399,
+  },
 };
 
 // --- Phase 1: engine assertions (against scenario 1) ------------------
@@ -193,6 +200,44 @@ export type Distribution = {
   counts: Map<OutcomeId, number>;
 };
 
+/**
+ * Number of distinct complete runs through a scenario, computed by
+ * memoizing the path count from each step. This is purely structural (it
+ * does not depend on metrics or flags), so it stays linear in the graph
+ * even when paths reconverge, and it cross-checks the brute-force walk
+ * below. Throws on a cycle, which would make the count unbounded.
+ */
+function countPaths(scenario: Scenario): number {
+  const memo = new Map<string, number>();
+  const visiting = new Set<string>();
+
+  function from(stepId: string): number {
+    if (stepId === END_STEP_ID) {
+      return 1;
+    }
+    const cached = memo.get(stepId);
+    if (cached !== undefined) {
+      return cached;
+    }
+    assert.ok(
+      !visiting.has(stepId),
+      `Cycle through step "${stepId}" in ${scenario.id}`
+    );
+    visiting.add(stepId);
+    const step = scenario.steps.find((s) => s.id === stepId);
+    assert.ok(step, `Unknown step "${stepId}" in ${scenario.id}`);
+    let total = 0;
+    for (const option of step.options) {
+      total += from(option.nextStepId);
+    }
+    visiting.delete(stepId);
+    memo.set(stepId, total);
+    return total;
+  }
+
+  return from(scenario.initialStepId);
+}
+
 function enumerateRuns(scenario: Scenario): Distribution {
   const counts = new Map<OutcomeId, number>();
   let totalRuns = 0;
@@ -266,17 +311,39 @@ function enumerateRuns(scenario: Scenario): Distribution {
  * difficulty order, and Milestone 3 designs the incident rate to rise with
  * difficulty, so this sequence must be non-decreasing.
  */
+// Branching support must stay exercised: at least one scenario routes
+// different options to different next steps.
+const branchingScenarios = scenarios.filter((scenario) =>
+  scenario.steps.some(
+    (step) => new Set(step.options.map((o) => o.nextStepId)).size > 1
+  )
+);
+assert.ok(
+  branchingScenarios.length > 0,
+  "expected at least one branching scenario in the registry"
+);
+
 const incidentCurve: { id: string; share: number }[] = [];
 
+const WALK_BUDGET_MS = 10_000;
+const walkStart = Date.now();
+
 for (const scenario of scenarios) {
+  // Memoized structural path count, cross-checked against the brute walk.
+  const pathCount = countPaths(scenario);
   const { totalRuns, counts } = enumerateRuns(scenario);
+  assert.equal(
+    totalRuns,
+    pathCount,
+    `Walk visited ${totalRuns} runs but the path count is ${pathCount} in ${scenario.id}`
+  );
 
   incidentCurve.push({
     id: scenario.id,
     share: (counts.get("customer-incident") ?? 0) / totalRuns,
   });
 
-  console.log(`\n${scenario.name}: ${totalRuns} distinct runs`);
+  console.log(`\n${scenario.name}: ${totalRuns} distinct runs (${pathCount} paths)`);
   for (const outcome of scenario.outcomes) {
     const n = counts.get(outcome.id) ?? 0;
     const pct = ((n / totalRuns) * 100).toFixed(1);
@@ -310,6 +377,13 @@ for (const scenario of scenarios) {
     }
   }
 }
+
+const walkElapsed = Date.now() - walkStart;
+assert.ok(
+  walkElapsed < WALK_BUDGET_MS,
+  `Registry walk took ${walkElapsed}ms, over the ${WALK_BUDGET_MS}ms budget`
+);
+console.log(`\nFull registry walk: ${walkElapsed}ms`);
 
 // The designed difficulty curve: incident rate rises with difficulty.
 for (let i = 1; i < incidentCurve.length; i += 1) {
