@@ -656,3 +656,48 @@ API key requirement. All routes were smoke tested: the landing page, scenario
 picker, importer, comparison page, all four scenarios, the favicon, and a
 social card return 200, and the legacy `/simulator` path returns its 307
 redirect.
+
+# Decision log: launch fix session
+
+Three tasks on top of the merged v3: raster social cards, the ink-faint
+contrast item, and a tuning review of The Page. Milestone numbers are task
+numbers for this session.
+
+## Task 1
+
+### T1: Social cards moved to build-time PNG via the file convention
+
+The committed SVG cards did not render on the major link scrapers, which do
+not accept SVG for og:image. The cards are now PNGs produced at build time by
+the opengraph-image and twitter-image file conventions with ImageResponse,
+which ships inside Next, so no dependency was added. A root pair renders the
+product card and a pair under the scenario route renders per-scenario cards
+from the registry (name, tagline, difficulty), so the copy cannot drift from
+the data. All image routes prerender statically (the per-scenario ones export
+generateStaticParams), and every page route remains static or SSG. The
+committed SVGs under public/og, the generator script, and the npm cards
+script entry were deleted; one shared renderer in lib/ogCard.tsx replaces
+them. The favicon (app/icon.svg) is unchanged: browsers accept SVG favicons,
+and the scraper limitation applies only to og:image.
+
+### T1: Per-segment re-export image files instead of one root card
+
+Config-based metadata in a child segment replaces the parent's openGraph
+object wholesale rather than merging, so the root convention image did not
+reach /scenarios, /import, or /compare, which define their own openGraph
+text fields. Each of those segments now has a two-line opengraph-image and
+twitter-image file re-exporting the root card, which keeps a single renderer
+while guaranteeing every HTML-rendering route emits og:image and
+twitter:image. Verified in the prerendered HTML for every route.
+
+### T1: Card style compromises under ImageResponse
+
+The renderer restates the app palette as hex and reproduces the SVG card
+layout: outer surface, raised panel with the line border, accent bar, accent
+eyebrow, large title, muted tagline, faint footer. Two compromises, matching
+intent rather than pixels as the task allows: the embedded default font is a
+single sans weight, so the eyebrow and footer are not monospaced and the
+title's hierarchy comes from size (92px against 36px) rather than weight;
+embedding JetBrains Mono or a bold face would need a committed font binary
+or a network fetch at render time, both out of scope. Letter spacing keeps
+the eyebrow's set-apart look.

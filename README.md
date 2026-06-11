@@ -41,7 +41,6 @@ npm run dev        # http://localhost:3000
 ```bash
 npm run verify     # engine assertions + exhaustive playtest + lint + import + comparison
 npm run build      # production build
-npm run cards      # regenerate the social card SVGs from the registry
 ```
 
 ## How it works
@@ -75,9 +74,10 @@ npm run cards      # regenerate the social card SVGs from the registry
 - **Comparison** (`lib/simulator/comparison.ts`) diffs two completed runs of
   the same scenario, derived entirely from the two decision trails through the
   replay reconstruction.
-- **Launch metadata** (`lib/site.ts`, `app/icon.svg`, `public/og/`) wires Open
-  Graph and Twitter cards and a favicon through the framework metadata API,
-  with committed social card SVGs generated from the registry.
+- **Launch metadata** (`lib/site.ts`, `app/icon.svg`, `lib/ogCard.tsx`) wires
+  Open Graph and Twitter cards and a favicon through the framework metadata
+  API. The card images are PNGs generated at build time by the
+  opengraph-image file convention, driven by the scenario registry.
 - **UI state** is one `useReducer` in
   `components/simulator/SimulatorClient.tsx`; the reducer is a thin shell over
   the engine, bound to a scenario object so it can play built-in and imported
@@ -116,7 +116,6 @@ lib/site.ts           Site metadata helpers
 lib/runStore.ts       In-memory store of completed runs for the session
 lib/sampleScenario.ts Sample scenario offered on the import page
 data/scenarios/       Scenario content (steps, options, rules, flags)
-scripts/              Social card generator
 docs/DECISIONS.md     Audit trail of build decisions
 ```
 
