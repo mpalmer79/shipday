@@ -17,7 +17,7 @@ const COLORS = {
   line: "#2a3342",
   ink: "#e6ebf2",
   inkMuted: "#9aa6b8",
-  inkFaint: "#5e6b80",
+  inkFaint: "#78859e",
   accent: "#5ba8f5",
 };
 

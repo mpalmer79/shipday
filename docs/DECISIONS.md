@@ -701,3 +701,45 @@ title's hierarchy comes from size (92px against 36px) rather than weight;
 embedding JetBrains Mono or a bold face would need a committed font binary
 or a network fetch at render time, both out of scope. Letter spacing keeps
 the eyebrow's set-apart look.
+
+## Task 2
+
+### T2: ink-faint raised from #5e6b80 to #78859e
+
+The v3 audit left ink-faint below AA as a known item. The token moves from
+#5e6b80 to #78859e. Measured ratios (WCAG relative luminance), before to
+after:
+
+- against surface (#0e1117): 3.50 to 5.08
+- against surface-raised (#161b24): 3.20 to 4.64
+- against the accent/5 panel blend over surface (#121922): 3.28 to 4.75
+
+All backgrounds the token sits on now measure at or above the 4.5:1 AA
+threshold for normal text. ink-faint text never sits on surface-overlay
+(overlay hosts only ink and ink-muted text, the workday status dot, and the
+two meter bar tracks), so overlay was not a constraint. ink-muted stays at
+#9aa6b8 (7.01 on raised): the gap between 4.64 and 7.01 keeps faint visibly
+subordinate to muted, so ink-muted did not need to move. The social card
+renderer restates the palette as hex and was updated to the same value. No
+layout or markup changed.
+
+Pages checked after the change, each rendering ink-faint where listed:
+
+- Landing (/): the footer line under the call to action, on surface.
+- Scenario picker (/scenarios): the decision-count label on each card, on
+  raised.
+- Simulator (all four scenarios): workday status times and pending labels,
+  timeline header and timestamps, the "What do you do?" heading, system
+  signals header, code review card header and filename, on raised.
+- End-of-day report: metric labels, timeline timestamps, section headings,
+  on raised.
+- Replay view: section headings and the descriptions under "Paths not
+  taken", on raised.
+- Import (/import): the textarea placeholder, on raised.
+- Compare (/compare): trajectory table head, step time and title lines
+  (including on the accent-tinted differing rows), and the table footnote,
+  on surface and the accent/5 blend.
+- Header: the tagline next to the wordmark, on surface.
+
+The built stylesheet contains only the new value (rgb 120 133 158); the old
+value appears nowhere in the build output.
