@@ -22,4 +22,9 @@ export const FLAGS = {
   bisectedHistory: "bisected-history",
   // Added for Friday Deploy: rollback readiness.
   preparedRollback: "prepared-rollback",
+  // Added for The Page: incident response.
+  incidentMitigated: "incident-mitigated",
+  incidentDiagnosed: "incident-diagnosed",
+  evidencePreserved: "evidence-preserved",
+  dividedAttention: "divided-attention",
 } as const;

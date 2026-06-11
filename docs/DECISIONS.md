@@ -381,3 +381,76 @@ safe-rollout 962, minor-issue 1662, customer-incident 106,
 responsible-delay 1020, overcontrolled 346. Pins after: safe-rollout 934,
 minor-issue 1444, customer-incident 389, responsible-delay 1002,
 overcontrolled 327.
+
+## v3 Milestone 4
+
+### M4: The engine already supported branching
+
+Branching needed no engine change. applyDecision advances to the chosen
+option's nextStepId, which can differ per option; the v2 scenarios simply
+gave every option in a step the same nextStepId. Scenario 4 (The Page) uses
+distinct nextStepIds at its triage step, so the engine branches with no new
+code. Verify now asserts the registry contains a branching scenario and
+that The Page branches, so the property cannot regress.
+
+### M4: The Page branch structure
+
+The premise (a production incident pages the player mid-afternoon while
+their feature branch is half merged) drives the branch. The first step
+routes to one of two distinct next steps: a mitigate-first arm
+(after-rollback) or a diagnose-first arm (live-diagnosis), reflecting the
+two real schools of incident response. Both arms reconverge at root-cause,
+after which the path is linear through the feature-branch decision, the
+status call, and the close. Every path is six decisions; the scenario has
+seven step definitions because of the two branch arms. Path count is 4096.
+
+### M4: stepCount became decisions-per-path, not step definitions
+
+The registry previously derived stepCount from steps.length, which for a
+branching scenario overcounts (The Page has seven step definitions but six
+decisions per run). The listing now computes decisions-per-path by walking
+the first option at each step to the end, with a cycle guard. All four
+scenarios report six decisions, which is what the picker shows. This is the
+range-widening the Milestone 1 v2 note anticipated, resolved as an exact
+per-path count because every path in these scenarios has the same length.
+
+### M4: Memoized analyzer plus full assertion walk
+
+The playtest now has two parts. analyzeScenario is a memoized walk keyed by
+(step, metrics, flags) that returns the path count and outcome
+distribution; because a subtree's outcomes depend only on that key and not
+on how the state was reached, convergent branches are computed once. This
+is the upgrade the v2 weak spots called for and is what reports path
+counts. checkAllPaths is a full per-path walk that runs the correctness
+assertions (replay fidelity, report coherence, export structure, curation,
+missed signals) on every enumerated leaf in all four scenarios. The two are
+cross-checked: the memoized path count must equal the number of leaves the
+full walk visited, so the fast analyzer cannot silently miss paths. The
+whole registry walk is timed and asserted under ten seconds; it runs in
+about half a second for the current 19712 paths.
+
+### M4: Composite React keys for decision lists
+
+The v2 weak spot noted that decision lists keyed by stepId assume one
+decision per step id per run, which a future revisiting scenario would
+break. The timeline, the report timeline, and the strong-decisions list now
+key by step id plus position. The Page does not revisit a step within a
+path, but the composite key future-proofs the lists and resolves the
+flagged item. The replay view navigates frames by index and needed no key
+change.
+
+### M4: Scenario 4 incident rate extends the difficulty curve
+
+The Page starts the player inside an active incident (initial risk 40), so
+its negative outcome (Prolonged Outage) means a mishandled live incident
+rather than an end-of-day consequence of accumulated shortcuts. Left
+untuned the incident rate was 25.2 percent, far above the Milestone 3 curve
+(2.9, 6.9, 9.5 percent for the first three scenarios). The incident outcome
+rule was tightened (bare risk threshold 85, secondary clause requiring
+lacks incident-mitigated and shipped-direct and risk at least 70), bringing
+it to 14.8 percent. That places The Page above Friday Deploy as the hardest
+scenario, extending the curve to 2.9, 6.9, 9.5, 14.8 percent, with all five
+outcomes inside the 2 to 45 percent bounds. New scenario, so the pins are
+recorded as initial values, not a before-and-after change: safe-rollout
+1092, minor-issue 1156, customer-incident 606, responsible-delay 909,
+overcontrolled 333.

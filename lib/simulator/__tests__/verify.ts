@@ -58,6 +58,13 @@ const EXPECTED_DISTRIBUTIONS: Record<
     "responsible-delay": 1002,
     overcontrolled: 327,
   },
+  "the-page": {
+    "safe-rollout": 1092,
+    "minor-issue": 1156,
+    "customer-incident": 606,
+    "responsible-delay": 909,
+    overcontrolled: 333,
+  },
 };
 
 // --- Phase 1: engine assertions (against scenario 1) ------------------
@@ -184,6 +191,22 @@ for (const scenario of scenarios) {
   );
 }
 
+// The registry must contain at least one genuinely branching scenario: a
+// step whose options lead to more than one distinct next step.
+function isBranching(scenario: Scenario): boolean {
+  return scenario.steps.some(
+    (step) => new Set(step.options.map((o) => o.nextStepId)).size > 1
+  );
+}
+assert.ok(
+  scenarios.some(isBranching),
+  "The registry must contain a branching scenario"
+);
+assert.ok(
+  isBranching(scenarios.find((s) => s.id === "the-page")!),
+  "the-page must branch"
+);
+
 // --- Phase 3: exhaustive playtest per scenario ------------------------
 
 const EXPORT_DATE = new Date("2026-01-01T00:00:00Z");
@@ -199,15 +222,70 @@ export type Distribution = {
   counts: Map<OutcomeId, number>;
 };
 
-function enumerateRuns(scenario: Scenario): Distribution {
-  const counts = new Map<OutcomeId, number>();
+const METRIC_KEYS: (keyof SimulatorState["metrics"])[] = [
+  "quality",
+  "speed",
+  "risk",
+  "trust",
+  "focus",
+  "testConfidence",
+];
+
+/**
+ * Memoized distribution and path count for a scenario. The outcome
+ * distribution and number of completable paths from a state depend only on
+ * (current step, metrics, flags), never on how the state was reached, so
+ * convergent branches are computed once. This keeps branching scenarios
+ * cheap to enumerate. Returns the path count and per-outcome counts.
+ */
+function analyzeScenario(scenario: Scenario): Distribution {
+  const memo = new Map<string, Distribution>();
+
+  function key(state: SimulatorState): string {
+    const metrics = METRIC_KEYS.map((m) => state.metrics[m]).join(",");
+    const flags = [...state.flags].sort().join(",");
+    return `${state.currentStepId}|${metrics}|${flags}`;
+  }
+
+  function go(state: SimulatorState): Distribution {
+    if (state.completed) {
+      return { totalRuns: 1, counts: new Map([[state.outcomeId!, 1]]) };
+    }
+    const k = key(state);
+    const cached = memo.get(k);
+    if (cached) {
+      return cached;
+    }
+    const counts = new Map<OutcomeId, number>();
+    let totalRuns = 0;
+    for (const option of getCurrentStep(scenario, state).options) {
+      const sub = go(applyDecision(scenario, state, option.id));
+      totalRuns += sub.totalRuns;
+      for (const [outcome, n] of sub.counts) {
+        counts.set(outcome, (counts.get(outcome) ?? 0) + n);
+      }
+    }
+    const result: Distribution = { totalRuns, counts };
+    memo.set(k, result);
+    return result;
+  }
+
+  return go(createInitialState(scenario));
+}
+
+/**
+ * Full per-path walk that runs the correctness assertions (replay
+ * fidelity, report coherence, export structure, curation, missed signals)
+ * on every enumerated leaf. Returns the number of paths visited, which is
+ * cross-checked against the memoized analyzer.
+ */
+function checkAllPaths(scenario: Scenario): number {
   let totalRuns = 0;
 
   function walk(state: SimulatorState): void {
     if (state.completed) {
       totalRuns += 1;
       assert.ok(state.outcomeId, "completed run must have an outcome");
-      counts.set(state.outcomeId!, (counts.get(state.outcomeId!) ?? 0) + 1);
       // Every completed run must produce a coherent report.
       const report = generateReport(scenario, state);
       assert.equal(report.timeline.length, state.decisions.length);
@@ -267,11 +345,22 @@ function enumerateRuns(scenario: Scenario): Distribution {
   }
 
   walk(createInitialState(scenario));
-  return { totalRuns, counts };
+  return totalRuns;
 }
 
+const walkStart = Date.now();
+
 for (const scenario of scenarios) {
-  const { totalRuns, counts } = enumerateRuns(scenario);
+  const { totalRuns, counts } = analyzeScenario(scenario);
+
+  // Per-path correctness assertions, cross-checked against the memoized
+  // path count so the fast analyzer cannot silently miss paths.
+  const checkedPaths = checkAllPaths(scenario);
+  assert.equal(
+    checkedPaths,
+    totalRuns,
+    `Path count mismatch in ${scenario.id}: analyzer ${totalRuns}, walk ${checkedPaths}`
+  );
 
   console.log(`\n${scenario.name}: ${totalRuns} distinct runs`);
   for (const outcome of scenario.outcomes) {
@@ -307,5 +396,12 @@ for (const scenario of scenarios) {
     }
   }
 }
+
+const walkSeconds = (Date.now() - walkStart) / 1000;
+console.log(`\nRegistry walk: ${walkSeconds.toFixed(2)}s`);
+assert.ok(
+  walkSeconds < 10,
+  `Registry walk must stay under 10s, took ${walkSeconds.toFixed(2)}s`
+);
 
 console.log("\nAll verification checks passed.");
