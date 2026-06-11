@@ -6,6 +6,8 @@ type EndOfDayReportProps = {
   onRestart: () => void;
   onReplay?: () => void;
   onDownload?: () => void;
+  onSave?: () => void;
+  saved?: boolean;
 };
 
 export function EndOfDayReport({
@@ -13,6 +15,8 @@ export function EndOfDayReport({
   onRestart,
   onReplay,
   onDownload,
+  onSave,
+  saved,
 }: EndOfDayReportProps) {
   return (
     <div className="flex flex-col gap-5">
@@ -136,6 +140,16 @@ export function EndOfDayReport({
             className="rounded-lg border border-surface-line px-6 py-2.5 text-sm font-medium transition-colors hover:border-accent"
           >
             Download report
+          </button>
+        )}
+        {onSave && (
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saved}
+            className="rounded-lg border border-surface-line px-6 py-2.5 text-sm font-medium transition-colors hover:border-accent disabled:opacity-50"
+          >
+            {saved ? "Saved for comparison" : "Save for comparison"}
           </button>
         )}
       </div>

@@ -510,3 +510,39 @@ state. There is no persistence, no storage API, no upload. Reloading the
 page clears it. This keeps the app static and backend-free and avoids
 storing untrusted data anywhere. A link from the scenarios page points to
 the importer for discoverability.
+
+## v3 Milestone 6
+
+### M6: Comparison derived through replay reconstruction
+
+compareRuns is a pure function that reconstructs both runs with the
+existing reconstructRun, then aligns them by decision position. It returns
+the per-step choices for each run, whether each step matched, the metric
+trajectory (metrics after each decision), the final metrics, the per-metric
+delta (B minus A), and the two outcomes. No engine change and no new stored
+state: a comparison is a function of the two decision trails plus the
+scenario. Runs are aligned by index, so on a branching scenario a point
+where the two runs took different paths shows up as steps flagged as
+diverged.
+
+### M6: Completed runs held in a session memory provider
+
+Comparing two runs needs both to survive past a single play, so a client
+context provider mounted in the root layout holds completed runs in memory
+for the session. The report gained a Save for comparison button that pushes
+the current run (scenario object, decision trail, outcome) into the
+provider; restarting clears the saved marker for the new run. Nothing is
+persisted: no storage API, no upload, and a reload empties the list. The
+provider stores the scenario object alongside the trail so imported
+scenarios compare the same way built-in ones do.
+
+### M6: Comparison is scoped to same-scenario pairs
+
+Two runs are only comparable when they are the same scenario, since the
+steps and outcomes only line up there. The compare page lets the user pick
+any two saved runs but only renders the comparison when both belong to the
+same scenario, and otherwise prompts for a matching pair. Verify asserts
+the two acceptance properties for all four scenarios: a run compared with
+itself reports zero differing choices, the same outcome, and a zero metric
+delta; and two known runs report the exact metric delta and the exact
+number of differing choices computed independently from the trails.

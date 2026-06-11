@@ -10,7 +10,20 @@ export function Header() {
             one workday, every tradeoff
           </span>
         </Link>
-        <span className="font-mono text-xs text-ink-faint">v0.1</span>
+        <nav className="flex items-center gap-4 text-sm">
+          <Link
+            href="/scenarios"
+            className="text-ink-muted transition-colors hover:text-ink"
+          >
+            Scenarios
+          </Link>
+          <Link
+            href="/compare"
+            className="text-ink-muted transition-colors hover:text-ink"
+          >
+            Compare
+          </Link>
+        </nav>
       </div>
     </header>
   );

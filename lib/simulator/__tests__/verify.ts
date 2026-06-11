@@ -23,6 +23,7 @@ import { generateReport } from "../report";
 import { reconstructRun } from "../replay";
 import { reportFilename, reportToMarkdown } from "../exportReport";
 import { parseScenarioJson, validateScenario, lintScenario } from "../import";
+import { compareRuns } from "../compare";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
 import { END_STEP_ID } from "../types";
 
@@ -610,4 +611,56 @@ assert.ok(rejected >= 8, `importer must reject at least 8 cases, rejected ${reje
 }
 
 console.log(`\nImporter rejected ${rejected} malformed inputs with specific messages.`);
+
+// --- Phase 6: run comparison ----------------------------------------
+
+/** Plays a scenario choosing the option at `pick` (clamped) per step. */
+function playByIndex(scenario: Scenario, pick: number): SimulatorState {
+  let state = createInitialState(scenario);
+  while (!state.completed) {
+    const step = getCurrentStep(scenario, state);
+    const option = step.options[Math.min(pick, step.options.length - 1)];
+    state = applyDecision(scenario, state, option.id);
+  }
+  return state;
+}
+
+for (const scenario of scenarios) {
+  const runA = playByIndex(scenario, 0);
+  const runB = playByIndex(scenario, 1);
+
+  // A run compared against itself has no differences.
+  const self = compareRuns(scenario, runA.decisions, runA.decisions);
+  assert.equal(self.differingChoices, 0, `self-compare differs in ${scenario.id}`);
+  assert.equal(self.sameOutcome, true);
+  for (const key of METRIC_KEYS) {
+    assert.equal(self.metricDelta[key], 0, `self-compare delta ${key}`);
+  }
+
+  // Two known runs: the comparison reports the exact metric delta and the
+  // exact number of differing choices.
+  const cmp = compareRuns(scenario, runA.decisions, runB.decisions);
+  for (const key of METRIC_KEYS) {
+    assert.equal(
+      cmp.metricDelta[key],
+      runB.metrics[key] - runA.metrics[key],
+      `compare metric delta ${key} in ${scenario.id}`
+    );
+  }
+  let expectedDiffs = 0;
+  for (let i = 0; i < runA.decisions.length; i += 1) {
+    if (runA.decisions[i].optionId !== runB.decisions[i].optionId) {
+      expectedDiffs += 1;
+    }
+  }
+  assert.equal(
+    cmp.differingChoices,
+    expectedDiffs,
+    `compare differing choices in ${scenario.id}`
+  );
+  assert.equal(cmp.outcomeA, runA.outcomeId);
+  assert.equal(cmp.outcomeB, runB.outcomeId);
+}
+
+console.log("Run comparison checks passed.");
 console.log("All verification checks passed.");

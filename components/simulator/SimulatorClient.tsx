@@ -11,6 +11,7 @@ import { ScenarioCard } from "@/components/simulator/ScenarioCard";
 import { SystemSignals } from "@/components/simulator/SystemSignals";
 import { ReplayView } from "@/components/simulator/ReplayView";
 import { Timeline } from "@/components/simulator/Timeline";
+import { useCompletedRuns } from "@/components/runs/CompletedRunsProvider";
 import {
   WorkdayStatus,
   type WorkdayBeat,
@@ -49,6 +50,8 @@ export function SimulatorClient({ scenario }: { scenario: Scenario }) {
     createInitialState
   );
   const [view, setView] = useState<"report" | "replay">("report");
+  const [savedRunKey, setSavedRunKey] = useState<string | null>(null);
+  const { addRun } = useCompletedRuns();
 
   const workdayBeats: WorkdayBeat[] = useMemo(
     () => [
@@ -88,6 +91,8 @@ export function SimulatorClient({ scenario }: { scenario: Scenario }) {
     anchor.click();
     URL.revokeObjectURL(url);
   }
+
+  const runKey = state.decisions.map((d) => d.optionId).join(">");
 
   const currentStep = state.completed
     ? null
@@ -141,6 +146,7 @@ export function SimulatorClient({ scenario }: { scenario: Scenario }) {
                 report={report}
                 onRestart={() => {
                   setView("report");
+                  setSavedRunKey(null);
                   dispatch({ type: "restart" });
                 }}
                 onReplay={
@@ -149,6 +155,18 @@ export function SimulatorClient({ scenario }: { scenario: Scenario }) {
                     : undefined
                 }
                 onDownload={downloadReport}
+                onSave={() => {
+                  if (!state.outcomeId) {
+                    return;
+                  }
+                  addRun({
+                    scenario,
+                    decisions: state.decisions,
+                    outcomeId: state.outcomeId,
+                  });
+                  setSavedRunKey(runKey);
+                }}
+                saved={savedRunKey === runKey}
               />
             </>
           )}

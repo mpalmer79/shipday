@@ -20,3 +20,5 @@ export {
   lintScenario,
 } from "./import";
 export type { ValidationResult } from "./import";
+export { compareRuns } from "./compare";
+export type { RunComparison, StepComparison } from "./compare";
