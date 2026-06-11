@@ -26,8 +26,29 @@ import { lintScenario } from "../lint";
 import { parseScenarioJson, validateScenario, OUTCOME_IDS } from "../validate";
 import { compareRuns } from "../comparison";
 import { METRIC_ORDER } from "../metrics";
+import { SAMPLE_SCENARIO } from "../../sampleScenario";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
 import { END_STEP_ID } from "../types";
+
+const BANNED_WORDS = [
+  "seamless",
+  "robust",
+  "delve",
+  "leverage",
+  "elevate",
+  "supercharge",
+  "game-changing",
+];
+
+function assertCleanCopy(text: string, where: string): void {
+  assert.ok(!text.includes("\u2014"), `Em dash found in ${where}`);
+  for (const banned of BANNED_WORDS) {
+    assert.ok(
+      !text.toLowerCase().includes(banned),
+      `Banned word "${banned}" found in ${where}`
+    );
+  }
+}
 
 const MAX_OUTCOME_SHARE = 0.45;
 const MIN_OUTCOME_SHARE = 0.02;
@@ -560,7 +581,33 @@ console.log(
         result.errors.some((e) => e.includes(expect)),
         `rejection "${name}" should report "${expect}"; got: ${result.errors.join(" | ")}`
       );
+      // Importer-facing strings: validator messages obey the copy rules.
+      for (const error of result.errors) {
+        assertCleanCopy(error, `validator message for ${name}`);
+      }
     }
+  }
+
+  // The sample scenario offered on the import page is held to the same copy
+  // rules, validates, lints clean, and plays to a known outcome.
+  assertCleanCopy(JSON.stringify(SAMPLE_SCENARIO), "sample scenario");
+  const sampleResult = parseScenarioJson(JSON.stringify(SAMPLE_SCENARIO));
+  assert.ok(sampleResult.ok, "the sample scenario must validate");
+  assert.equal(
+    lintScenario(SAMPLE_SCENARIO).length,
+    0,
+    "the sample scenario must lint clean"
+  );
+  {
+    let state = createInitialState(SAMPLE_SCENARIO);
+    while (!state.completed) {
+      const step = getCurrentStep(SAMPLE_SCENARIO, state);
+      state = applyDecision(SAMPLE_SCENARIO, state, step.options[0].id);
+    }
+    assert.ok(
+      OUTCOME_IDS.includes(state.outcomeId!),
+      "the sample scenario must play to a known outcome"
+    );
   }
 
   console.log(

@@ -612,3 +612,47 @@ pick a scenario that has at least two saved runs and choose run A and run B.
 It shows the step-by-step decision diff, a metric trajectory table (run A over
 run B per step, with the final A minus B delta), and the two final outcomes.
 The header gained a Compare link.
+
+## Milestone 7
+
+### M7: Copy-rule assertions extended to importer-facing strings
+
+The em dash and banned-word assertions already ran over every registered
+scenario, so scenario 4 was covered the moment it joined the registry. This
+milestone added the importer-facing strings: the validator's error messages
+(checked for every malformed-input case) and the sample scenario offered on
+the import page. The sample scenario was moved out of the client component
+into `lib/sampleScenario.ts` so the verify script can hold it to the same
+copy rules, validate it, lint it clean, and play it to a known outcome,
+exactly as for a built-in scenario. A shared `assertCleanCopy` helper backs
+all of these checks.
+
+### M7: Repository-wide sweep
+
+A repository-wide sweep found no em dashes in any source file and no banned
+words in any UI copy, scenario data, the sample scenario, or the README. The
+banned words appear only in the verify detector list (detector code, not
+copy) and in this decision log where the rule itself is discussed, which is
+the same convention the v2 log established. Every user-facing string added in
+this run was read end to end; the register matches the existing scenarios
+(flat, specific, no drama for its own sake).
+
+### M7: README and roadmap
+
+The README was rewritten for the v3 state: four scenarios with the designed
+difficulty curve, the branching scenario, JSON import with validation and
+lint, run comparison, launch metadata, a routes table, an updated
+architecture section, and an updated project structure. The roadmap marks the
+v3 items this run completed (launch metadata, mobile and accessibility,
+branching, JSON import, comparison). One previously listed item, conditional
+consequence text keyed off prior flags, was not in this run's scope and is
+left unchecked rather than claimed.
+
+### M7: Final verification
+
+verify and build both pass. The build route table shows every route as static
+or statically generated, with no server, environment variable, database, or
+API key requirement. All routes were smoke tested: the landing page, scenario
+picker, importer, comparison page, all four scenarios, the favicon, and a
+social card return 200, and the legacy `/simulator` path returns its 307
+redirect.
