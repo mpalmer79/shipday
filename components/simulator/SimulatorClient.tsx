@@ -26,6 +26,7 @@ import {
   type Scenario,
   type SimulatorState,
 } from "@/lib/simulator";
+import { addRun } from "@/lib/runStore";
 
 type Action = { type: "decide"; optionId: string } | { type: "restart" };
 
@@ -52,6 +53,7 @@ export function SimulatorClient({ scenario }: { scenario: Scenario }) {
   const reducer = useMemo(() => makeReducer(scenario), [scenario]);
   const [state, dispatch] = useReducer(reducer, scenario, createInitialState);
   const [view, setView] = useState<"report" | "replay">("report");
+  const [savedToComparison, setSavedToComparison] = useState(false);
 
   const currentStep = state.completed
     ? null
@@ -104,6 +106,19 @@ export function SimulatorClient({ scenario }: { scenario: Scenario }) {
         : null,
     [scenario, state]
   );
+
+  function addToComparison() {
+    if (!report || !state.outcomeId) {
+      return;
+    }
+    addRun({
+      scenario,
+      decisions: state.decisions,
+      outcomeId: state.outcomeId,
+      outcomeTitle: report.outcome.title,
+    });
+    setSavedToComparison(true);
+  }
 
   function downloadReport() {
     if (!report) {
@@ -166,6 +181,7 @@ export function SimulatorClient({ scenario }: { scenario: Scenario }) {
                 report={report}
                 onRestart={() => {
                   setView("report");
+                  setSavedToComparison(false);
                   dispatch({ type: "restart" });
                 }}
                 onReplay={
@@ -174,6 +190,8 @@ export function SimulatorClient({ scenario }: { scenario: Scenario }) {
                     : undefined
                 }
                 onDownload={downloadReport}
+                onAddToComparison={addToComparison}
+                savedToComparison={savedToComparison}
               />
             </>
           )}

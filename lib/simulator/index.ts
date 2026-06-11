@@ -22,3 +22,10 @@ export {
 } from "./validate";
 export type { ValidationResult } from "./validate";
 export { lintScenario } from "./lint";
+export { compareRuns } from "./comparison";
+export type {
+  ChoiceSummary,
+  RunComparison,
+  StepDiff,
+  TrajectoryPoint,
+} from "./comparison";

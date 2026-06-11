@@ -23,6 +23,12 @@ export function Header() {
           >
             Import
           </Link>
+          <Link
+            href="/compare"
+            className="text-ink-muted transition-colors hover:text-ink"
+          >
+            Compare
+          </Link>
         </nav>
       </div>
     </header>

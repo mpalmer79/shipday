@@ -561,3 +561,54 @@ an invalid tone, and a rule whose outcome is not defined.
 The header gained a nav landmark with links to the scenario picker and the
 importer, so the new route is reachable without typing the URL. The links
 inherit the global focus styles from Milestone 2.
+
+## Milestone 6
+
+### M6: Comparison is derived, holding only completed runs
+
+`compareRuns` in `lib/simulator/comparison.ts` is a pure function that
+reconstructs both runs through the existing reconstructRun and diffs them: the
+decision at each step index, the metric trajectory (the start plus the metrics
+after each step), the final metrics and outcomes, the count of differing
+decisions, and the per-metric final delta. It stores nothing. The only new
+state is `lib/runStore.ts`, an in-memory session store of completed runs that
+holds just the scenario and the decision trail (everything else is
+reconstructed). It uses useSyncExternalStore, writes to no storage API, and
+clears on a full reload, which is the scope the milestone allows.
+
+### M6: Runs are saved explicitly, not on every completion
+
+The end-of-day report has an "Add to comparison" button rather than auto-
+saving every finished run. Auto-saving would fill the store with near-
+duplicate runs from replaying and restarting. An explicit save keeps the
+comparison list intentional, and the button shows an added state plus a link
+to the comparison page once a run is saved.
+
+### M6: Comparison aligns branching runs by step index
+
+Two runs of a branching scenario can take different paths. The comparison
+aligns them by step index and marks a step as the same choice only when both
+the step id and the option id match, so a divergence at a branch shows as
+different steps and different choices from that index on. Where one run is
+longer than the other, the missing side is shown as absent rather than
+forcing a false alignment.
+
+### M6: Comparison assertions
+
+Verify asserts that comparing a run against itself yields zero decision
+differences and zero metric differences, for all four scenarios including the
+branching one. It then compares two known runs of scenario 1 (a careful line
+and a reckless line that differ on all six decisions) and asserts the decision
+difference count is exactly six and that every final metric delta equals the
+two runs' independently computed final metrics. A third check compares two
+runs of the branching scenario that diverge at triage and asserts they differ,
+that the triage step is marked different, and that the step after triage is a
+different step id on each path.
+
+### M6: Compare route and navigation
+
+A `/compare` page (statically rendered, hydrated client side) lets the user
+pick a scenario that has at least two saved runs and choose run A and run B.
+It shows the step-by-step decision diff, a metric trajectory table (run A over
+run B per step, with the final A minus B delta), and the two final outcomes.
+The header gained a Compare link.

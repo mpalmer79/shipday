@@ -24,6 +24,8 @@ import { reconstructRun } from "../replay";
 import { reportFilename, reportToMarkdown } from "../exportReport";
 import { lintScenario } from "../lint";
 import { parseScenarioJson, validateScenario, OUTCOME_IDS } from "../validate";
+import { compareRuns } from "../comparison";
+import { METRIC_ORDER } from "../metrics";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
 import { END_STEP_ID } from "../types";
 
@@ -564,6 +566,125 @@ console.log(
   console.log(
     `\nImport validator: ${rejections.length} malformed inputs rejected with specific messages.`
   );
+}
+
+// --- Phase 5: run comparison -----------------------------------------
+
+{
+  // Play a scenario along a chosen sequence of option ids to completion.
+  function play(scenario: Scenario, optionIds: string[]): SimulatorState {
+    let state = createInitialState(scenario);
+    for (const optionId of optionIds) {
+      state = applyDecision(scenario, state, optionId);
+    }
+    assert.ok(state.completed, "play sequence must finish the scenario");
+    return state;
+  }
+
+  // Comparing a run against itself yields zero differences, for every
+  // scenario, including the branching one.
+  for (const scenario of scenarios) {
+    let state = createInitialState(scenario);
+    while (!state.completed) {
+      const step = getCurrentStep(scenario, state);
+      state = applyDecision(scenario, state, step.options[0].id);
+    }
+    const self = compareRuns(scenario, state.decisions, state.decisions);
+    assert.equal(
+      self.decisionDifferences,
+      0,
+      `self-comparison must have zero decision differences in ${scenario.id}`
+    );
+    assert.ok(
+      self.steps.every((s) => s.sameChoice),
+      `self-comparison steps must all match in ${scenario.id}`
+    );
+    for (const metric of METRIC_ORDER) {
+      assert.equal(
+        self.metricDifferences[metric],
+        0,
+        `self-comparison metric ${metric} must be zero in ${scenario.id}`
+      );
+    }
+  }
+
+  // Two known runs of scenario 1: a careful line and a reckless line. They
+  // differ on every decision, and the metric deltas match the two runs'
+  // independently computed final metrics exactly.
+  const careful = play(scenario1, [
+    "ask-questions",
+    "ask-product",
+    "review-line-by-line",
+    "investigate-test",
+    "feature-flag",
+    "flagged-staged",
+  ]);
+  const reckless = play(scenario1, [
+    "start-coding",
+    "assume-stacking",
+    "accept-as-is",
+    "delete-test",
+    "ship-today",
+    "full-release",
+  ]);
+
+  const cmp = compareRuns(scenario1, careful.decisions, reckless.decisions);
+  assert.equal(
+    cmp.decisionDifferences,
+    6,
+    "the careful and reckless lines differ on all six decisions"
+  );
+  for (const metric of METRIC_ORDER) {
+    assert.equal(
+      cmp.metricDifferences[metric],
+      careful.metrics[metric] - reckless.metrics[metric],
+      `metric delta for ${metric} must match the two final states`
+    );
+  }
+  assert.equal(cmp.finalA.outcomeId, careful.outcomeId);
+  assert.equal(cmp.finalB.outcomeId, reckless.outcomeId);
+  // The trajectory has one point per step plus the start.
+  assert.equal(cmp.trajectory.length, careful.decisions.length + 1);
+
+  // A branching pair on scenario 4 diverges at triage and stays diverged.
+  const thePage = scenarios.find((s) => s.id === "the-page")!;
+  const viaDiagnose = play(thePage, [
+    "stash-and-ack",
+    "read-dashboards",
+    "find-shared-dep",
+    "pin-library",
+    "canary-the-fix",
+    "write-timeline",
+  ]);
+  const viaRollback = play(thePage, [
+    "stash-and-ack",
+    "rollback-last-deploy",
+    "explain-to-team",
+    "pin-library",
+    "canary-the-fix",
+    "write-timeline",
+  ]);
+  const branchCmp = compareRuns(
+    thePage,
+    viaDiagnose.decisions,
+    viaRollback.decisions
+  );
+  assert.ok(
+    branchCmp.decisionDifferences > 0,
+    "the branching pair must differ"
+  );
+  assert.equal(
+    branchCmp.steps[1].sameChoice,
+    false,
+    "the triage step diverges between the two paths"
+  );
+  assert.notEqual(
+    branchCmp.steps[2].a?.stepId,
+    branchCmp.steps[2].b?.stepId,
+    "the two paths visit different steps after triage"
+  );
+
+  console.log("\nRun comparison: self-compare and known-pair deltas verified.");
 }
 
 console.log("\nAll verification checks passed.");
