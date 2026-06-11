@@ -84,8 +84,8 @@ const EXPECTED_DISTRIBUTIONS: Record<
     overcontrolled: 328,
   },
   "the-page": {
-    "safe-rollout": 1682,
-    "minor-issue": 1452,
+    "safe-rollout": 1035,
+    "minor-issue": 2099,
     "customer-incident": 645,
     "responsible-delay": 942,
     overcontrolled: 399,

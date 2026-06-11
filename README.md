@@ -26,7 +26,9 @@ Difficulty is a designed curve: the chance of a Customer Impact Incident rises
 with each scenario (2.95%, 6.55%, 9.06%, 12.60% across the exhaustive
 playtest). The Page is the first branching scenario: the triage choice routes
 the rest of the day down a diagnose-first or act-first path that reconverge at
-the root cause.
+the root cause. On The Page, Safe Rollout requires ending the day with less
+risk than it started with and the fix verified, so good triage alone is not
+enough.
 
 Pick a scenario at `/scenarios`. The old `/simulator` path redirects to
 scenario 1.

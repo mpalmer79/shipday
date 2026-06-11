@@ -595,8 +595,8 @@ export const thePage: Scenario = {
       when: {
         kind: "allOf",
         conditions: [
-          { kind: "metricAtMost", metric: "risk", value: 38 },
-          { kind: "metricAtLeast", metric: "testConfidence", value: 55 },
+          { kind: "metricAtMost", metric: "risk", value: 28 },
+          { kind: "metricAtLeast", metric: "testConfidence", value: 60 },
           {
             kind: "anyOf",
             conditions: [

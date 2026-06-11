@@ -743,3 +743,45 @@ Pages checked after the change, each rendering ink-faint where listed:
 
 The built stylesheet contains only the new value (rgb 120 133 158); the old
 value appears nowhere in the build output.
+
+## Task 3
+
+### T3: The Page Safe Rollout retuned from 32.9% to 20.2%
+
+The trace confirmed a tuning artifact, not a design choice. Two causes:
+
+First, the reconverging branch structure funnels every run through the-fix,
+where two of the five options (canary, flag-and-ramp) grant the safe-rollout
+gate flag; 81 percent of safe runs satisfied the gate at that one step, so
+the gate barely depended on how the incident itself was handled. Second, the
+risk threshold of 38 did not bind: the scenario is dense with risk-reducing
+options, and the mean final risk among safe runs was 14.8, far under the
+threshold. Together these let runs containing keep-coding (18 percent of
+safe runs), rollback-on-suspicion (17 percent), keep-digging (11 percent),
+quick-patch (11 percent), and even silent-close (22 percent) still land Safe
+Rollout, giving the expert scenario the registry's highest safe share.
+
+The call: retune. The safe-rollout thresholds move from risk at most 38 and
+testConfidence at least 55 to risk at most 28 and testConfidence at least
+60. The reading: an incident day only counts as a safe rollout if it ends
+with meaningfully less risk than it started with (initial risk is 30) and
+the fix verified rather than assumed. The gate's anyOf structure is
+unchanged. An alternative that additionally required the mitigated-impact
+flag was tested and rejected: it dropped Safe Rollout to 8 to 11 percent and
+pushed Minor Production Issue past the 45 percent bound.
+
+Only the priority-4 safe rule moved, so the incident, overcontrolled, and
+responsible-delay counts are untouched and the incident curve stays at
+2.95, 6.55, 9.06, 12.60. Safe shares across the registry are now 19.5, 14.9,
+22.8, 20.2, so The Page is no longer the outlier. Pins before and after:
+
+- safe-rollout: 1682 to 1035
+- minor-issue: 1452 to 2099
+- customer-incident: 645 to 645 (unchanged)
+- responsible-delay: 942 to 942 (unchanged)
+- overcontrolled: 399 to 399 (unchanged)
+
+All five outcomes remain inside the 2 to 45 percent bounds (Minor Production
+Issue is the highest at 41.0 percent). The README already describes
+difficulty next to the scenario table, so the one-line summary of the call
+was added to that paragraph rather than a new section.
