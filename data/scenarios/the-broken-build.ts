@@ -61,6 +61,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "reproduce-locally",
+          strong: true,
           label: "Reproduce the failure locally",
           description:
             "Pull main, run the failing test in a loop, and get the failure happening on your own machine before touching anything.",
@@ -74,6 +75,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "read-failure-output",
+          strong: true,
           label: "Read the full failure output first",
           description:
             "Before running anything, read the CI logs end to end. The failure already happened five times; the evidence is sitting there.",
@@ -138,6 +140,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "run-twenty-times",
+          strong: true,
           label: "Run it twenty times and characterize it",
           description:
             "Loop the test and record the pattern: failure rate, which assertion, how late the event is.",
@@ -151,6 +154,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "read-for-race",
+          strong: true,
           label: "Read the test for the race condition",
           description:
             "The sleep is the tell. Trace what the test actually waits for versus what it should wait for.",
@@ -188,6 +192,7 @@ export const theBrokenBuild: Scenario = {
       options: [
         {
           id: "bisect-commits",
+          strong: true,
           label: "Bisect the eleven commits",
           description:
             "Run the failing test against each commit since the last green build and find exactly where the failure rate jumped.",
@@ -213,6 +218,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "message-sam",
+          strong: true,
           label: "Send Sam one focused question",
           description:
             "They are sick, not gone. One message: \"Did the startup change affect event ordering? Yes or no is plenty.\"",
@@ -261,6 +267,7 @@ export const theBrokenBuild: Scenario = {
       options: [
         {
           id: "fix-both",
+          strong: true,
           label: "Fix the ordering and rewrite the test",
           description:
             "Gate the sync event until subscribers attach, and make the test wait on the event instead of sleeping.",
@@ -335,6 +342,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "status-with-risk",
+          strong: true,
           label: "Give the exact state, including what is unverified",
           description:
             "Two sentences: what failed, what is fixed, what has not been proven yet, and what could still go wrong tonight.",
@@ -361,6 +369,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "canary-proposal",
+          strong: true,
           label: "Propose shipping to the canary fleet only",
           description:
             "Give a conditional go: the 3:00 PM train ships to the 5 percent canary fleet, full rollout after two clean hours.",
@@ -398,6 +407,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "canary-release",
+          strong: true,
           label: "Canary fleet tonight, full fleet after soak",
           description:
             "5 percent of traffic overnight with order-sync alerts on, ramp in the morning if the graphs stay flat.",
@@ -411,6 +421,7 @@ export const theBrokenBuild: Scenario = {
         },
         {
           id: "hold-communicate",
+          strong: true,
           label: "Hold the pipeline and say exactly why",
           description:
             "Pull order-sync from tonight's train. Write down what is unverified, what it risks, and the ship date.",
@@ -487,7 +498,7 @@ export const theBrokenBuild: Scenario = {
       when: {
         kind: "anyOf",
         conditions: [
-          { kind: "metricAtLeast", metric: "risk", value: 70 },
+          { kind: "metricAtLeast", metric: "risk", value: 77 },
           {
             kind: "allOf",
             conditions: [
@@ -542,4 +553,14 @@ export const theBrokenBuild: Scenario = {
     },
   ],
   fallbackOutcomeId: "minor-issue",
+  missedSignals: {
+    [FLAGS.skippedValidation]:
+      "The failure was reproducible and measurable, but the morning ran on re-runs and suspicion instead of evidence.",
+    [FLAGS.deletedFailingTest]:
+      "The only integration test watching order sync was removed under deadline, trading a maintenance problem for a blind spot.",
+    [FLAGS.shippedDirect]:
+      "The go-ahead went to three teams before the fix was verified, turning an expectation into a status others planned around.",
+    [FLAGS.blockedRelease]:
+      "Pulling the pipeline may have been right, but three teams learned it was missing from the deploy manifest, not from you.",
+  },
 };

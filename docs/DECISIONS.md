@@ -341,3 +341,82 @@ decorative labels (timestamps, faint captions), never for the bands or
 deltas the milestone covers. Changing it would ripple across the whole UI
 and is outside the conservative scope of this milestone, so it is left as a
 known item rather than altered here.
+
+## Milestone 3
+
+### M3: Missed-signal copy moved into scenario data with a shared fallback
+
+A `missedSignals` map (flag to text) was added to the Scenario type. The
+report now reads the scenario's own copy for a flag and falls back to the
+shared flag-keyed copy in `lib/simulator/report.ts` only when the scenario
+does not author its own. All three scenarios author specific text for the
+warning-sign flags they can set (scenario 1: skipped validation, unreviewed
+AI, deleted test, shipped direct, blocked release; scenario 2: skipped
+validation, deleted test, shipped direct, blocked release; scenario 3:
+skipped validation, shipped direct, blocked release). The shared copy stays
+as the fallback for any flag a scenario does not cover and for future or
+imported scenarios. This is report-only copy and does not touch outcome
+logic, so no distribution moved.
+
+### M3: Strong decisions are curated by a per-option marker
+
+A `strong` boolean was added to DecisionOption and carried into the
+DecisionRecord by the engine. The report treats a scenario as curated if any
+option sets the marker, and then surfaces only the marked decisions; a
+scenario with no markers falls back to the previous heuristic (net risk
+reduction without quality or test loss). All three scenarios are now curated.
+The marker is set on the deliberate senior moves: options that buy
+information (reading the code, reproducing a failure, asking a precise
+question), reversibility (feature flags, staged or canary rollout, a written
+rollback plan, scoping to one tenant), or shared ownership of a tradeoff
+(stating the risk, offering a dated alternative). Options that are merely not
+harmful are left unmarked. This replaces the mechanical heuristic that, in
+scenario 3, marked an entire careful run as strong. Strong decisions do not
+affect outcomes, so no distribution moved; verify asserts that curated
+scenarios surface exactly their marked decisions across every enumerated run.
+
+### M3: Difficulty is a designed incident curve, pins updated
+
+The incident (Customer Impact Incident) rate is now designed to rise with
+difficulty across the registry order, which is the difficulty order. Target
+curve: a low starter floor, a moderate intermediate rate, and the highest
+rate on the advanced Friday scenario, reflecting that a Friday evening global
+config change with no reviewers and an on-call handoff is the most likely of
+the three to reach production unverified and unattended. Verify now asserts
+the incident share is non-decreasing across the registry and prints the
+curve.
+
+Before this milestone the incident rates were 2.95%, 7.52%, 2.59%, which was
+not a curve: the intermediate scenario was the highest and the advanced
+scenario was the lowest. After tuning the rates are 2.95%, 6.55%, 9.06%.
+
+Scenario 1 (Just Add a Button) was already at the intended floor and was left
+unchanged, so its pins did not move. The two retuned scenarios changed only
+their incident outcome rule thresholds (scenario data, the intended tuning
+mechanism), which shifts the boundary between Customer Impact Incident and
+the Minor Production Issue fallback:
+
+The Broken Build incident rule: the global risk threshold was raised from 70
+to 77, lowering the incident rate from 7.52% to 6.55%. Pins before and after:
+
+- safe-rollout: 951 to 951 (unchanged)
+- minor-issue: 2697 to 2755
+- customer-incident: 481 to 419
+- responsible-delay: 1545 to 1545 (unchanged)
+- overcontrolled: 726 to 730
+
+Friday Deploy incident rule: the global risk threshold was lowered from 70 to
+60, and the flag combination clause was broadened from (shipped direct and
+skipped validation and no rollback plan, risk at least 55) to (shipped direct
+and no rollback plan, risk at least 34), raising the incident rate from 2.59%
+to 9.06%. Pins before and after:
+
+- safe-rollout: 962 to 934
+- minor-issue: 1662 to 1458
+- customer-incident: 106 to 371
+- responsible-delay: 1020 to 1005
+- overcontrolled: 346 to 328
+
+All five outcomes remain reachable in every scenario within the 2 to 45
+percent bounds after tuning (the highest single share is The Broken Build's
+Minor Production Issue at 43.0 percent).

@@ -9,34 +9,61 @@ import type {
 import { getOutcome } from "./outcomes";
 
 /**
- * A decision reads as "strong" when its net effect protected the system:
- * it reduced risk or invested in quality / test confidence without
- * gambling. Heuristic by design, tuned alongside scenario copy.
+ * Heuristic fallback for scenarios that do not curate strong decisions: a
+ * decision reads as "strong" when its net effect protected the system,
+ * reducing risk while investing in quality or test confidence. Curated
+ * scenarios (any option marked `strong`) ignore this and use the markers.
  */
-function isStrongDecision(decision: DecisionRecord): boolean {
+function isStrongByHeuristic(decision: DecisionRecord): boolean {
   const risk = decision.impact.risk ?? 0;
   const quality = decision.impact.quality ?? 0;
   const testConfidence = decision.impact.testConfidence ?? 0;
   return risk < 0 && quality + testConfidence >= 0;
 }
 
-/** Flags that indicate a warning sign was visible and ignored. */
-const MISSED_SIGNAL_COPY: Record<FlagId, string> = {
+function isCurated(scenario: Scenario): boolean {
+  return scenario.steps.some((step) =>
+    step.options.some((option) => option.strong !== undefined)
+  );
+}
+
+function deriveStrongDecisions(
+  scenario: Scenario,
+  state: SimulatorState
+): DecisionRecord[] {
+  if (isCurated(scenario)) {
+    return state.decisions.filter((decision) => decision.strong === true);
+  }
+  return state.decisions.filter(isStrongByHeuristic);
+}
+
+/**
+ * Shared fallback copy for warning-sign flags, used only when a scenario
+ * does not author its own missed-signal text for that flag. Scenario data
+ * provides the specific text in preference to this.
+ */
+const SHARED_MISSED_SIGNAL_COPY: Record<FlagId, string> = {
   "skipped-validation":
-    "Ambiguity in the requirements was visible early and got papered over with assumptions instead of answers.",
+    "Ambiguity was visible early and got papered over with assumptions instead of answers.",
   "accepted-ai-unreviewed":
-    "Generated code went into the payment path without anyone being able to explain its edge cases.",
+    "Generated code went into a sensitive path without anyone being able to explain its edge cases.",
   "deleted-failing-test":
     "A failing test was a warning left by a past engineer. Deleting it silenced the warning, not the problem.",
   "shipped-direct":
-    "The release went out with no kill switch, so every unverified assumption shipped to every customer at once.",
+    "The release went out with no kill switch, so every unverified assumption shipped at once.",
   "blocked-release":
     "Holding the release was defensible, but nobody who depended on it was told, so caution read as unreliability.",
 };
 
-function deriveMissedSignals(state: SimulatorState): string[] {
+function deriveMissedSignals(
+  scenario: Scenario,
+  state: SimulatorState
+): string[] {
   return state.flags
-    .map((flag) => MISSED_SIGNAL_COPY[flag])
+    .map(
+      (flag) =>
+        scenario.missedSignals?.[flag] ?? SHARED_MISSED_SIGNAL_COPY[flag]
+    )
     .filter((copy): copy is string => Boolean(copy));
 }
 
@@ -65,8 +92,8 @@ export function generateReport(
     outcome: getOutcome(scenario, state.outcomeId),
     finalMetrics: state.metrics,
     timeline: state.decisions,
-    strongDecisions: state.decisions.filter(isStrongDecision),
-    missedSignals: deriveMissedSignals(state),
+    strongDecisions: deriveStrongDecisions(scenario, state),
+    missedSignals: deriveMissedSignals(scenario, state),
     staffLevelLesson: STAFF_LEVEL_LESSONS[state.outcomeId],
   };
 }

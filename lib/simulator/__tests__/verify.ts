@@ -46,17 +46,17 @@ const EXPECTED_DISTRIBUTIONS: Record<
   },
   "the-broken-build": {
     "safe-rollout": 951,
-    "minor-issue": 2697,
-    "customer-incident": 481,
+    "minor-issue": 2755,
+    "customer-incident": 419,
     "responsible-delay": 1545,
-    overcontrolled: 726,
+    overcontrolled: 730,
   },
   "friday-deploy": {
-    "safe-rollout": 962,
-    "minor-issue": 1662,
-    "customer-incident": 106,
-    "responsible-delay": 1020,
-    overcontrolled: 346,
+    "safe-rollout": 934,
+    "minor-issue": 1458,
+    "customer-incident": 371,
+    "responsible-delay": 1005,
+    overcontrolled: 328,
   },
 };
 
@@ -197,6 +197,10 @@ function enumerateRuns(scenario: Scenario): Distribution {
   const counts = new Map<OutcomeId, number>();
   let totalRuns = 0;
 
+  const curated = scenario.steps.some((step) =>
+    step.options.some((option) => option.strong !== undefined)
+  );
+
   function walk(state: SimulatorState): void {
     if (state.completed) {
       totalRuns += 1;
@@ -206,6 +210,19 @@ function enumerateRuns(scenario: Scenario): Distribution {
       const report = generateReport(scenario, state);
       assert.equal(report.timeline.length, state.decisions.length);
       assert.ok(report.staffLevelLesson.length > 0);
+      // Curated scenarios surface exactly their marked strong decisions.
+      if (curated) {
+        const marked = state.decisions.filter((d) => d.strong === true).length;
+        assert.equal(
+          report.strongDecisions.length,
+          marked,
+          `Strong decision count mismatch in ${scenario.id}`
+        );
+        assert.ok(
+          report.strongDecisions.every((d) => d.strong === true),
+          `Uncurated decision surfaced as strong in ${scenario.id}`
+        );
+      }
       // Replaying the decision trail must reproduce the run exactly.
       const replay = reconstructRun(scenario, state.decisions);
       assert.deepEqual(replay.finalState.metrics, state.metrics);
@@ -244,8 +261,20 @@ function enumerateRuns(scenario: Scenario): Distribution {
   return { totalRuns, counts };
 }
 
+/**
+ * Incident rate per scenario in registry order. The registry order is the
+ * difficulty order, and Milestone 3 designs the incident rate to rise with
+ * difficulty, so this sequence must be non-decreasing.
+ */
+const incidentCurve: { id: string; share: number }[] = [];
+
 for (const scenario of scenarios) {
   const { totalRuns, counts } = enumerateRuns(scenario);
+
+  incidentCurve.push({
+    id: scenario.id,
+    share: (counts.get("customer-incident") ?? 0) / totalRuns,
+  });
 
   console.log(`\n${scenario.name}: ${totalRuns} distinct runs`);
   for (const outcome of scenario.outcomes) {
@@ -281,5 +310,20 @@ for (const scenario of scenarios) {
     }
   }
 }
+
+// The designed difficulty curve: incident rate rises with difficulty.
+for (let i = 1; i < incidentCurve.length; i += 1) {
+  const prev = incidentCurve[i - 1];
+  const curr = incidentCurve[i];
+  assert.ok(
+    curr.share >= prev.share,
+    `Incident curve not monotonic: ${curr.id} (${(curr.share * 100).toFixed(2)}%) is below ${prev.id} (${(prev.share * 100).toFixed(2)}%)`
+  );
+}
+console.log(
+  `\nIncident curve: ${incidentCurve
+    .map((s) => `${(s.share * 100).toFixed(2)}%`)
+    .join(" -> ")}`
+);
 
 console.log("\nAll verification checks passed.");
