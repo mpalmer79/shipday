@@ -22,6 +22,12 @@ export type DecisionOption = {
   flags?: FlagId[];
   consequence?: string;
   lesson?: string;
+  /**
+   * Curated marker: true means this option is a deliberate strong decision
+   * worth surfacing in the report. A scenario that marks any option is
+   * treated as curated; scenarios with no markers fall back to a heuristic.
+   */
+  strong?: boolean;
 };
 
 export type ScenarioStep = {
@@ -80,6 +86,12 @@ export type Scenario = {
   outcomeRules: OutcomeRule[];
   /** Guarantees outcome resolution always terminates. */
   fallbackOutcomeId: OutcomeId;
+  /**
+   * Scenario-specific missed-signal copy keyed by flag. Used in preference
+   * to the shared fallback copy in the report. A scenario authors text for
+   * the warning-sign flags it can set.
+   */
+  missedSignals?: Partial<Record<FlagId, string>>;
 };
 
 export type DecisionRecord = {
@@ -91,6 +103,8 @@ export type DecisionRecord = {
   impact: DecisionImpact;
   consequence?: string;
   lesson?: string;
+  /** Carried from the chosen option's curated strong marker. */
+  strong?: boolean;
 };
 
 export type SimulatorState = {

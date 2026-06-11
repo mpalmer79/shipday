@@ -35,8 +35,8 @@ export function Timeline({
       </button>
       {open && (
         <ol className="space-y-4 border-t border-surface-line p-4">
-          {decisions.map((decision) => (
-            <li key={decision.stepId} className="text-xs">
+          {decisions.map((decision, i) => (
+            <li key={`${decision.stepId}-${i}`} className="text-xs">
               <div className="flex items-baseline gap-2">
                 <span className="font-mono text-ink-faint">
                   {decision.stepTime}

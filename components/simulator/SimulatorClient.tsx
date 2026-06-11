@@ -15,7 +15,6 @@ import {
   WorkdayStatus,
   type WorkdayBeat,
 } from "@/components/simulator/WorkdayStatus";
-import { getScenario } from "@/data/scenarios";
 import {
   applyDecision,
   createInitialState,
@@ -24,38 +23,76 @@ import {
   reconstructRun,
   reportFilename,
   reportToMarkdown,
+  type Scenario,
   type SimulatorState,
 } from "@/lib/simulator";
+import { addRun } from "@/lib/runStore";
 
 type Action = { type: "decide"; optionId: string } | { type: "restart" };
 
-function reducer(state: SimulatorState, action: Action): SimulatorState {
-  const scenario = getScenario(state.scenarioId);
-  switch (action.type) {
-    case "decide":
-      return applyDecision(scenario, state, action.optionId);
-    case "restart":
-      return createInitialState(scenario);
-  }
+/**
+ * Reducer factory bound to a scenario. Keeping it a pure factory lets the
+ * simulator run any scenario, including one imported at runtime that is not
+ * in the registry, without the reducer reaching for global lookup.
+ */
+function makeReducer(scenario: Scenario) {
+  return function reducer(
+    state: SimulatorState,
+    action: Action
+  ): SimulatorState {
+    switch (action.type) {
+      case "decide":
+        return applyDecision(scenario, state, action.optionId);
+      case "restart":
+        return createInitialState(scenario);
+    }
+  };
 }
 
-export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
-  const scenario = getScenario(scenarioId);
-  const [state, dispatch] = useReducer(
-    reducer,
-    scenario,
-    createInitialState
-  );
+export function SimulatorClient({ scenario }: { scenario: Scenario }) {
+  const reducer = useMemo(() => makeReducer(scenario), [scenario]);
+  const [state, dispatch] = useReducer(reducer, scenario, createInitialState);
   const [view, setView] = useState<"report" | "replay">("report");
+  const [savedToComparison, setSavedToComparison] = useState(false);
 
-  const workdayBeats: WorkdayBeat[] = useMemo(
-    () => [
-      ...scenario.steps.map((step) => ({ time: step.time, label: step.title })),
-      { time: scenario.outcomes[0].time, label: "How it lands" },
-      { time: "5:00 PM", label: "End-of-day report" },
-    ],
+  const currentStep = state.completed
+    ? null
+    : getCurrentStep(scenario, state);
+
+  // A branching scenario has no single upcoming spine to preview, so its
+  // workday is shown as the path taken plus the current step. A linear
+  // scenario keeps the full preview of every upcoming step.
+  const isBranching = useMemo(
+    () =>
+      scenario.steps.some(
+        (step) => new Set(step.options.map((o) => o.nextStepId)).size > 1
+      ),
     [scenario]
   );
+
+  const endBeats: WorkdayBeat[] = [
+    { time: scenario.outcomes[0].time, label: "How it lands" },
+    { time: "5:00 PM", label: "End-of-day report" },
+  ];
+
+  const workdayBeats: WorkdayBeat[] = isBranching
+    ? [
+        ...state.decisions.map((d) => ({
+          time: d.stepTime,
+          label: d.stepTitle,
+        })),
+        ...(currentStep
+          ? [{ time: currentStep.time, label: currentStep.title }]
+          : []),
+        ...endBeats,
+      ]
+    : [
+        ...scenario.steps.map((step) => ({
+          time: step.time,
+          label: step.title,
+        })),
+        ...endBeats,
+      ];
 
   const report = useMemo(
     () => (state.completed ? generateReport(scenario, state) : null),
@@ -69,6 +106,19 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
         : null,
     [scenario, state]
   );
+
+  function addToComparison() {
+    if (!report || !state.outcomeId) {
+      return;
+    }
+    addRun({
+      scenario,
+      decisions: state.decisions,
+      outcomeId: state.outcomeId,
+      outcomeTitle: report.outcome.title,
+    });
+    setSavedToComparison(true);
+  }
 
   function downloadReport() {
     if (!report) {
@@ -87,9 +137,6 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
     URL.revokeObjectURL(url);
   }
 
-  const currentStep = state.completed
-    ? null
-    : getCurrentStep(scenario, state);
   const currentBeatIndex = state.completed
     ? workdayBeats.length - 1
     : state.decisions.length;
@@ -97,13 +144,14 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
 
   return (
     <AppShell>
+      <h1 className="sr-only">{scenario.name}</h1>
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[240px_minmax(0,1fr)_280px]">
-        <div className="order-2 flex flex-col gap-4 lg:order-1">
+        <div className="order-3 flex flex-col gap-4 lg:order-1">
           <WorkdayStatus beats={workdayBeats} currentIndex={currentBeatIndex} />
           {!state.completed && <Timeline decisions={state.decisions} />}
         </div>
 
-        <div className="order-1 flex flex-col gap-4 lg:order-2">
+        <div className="order-2 flex flex-col gap-4 lg:order-2">
           {currentStep && (
             <>
               <ScenarioCard step={currentStep} />
@@ -133,6 +181,7 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
                 report={report}
                 onRestart={() => {
                   setView("report");
+                  setSavedToComparison(false);
                   dispatch({ type: "restart" });
                 }}
                 onReplay={
@@ -141,6 +190,8 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
                     : undefined
                 }
                 onDownload={downloadReport}
+                onAddToComparison={addToComparison}
+                savedToComparison={savedToComparison}
               />
             </>
           )}
@@ -152,7 +203,7 @@ export function SimulatorClient({ scenarioId }: { scenarioId: string }) {
           )}
         </div>
 
-        <div className="order-3">
+        <div className="order-1 lg:order-3">
           <MetricsDashboard
             metrics={state.metrics}
             lastImpact={lastDecision?.impact}

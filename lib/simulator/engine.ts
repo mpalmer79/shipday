@@ -99,6 +99,7 @@ export function applyDecision(
         impact: option.impact,
         consequence: option.consequence,
         lesson: option.lesson,
+        strong: option.strong,
       },
     ],
     currentStepId: option.nextStepId,

@@ -14,3 +14,18 @@ export { reconstructRun } from "./replay";
 export type { ReplayFrame, ReconstructedRun } from "./replay";
 export { METRIC_LABELS, METRIC_ORDER } from "./metrics";
 export { reportFilename, reportToMarkdown } from "./exportReport";
+export {
+  METRIC_KEYS,
+  OUTCOME_IDS,
+  parseScenarioJson,
+  validateScenario,
+} from "./validate";
+export type { ValidationResult } from "./validate";
+export { lintScenario } from "./lint";
+export { compareRuns } from "./comparison";
+export type {
+  ChoiceSummary,
+  RunComparison,
+  StepDiff,
+  TrajectoryPoint,
+} from "./comparison";

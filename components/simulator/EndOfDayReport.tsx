@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { EndOfDayReport as Report } from "@/lib/simulator";
 import { METRIC_LABELS, METRIC_ORDER } from "@/lib/simulator";
 
@@ -6,6 +7,8 @@ type EndOfDayReportProps = {
   onRestart: () => void;
   onReplay?: () => void;
   onDownload?: () => void;
+  onAddToComparison?: () => void;
+  savedToComparison?: boolean;
 };
 
 export function EndOfDayReport({
@@ -13,6 +16,8 @@ export function EndOfDayReport({
   onRestart,
   onReplay,
   onDownload,
+  onAddToComparison,
+  savedToComparison = false,
 }: EndOfDayReportProps) {
   return (
     <div className="flex flex-col gap-5">
@@ -41,9 +46,9 @@ export function EndOfDayReport({
           How the day unfolded
         </h3>
         <ol className="mt-4 space-y-4">
-          {report.timeline.map((decision) => (
+          {report.timeline.map((decision, i) => (
             <li
-              key={decision.stepId}
+              key={`${decision.stepId}-${i}`}
               className="border-l-2 border-surface-line pl-4 text-sm"
             >
               <div className="flex items-baseline gap-2">
@@ -71,8 +76,8 @@ export function EndOfDayReport({
             Strong decisions
           </h3>
           <ul className="mt-3 space-y-3">
-            {report.strongDecisions.map((decision) => (
-              <li key={decision.stepId} className="text-sm">
+            {report.strongDecisions.map((decision, i) => (
+              <li key={`${decision.stepId}-${i}`} className="text-sm">
                 <span className="font-medium">{decision.optionLabel}</span>
                 {decision.lesson && (
                   <p className="mt-1 text-xs leading-relaxed text-ink-muted">
@@ -138,7 +143,27 @@ export function EndOfDayReport({
             Download report
           </button>
         )}
+        {onAddToComparison && (
+          <button
+            type="button"
+            onClick={onAddToComparison}
+            disabled={savedToComparison}
+            className="rounded-lg border border-surface-line px-6 py-2.5 text-sm font-medium transition-colors enabled:hover:border-accent disabled:opacity-50"
+          >
+            {savedToComparison ? "Added to comparison" : "Add to comparison"}
+          </button>
+        )}
       </div>
+
+      {savedToComparison && (
+        <p className="text-xs text-ink-muted">
+          Run saved for this session.{" "}
+          <Link href="/compare" className="text-accent hover:underline">
+            Compare runs
+          </Link>
+          .
+        </p>
+      )}
     </div>
   );
 }

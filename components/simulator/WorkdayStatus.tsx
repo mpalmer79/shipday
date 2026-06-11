@@ -20,7 +20,7 @@ export function WorkdayStatus({ beats, currentIndex }: WorkdayStatusProps) {
           const isCurrent = i === currentIndex;
           const isDone = i < currentIndex;
           return (
-            <li key={beat.time} className="flex items-center gap-3">
+            <li key={`${beat.time}-${i}`} className="flex items-center gap-3">
               <span
                 className={`h-2 w-2 shrink-0 rounded-full ${
                   isCurrent

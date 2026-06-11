@@ -22,4 +22,6 @@ export const FLAGS = {
   bisectedHistory: "bisected-history",
   // Added for Friday Deploy: rollback readiness.
   preparedRollback: "prepared-rollback",
+  // Added for The Page: containing user impact before chasing root cause.
+  mitigatedImpact: "mitigated-impact",
 } as const;
