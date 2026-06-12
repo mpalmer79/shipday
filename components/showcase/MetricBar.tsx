@@ -36,7 +36,7 @@ export function MetricBar({
       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-void">
         <div
           className={`h-full origin-left rounded-full ${FILL[tone]} ${
-            animate ? "animate-bar-grow" : "scale-x-0"
+            animate ? "animate-bar-grow" : ""
           }`}
           style={{
             width: `${clamped}%`,

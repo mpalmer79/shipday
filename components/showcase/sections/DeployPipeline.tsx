@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GlowPanel } from "../GlowPanel";
 import { PipelineStage, type StageStatus } from "../PipelineStage";
 import { useInView } from "@/lib/useInView";
@@ -19,35 +19,39 @@ const STEP_MS = 850;
 
 /**
  * A deploy pipeline that runs its stages once when it scrolls into view, then
- * rests at all-passed. The progression is a sequence of short state changes,
- * not a perpetual loop. Under reduced motion it renders the finished pipeline
- * immediately. Set dressing: no real build runs here.
+ * rests at all-passed. It defaults to the finished state, so without JavaScript
+ * and under reduced motion it shows a coherent, fully passed pipeline; the live
+ * run is an enhancement that replays only when the panel is seen with motion
+ * allowed. The progression is a finite sequence of short state changes, not a
+ * loop. Set dressing: no real build runs here.
  */
 export function DeployPipeline() {
   const reducedMotion = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>();
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(STAGES.length); // default: finished
+  const started = useRef(false);
 
+  // Start the run once, when seen with motion allowed.
   useEffect(() => {
-    if (reducedMotion || !inView) {
+    if (reducedMotion || !inView || started.current) {
       return;
     }
-    if (active >= STAGES.length) {
+    started.current = true;
+    setActive(0);
+  }, [reducedMotion, inView]);
+
+  // Advance through the stages.
+  useEffect(() => {
+    if (reducedMotion || active >= STAGES.length) {
       return;
     }
     const timer = setTimeout(() => setActive((a) => a + 1), STEP_MS);
     return () => clearTimeout(timer);
-  }, [reducedMotion, inView, active]);
+  }, [reducedMotion, active]);
 
-  const finished = reducedMotion || !inView ? true : active >= STAGES.length;
+  const finished = active >= STAGES.length;
 
   function statusFor(index: number): StageStatus {
-    if (reducedMotion) {
-      return "done";
-    }
-    if (!inView) {
-      return "pending";
-    }
     if (index < active) {
       return "done";
     }

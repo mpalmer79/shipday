@@ -1597,3 +1597,51 @@ heading and glowing panels. The interiors of the studio, run, import, and
 compare clients were left on the shared token system rather than rebuilt, to
 keep this run away from gameplay-adjacent logic; they read consistently through
 the shared chrome and palette.
+
+## Milestone 5
+
+### M5: The reveals are no-JavaScript safe
+
+The scroll reveal originally hid content with client state, which would have
+left the landing's sections invisible without JavaScript. The Reveal wrapper was
+rebuilt to render visible by default (an idle state with no opacity) and to hide
+then reveal only after mount, and only for content still below the fold, so the
+page is fully legible without JavaScript and nothing already on screen flashes.
+The metric bars now default to filled and the deploy pipeline defaults to
+all-passed, so both degrade to coherent static states without JavaScript or
+under reduced motion; their animations are enhancements layered on top.
+
+### M5: Route JS budgets (final)
+
+From the production build, first load JS per route:
+
+- `/` landing: 110 KB (4.14 KB page). The Three.js scene is a separate lazy
+  chunk (316 KB raw, 74 KB gzip) and is not in this figure, so the LCP poster
+  never waits on it. The landing rose 4 KB over the 106 KB pre-v6 baseline for
+  all of the living sections, reveals, and scroll progress.
+- `/scenarios`: 106 KB. `/simulator/[scenarioId]`: 120 KB. `/studio`: 160 KB.
+  `/import`: 122 KB. `/compare`: 148 KB. `/run`: 150 KB.
+
+Every route prerenders as static or statically generated content.
+
+### M5: Accessibility self-audit
+
+- Landmarks: header, main, footer, and nav on the landing and framing pages.
+  Each landing section is a labelled region (aria-labelledby its heading).
+- Headings: one h1 per page (the hero on the landing), h2 per section, h3 for
+  sub-panels, in order.
+- Alt text: the hero poster carries descriptive alt; no other content imagery on
+  the landing.
+- Decorative elements are aria-hidden: the WebGL canvas, the scroll-progress
+  line, the hero scrims, the risk ambient layer, the cursor blink, and the
+  status dots.
+- Keyboard: all interactive elements are links or buttons, reachable in DOM
+  order, with the global focus-visible ring. The reveal wrapper never traps
+  focus and its content is visible by default.
+- Motion: every animation is reduced-motion gated. The inventory is
+  bar-grow, cursor-blink, and stage-in (neutralized by the global CSS contract),
+  plus the Reveal transition, the scroll-progress line, the deploy pipeline run,
+  the metrics grow, and the WebGL scene (all gated in component logic, the scene
+  never mounting under reduced motion).
+- No information lives only inside an animation: the pipeline and metrics show
+  their values as text, and the 3D scene is purely decorative.
