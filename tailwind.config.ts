@@ -52,20 +52,15 @@ const config: Config = {
           "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
-        // The single ambient treatment, used only in the high-risk state: a
-        // slow breathing glow well under 1Hz. Nothing else loops.
-        ambientPulse: {
-          "0%, 100%": { opacity: "0.18" },
-          "50%": { opacity: "0.42" },
-        },
       },
       animation: {
         // Every animation except the outcome resolution moment stays at or
-        // under 600ms (see docs/DESIGN.md for the full inventory).
+        // under 600ms (see docs/DESIGN.md for the full inventory). The single
+        // ambient high-risk glow is defined in globals.css so it can be scoped
+        // to the high-risk state through a descendant selector.
         "risk-pulse": "riskPulse 0.6s ease-out 1",
         "delta-fade": "deltaFade 0.6s ease-out forwards",
         "stage-in": "stageIn var(--motion-slow) var(--ease-entrance) both",
-        "ambient-pulse": "ambientPulse 6s ease-in-out infinite",
       },
     },
   },

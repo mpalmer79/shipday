@@ -18,12 +18,20 @@ export function AppShell({
   return (
     <div
       data-risk={riskState}
-      className="flex min-h-screen flex-col bg-surface"
+      className="relative flex min-h-screen flex-col bg-surface"
     >
-      <Header />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
-        {children}
-      </main>
+      {/* The ambient high-risk glow sits behind all content and animates only
+          when data-risk is high; reduced motion removes it entirely. */}
+      <div
+        aria-hidden="true"
+        className="risk-ambient pointer-events-none absolute inset-0 z-0"
+      />
+      <div className="relative z-10 flex flex-1 flex-col">
+        <Header />
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

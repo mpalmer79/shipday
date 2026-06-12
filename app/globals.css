@@ -97,6 +97,37 @@
 }
 
 /*
+ * The single ambient treatment: a faint warm glow that breathes well under 1Hz,
+ * present only in the high-risk state. It sits behind all content and takes no
+ * pointer events. Its fill mode is the default (none), so under reduced motion
+ * the global rule neutralizes the animation and the glow returns to opacity 0,
+ * removing it entirely rather than freezing it on. In calm and raised it is
+ * never animated, so it stays at opacity 0.
+ */
+@keyframes ambientPulse {
+  0%,
+  100% {
+    opacity: 0.16;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.risk-ambient {
+  opacity: 0;
+  background: radial-gradient(
+    120% 70% at 50% 0%,
+    rgb(var(--accent) / 0.14),
+    transparent 60%
+  );
+}
+
+[data-risk="high"] .risk-ambient {
+  animation: ambientPulse 6s ease-in-out infinite;
+}
+
+/*
  * Reduced-motion contract. With the preference set, every nonessential motion
  * is removed: staged entrances, the ambient high-risk glow, the delta fade,
  * and the eased risk transition all collapse to their final, fully legible
