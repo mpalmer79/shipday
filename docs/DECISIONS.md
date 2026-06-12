@@ -1835,3 +1835,46 @@ alert red text at 7.20, comfortably above AA.
 ### Verification
 
 `npm run verify` green (pins hold). `npm run build` green.
+
+## Milestone 3: the briefing and the mission clock
+
+### What shipped
+
+- `components/cinematic/MissionBriefing.tsx`: the scenario-entry briefing. A
+  full-screen sequence (four stages, about 3.8s) where the case file opens, the
+  directive is read into the record, the threat and objective and starting
+  readout appear, and the mission clock is armed before handing off. Built on
+  `useCinematicSequence`. Skippable with one focused control, never mounted
+  under reduced motion.
+- `components/simulator/WorkdayStatus.tsx` rebuilt as the mission clock: the
+  prominent figure is the countdown to end of day (T-minus), with the current
+  time, a day burn-down bar, and the day's beats underneath. It escalates with
+  risk through the global tokens and breathes (a sub-1Hz pulse) in the final
+  hour or under red alert, neutralized under reduced motion.
+- `lib/cinematic/clock.ts` wired into the clock; the clock reads the real step
+  progression through `beats` and `currentIndex`, so it tracks the day exactly.
+- `SimulatorClient` mounts the briefing overlay over the already-rendered
+  workday and threads the registry `difficulty` into it for the threat level.
+
+### Decisions
+
+- The briefing is an overlay over the mounted workday, not a gate in front of
+  it, so skipping or finishing continues play with no layout shift, and a
+  reduced-motion user gets the workday immediately.
+- `dossier.ts` was decoupled from the scenario registry: `threatFor` now takes a
+  difficulty, threaded as a prop from the server simulator page through
+  `SimulatorClient` to the briefing. This kept the simulator route from
+  bundling all five scenarios' data. Pulling the full registry briefly pushed
+  the route to 156 kB; with the prop and a type-only import it is back to 123 kB
+  (120 kB baseline plus 3 kB of briefing and clock code). Imported and studio
+  scenarios, which have no registry difficulty, default to the guarded tier.
+- The countdown is derived from the scenario's own time labels, never invented,
+  so it cannot disagree with the day.
+
+### Route sizes
+
+- `/simulator/[scenarioId]`: 120 kB baseline to 123 kB first load.
+
+### Verification
+
+`npm run verify` green (pins hold). `npm run build` green.

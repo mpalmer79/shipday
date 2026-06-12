@@ -65,7 +65,9 @@ export function codenameFor(id: string): string {
   return CODENAMES[id] ?? deriveCodename(id);
 }
 
-export function threatFor(difficulty: ScenarioDifficulty): ThreatLevel {
+export function threatFor(
+  difficulty: ScenarioDifficulty = "intermediate"
+): ThreatLevel {
   return THREAT_BY_DIFFICULTY[difficulty];
 }
 

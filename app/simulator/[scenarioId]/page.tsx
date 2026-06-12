@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SimulatorClient } from "@/components/simulator/SimulatorClient";
-import { findScenario, scenarios } from "@/data/scenarios";
+import { findScenario, scenarioListings, scenarios } from "@/data/scenarios";
 import { socialMetadata } from "@/lib/site";
 
 export function generateStaticParams() {
@@ -41,5 +41,8 @@ export default async function ScenarioPage({
   if (!scenario) {
     notFound();
   }
-  return <SimulatorClient scenario={scenario} shareable />;
+  const difficulty = scenarioListings.find((l) => l.id === scenarioId)?.difficulty;
+  return (
+    <SimulatorClient scenario={scenario} shareable difficulty={difficulty} />
+  );
 }
