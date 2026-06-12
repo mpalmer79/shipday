@@ -975,6 +975,47 @@ No studio code changes were required to complete this milestone; the
 pipeline handled the full loop. The friction items above are recorded as
 the v4 known weak spots rather than fixed silently here.
 
+## Milestone 6
+
+### M6: Sweep and copy read-through
+
+A repository-wide sweep found no em dashes in any source, data, or
+documentation file, and the banned words appear only in the verify
+detector list and in this decision log where the rule itself is discussed,
+the convention every previous run used. The copy-rule assertions cover
+scenario 5 automatically since it is registered, and the run-code error
+messages are asserted clean explicitly. Every user-facing string added in
+this run (share flow, run page, compare loader, studio sections and
+notices, distribution panel, scenario 5) was read end to end against the
+register; no filler was found beyond what drafting already removed.
+
+### M6: README rewritten for the v4 state
+
+The README now describes five scenarios with the updated incident curve
+(2.95, 6.55, 8.23, 9.06, 12.60), conditional consequences, shareable run
+links and the run page, the studio, the shared distribution walk and its
+preview budget, the link-loading comparison flow, updated architecture
+notes, the routes table with /run and /studio, and the updated project
+structure. The roadmap marks the v4 items complete, including the
+conditional-consequence item left honest in v3, and lists the three
+highest-value studio improvements from the dogfooding friction list as the
+remaining items rather than inventing grander ones.
+
+### M6: Final verification scope
+
+verify and build are green; the build route table shows every route
+static or SSG. All routes were smoke tested against a running production
+server: landing, picker, all five scenarios, import, studio, compare, run
+(bare, with a valid code, and with a garbage code), the favicon, the
+product card, a per-scenario card, and the legacy /simulator redirect.
+The /run page renders its result client-side, and this harness has no
+browser, so the valid and invalid rendering paths are covered by the
+exported function tests in verify (round trip of every enumerated run,
+ten malformed codes with specific messages) plus the served shell
+returning 200 with the page heading; the same applies to the studio's
+interactive flows, whose load, export, validation routing, and preview
+logic are all asserted through their exported functions.
+
 # Decision log: launch fix session
 
 Three tasks on top of the merged v3: raster social cards, the ink-faint
