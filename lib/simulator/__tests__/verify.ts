@@ -25,6 +25,8 @@ import { reportFilename, reportToMarkdown } from "../exportReport";
 import { lintScenario } from "../lint";
 import { parseScenarioJson, validateScenario, OUTCOME_IDS } from "../validate";
 import { compareRuns } from "../comparison";
+import { decodeRunCode, encodeRun, playRunCode } from "../runCode";
+import { extractRunCode, loadRunFromCode } from "../../runLink";
 import { METRIC_ORDER } from "../metrics";
 import { SAMPLE_SCENARIO } from "../../sampleScenario";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
@@ -330,6 +332,25 @@ function enumerateRuns(scenario: Scenario): Distribution {
           `replayed consequence diverges at decision ${i} in ${scenario.id}`
         );
       });
+      // Run-link round trip: encode, decode, and replay through the code
+      // path must reproduce the exact trail, final metrics, and outcome.
+      const trail = state.decisions.map((d) => d.optionId);
+      const decoded = decodeRunCode(encodeRun(scenario.id, trail));
+      assert.ok(decoded.ok, `run code must decode in ${scenario.id}`);
+      if (decoded.ok) {
+        assert.equal(decoded.scenarioId, scenario.id);
+        assert.deepEqual(decoded.optionIds, trail);
+        const played = playRunCode(scenario, decoded.optionIds);
+        assert.ok(played.ok, `decoded run must play in ${scenario.id}`);
+        if (played.ok) {
+          assert.deepEqual(played.state.metrics, state.metrics);
+          assert.equal(played.state.outcomeId, state.outcomeId);
+          assert.deepEqual(
+            played.state.decisions.map((d) => d.optionId),
+            trail
+          );
+        }
+      }
       assert.deepEqual(
         replay.frames[replay.frames.length - 1].metricsAfter,
         state.metrics
@@ -1107,6 +1128,111 @@ console.log(
 
   console.log(
     "\nConditional consequences: override resolution verified across all scenarios."
+  );
+}
+
+// --- Phase 7: shareable run codes --------------------------------------
+
+{
+  // The loader accepts a full link or a bare code.
+  const trail = [
+    "ask-questions",
+    "ask-product",
+    "review-line-by-line",
+    "investigate-test",
+    "feature-flag",
+    "flagged-staged",
+  ];
+  const code = encodeRun("just-add-a-button", trail);
+  assert.equal(
+    extractRunCode(`https://example.com/run?code=${encodeURIComponent(code)}`),
+    code,
+    "extractRunCode must pull the code parameter out of a full link"
+  );
+  assert.equal(
+    extractRunCode(`  ${code}  `),
+    code,
+    "extractRunCode must accept a bare code"
+  );
+  const viaLink = loadRunFromCode(code);
+  assert.ok(viaLink.ok, "a valid code must load through the registry");
+  if (viaLink.ok) {
+    assert.equal(viaLink.run.scenario.id, "just-add-a-button");
+    assert.equal(viaLink.run.state.completed, true);
+    assert.ok(OUTCOME_IDS.includes(viaLink.run.state.outcomeId!));
+  }
+
+  // Malformed codes are rejected with specific, readable messages.
+  const badCodes: { name: string; code: string; expect: string }[] = [
+    {
+      name: "empty code",
+      code: "   ",
+      expect: "The run code is empty.",
+    },
+    {
+      name: "unknown version",
+      code: "v9.just-add-a-button.start-coding",
+      expect: 'Unrecognized run code version "v9"',
+    },
+    {
+      name: "missing scenario id",
+      code: "v1",
+      expect: "missing its scenario id",
+    },
+    {
+      name: "no decisions",
+      code: "v1.just-add-a-button",
+      expect: "carries no decisions",
+    },
+    {
+      name: "empty decision entry",
+      code: "v1.just-add-a-button.start-coding..accept-as-is",
+      expect: "contains an empty decision entry",
+    },
+    {
+      name: "unknown scenario",
+      code: "v1.no-such-scenario.start-coding",
+      expect: 'No built-in scenario is named "no-such-scenario"',
+    },
+    {
+      name: "unknown option",
+      code: "v1.just-add-a-button.do-a-backflip",
+      expect: '"do-a-backflip") is not an option at the 9:00 AM step',
+    },
+    {
+      name: "option from the wrong step",
+      code: "v1.just-add-a-button.delete-test",
+      expect: 'Decision 1 ("delete-test") is not an option',
+    },
+    {
+      name: "truncated trail",
+      code: "v1.just-add-a-button.start-coding.assume-stacking",
+      expect: "ends before the day does",
+    },
+    {
+      name: "trail past the end",
+      code: encodeRun("just-add-a-button", [...trail, "flagged-staged"]),
+      expect: "continues past the end of the day",
+    },
+  ];
+  assert.ok(
+    badCodes.length >= 6,
+    "expected at least 6 malformed run code cases"
+  );
+  for (const { name, code: bad, expect } of badCodes) {
+    const result = loadRunFromCode(bad);
+    assert.equal(result.ok, false, `expected rejection for run code: ${name}`);
+    if (!result.ok) {
+      assert.ok(
+        result.error.includes(expect),
+        `run code rejection "${name}" should report "${expect}"; got: ${result.error}`
+      );
+      assertCleanCopy(result.error, `run code message for ${name}`);
+    }
+  }
+
+  console.log(
+    `\nRun codes: round trip asserted for every enumerated run; ${badCodes.length} malformed codes rejected.`
   );
 }
 

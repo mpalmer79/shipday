@@ -22,6 +22,13 @@ export {
 } from "./validate";
 export type { ValidationResult } from "./validate";
 export { lintScenario } from "./lint";
+export {
+  decodeRunCode,
+  encodeRun,
+  playRunCode,
+  RUN_CODE_VERSION,
+} from "./runCode";
+export type { DecodedRunCode, PlayedRunCode } from "./runCode";
 export { compareRuns } from "./comparison";
 export type {
   ChoiceSummary,

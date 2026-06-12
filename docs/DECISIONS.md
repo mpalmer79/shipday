@@ -706,6 +706,52 @@ with a constructed run where both conditions hold. Consequence text is
 display only, so no distribution pin moved; the unchanged pins are asserted
 by the existing verify phase.
 
+## Milestone 2
+
+### M2: Run code format is version, scenario id, then option ids
+
+A run encodes as `v1.<scenarioId>.<optionId>.<optionId>...`, dot-joined.
+The version token leads so the format can evolve; everything after it is
+the scenario id and the decision trail in order. Per-step option indices
+were considered and rejected: an index code is shorter, but reordering a
+step's options in a data edit would silently remap every decision in old
+links, while option ids fail loudly through the same engine validation
+every run goes through. Built-in ids use lowercase words and hyphens, so
+the dot separator is unambiguous and the code needs no URL escaping beyond
+the standard query encoding. Decoding treats the code as untrusted: parse
+errors, an unknown version, a missing scenario, an unknown option, a
+truncated trail, and a trail that runs past the end of the day each return
+a specific message instead of throwing.
+
+### M2: Decoding splits into a pure layer and a registry layer
+
+`lib/simulator/runCode.ts` knows the format and the engine but no scenario
+data, so verify can round-trip codes per scenario through it. The registry
+lookup lives in `lib/runLink.ts`, which is the reason imported scenarios
+cannot travel by link (the code carries only the scenario id); the report
+of an unshareable run says so in one line. The run page reads the query
+parameter in a client component behind a Suspense boundary, which keeps the
+route fully static; reconstruction happens in the browser through the
+existing pure replay.
+
+### M2: Comparison loads links into the session run store
+
+The comparison page's "load a run from a link" flow decodes the pasted
+link, replays it, and adds it to the existing in-memory run store, where it
+becomes selectable as run A or run B alongside locally played runs. This
+reuses the store and pickers instead of adding a parallel two-slot input,
+and it means a loaded run can be compared against any number of local runs.
+The loader accepts a full link or a bare code; loaded runs clear on reload
+like every other saved run.
+
+### M2: Clipboard failures fall back to a visible URL
+
+"Copy link to this run" uses the clipboard API, which can be blocked.
+On failure the report shows the URL in a read-only input with a one-line
+explanation, so the share flow cannot dead-end. The link is built at click
+time from `window.location.origin`, which keeps the component free of any
+configured site URL and correct on any deploy.
+
 # Decision log: launch fix session
 
 Three tasks on top of the merged v3: raster social cards, the ink-faint

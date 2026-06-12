@@ -3,11 +3,90 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
-import { useCompletedRuns, type SavedRun } from "@/lib/runStore";
+import { addRun, useCompletedRuns, type SavedRun } from "@/lib/runStore";
 import { compareRuns, METRIC_LABELS, METRIC_ORDER } from "@/lib/simulator";
+import { extractRunCode, loadRunFromCode } from "@/lib/runLink";
 
 function formatDelta(delta: number): string {
   return delta > 0 ? `+${delta}` : `${delta}`;
+}
+
+/**
+ * Loads a run shared by link into the session's run list, so a pasted run
+ * can stand in as run A or run B against a locally played one.
+ */
+function RunLinkLoader() {
+  const [text, setText] = useState("");
+  const [feedback, setFeedback] = useState<
+    { kind: "error" | "loaded"; message: string } | null
+  >(null);
+
+  function handleLoad() {
+    const result = loadRunFromCode(extractRunCode(text));
+    if (!result.ok) {
+      setFeedback({ kind: "error", message: result.error });
+      return;
+    }
+    const { scenario, state, outcome } = result.run;
+    addRun({
+      scenario,
+      decisions: state.decisions,
+      outcomeId: state.outcomeId!,
+      outcomeTitle: outcome.title,
+    });
+    setFeedback({
+      kind: "loaded",
+      message: `Loaded a run of ${scenario.name} (${outcome.title}). It is now available in the run pickers.`,
+    });
+    setText("");
+  }
+
+  return (
+    <div className="mt-6 rounded-lg border border-surface-line bg-surface-raised p-4">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
+        Load a run from a link
+      </h2>
+      <p className="mt-2 text-xs leading-relaxed text-ink-muted">
+        Paste a shared run link to compare someone else's day against one of
+        yours. Loaded runs live in this session only.
+      </p>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleLoad();
+        }}
+        className="mt-3 flex flex-col gap-3 sm:flex-row"
+      >
+        <label htmlFor="compare-run-link" className="sr-only">
+          Run link or code
+        </label>
+        <input
+          id="compare-run-link"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Paste a run link or code"
+          spellCheck={false}
+          className="flex-1 rounded-lg border border-surface-line bg-surface px-3 py-2 font-mono text-xs text-ink placeholder:text-ink-faint"
+        />
+        <button
+          type="submit"
+          disabled={text.trim().length === 0}
+          className="rounded-lg border border-surface-line px-4 py-2 text-sm font-medium transition-colors enabled:hover:border-accent disabled:opacity-40"
+        >
+          Load run
+        </button>
+      </form>
+      {feedback && (
+        <p
+          className={`mt-3 font-mono text-xs leading-relaxed ${
+            feedback.kind === "error" ? "text-bad" : "text-ink-muted"
+          }`}
+        >
+          {feedback.message}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function RunPicker({
@@ -64,19 +143,23 @@ export function CompareClient() {
   if (comparable.length === 0) {
     return (
       <AppShell>
-        <div className="mx-auto max-w-2xl py-16 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Compare runs</h1>
-          <p className="mt-4 text-sm leading-relaxed text-ink-muted">
-            Complete a scenario, choose "Add to comparison" on the report, and
-            do it again. Once you have two finished runs of the same scenario,
-            they show up here side by side.
-          </p>
-          <Link
-            href="/scenarios"
-            className="mt-8 inline-block rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-accent/90"
-          >
-            Pick a scenario
-          </Link>
+        <div className="mx-auto max-w-2xl py-16">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold tracking-tight">Compare runs</h1>
+            <p className="mt-4 text-sm leading-relaxed text-ink-muted">
+              Complete a scenario, choose "Add to comparison" on the report,
+              and do it again. Once you have two finished runs of the same
+              scenario, they show up here side by side. Shared run links count
+              too: load one below and compare it against your own day.
+            </p>
+            <Link
+              href="/scenarios"
+              className="mt-8 inline-block rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-accent/90"
+            >
+              Pick a scenario
+            </Link>
+          </div>
+          <RunLinkLoader />
         </div>
       </AppShell>
     );
@@ -106,6 +189,8 @@ export function CompareClient() {
           Two runs of the same scenario, side by side: the decisions, the
           metric trajectories, and where the day landed.
         </p>
+
+        <RunLinkLoader />
 
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end">
           {comparable.length > 1 && (

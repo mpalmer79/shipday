@@ -41,5 +41,5 @@ export default async function ScenarioPage({
   if (!scenario) {
     notFound();
   }
-  return <SimulatorClient scenario={scenario} />;
+  return <SimulatorClient scenario={scenario} shareable />;
 }
