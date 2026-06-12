@@ -1215,3 +1215,50 @@ The "clock sharpens" treatment is expressed as a `--clock-tracking` token that
 tightens across the three states. The token and its per-state values are
 defined in this milestone; the workday clock that consumes it is rebuilt in
 Milestone 2, where the rest of the opening frame is restaged.
+
+## Milestone 2
+
+### M2: The briefing stages the first step in place, not as a takeover
+
+The opening briefing brings the existing first step into view on a stagger
+rather than mounting a separate full-screen sequence. The timestamp lands, then the
+request appears as a document body, then the context, then a beat, then the
+options. This keeps every piece of information identical to the static
+render (the briefing is pure pacing) and means there is no second source of
+truth for the first step. It runs only at the start of the day, only with
+motion allowed, and only until the first decision.
+
+### M2: The briefing is gated in logic and neutralized in CSS
+
+Reduced-motion safety has two independent guards. In logic, `briefingActive`
+is false whenever the reduced-motion hook reports the preference, so the
+staged classes are never applied. In CSS, the reduced-motion block zeroes both
+animation duration and animation delay, so even in the first frame before the
+hook resolves, a staged element can never be held invisible by its delay. The
+brief asks the briefing to be absent under reduced motion; either guard alone
+delivers that, and both together make it robust to hydration timing.
+
+### M2: Pacing comes from delays, durations stay in budget
+
+The briefing reads as deliberate because its elements enter on a stagger
+(0ms through 1600ms of delay), not because any one animation is long. Each
+staged entrance is the 480ms primitive. The total sequence is longer than
+600ms, but no single animation is, so the motion budget holds: the only
+animation allowed past 600ms remains the outcome resolution moment.
+
+### M2: The clock leads, the beat list stays
+
+The workday status panel now leads with the current time as the prominent
+figure and keeps end of day always visible, so time pressure is ambient. The
+time tightens through the `--clock-tracking` token as risk rises. The existing
+beat list (done, current, upcoming) stays beneath it unchanged, because it is
+the day's shape and remains good information design; the clock is added above
+it, not in place of it.
+
+### M2: The skip control is a real button
+
+The intro is skippable through a focusable button that sets the skipped flag,
+not a click anywhere or a keypress handler. This keeps it keyboard operable
+and avoids any motion tied to keystrokes. Keyboard users can also act on the
+options immediately during the briefing, since the options are in the DOM the
+whole time and only their opacity is staged.

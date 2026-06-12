@@ -2,6 +2,8 @@
 
 import { useMemo, useReducer, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { stageProps } from "@/components/simulator/stage";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { DecisionPanel } from "@/components/simulator/DecisionPanel";
 import { CodeReviewCard } from "@/components/simulator/CodeReviewCard";
 import { EndOfDayReport } from "@/components/simulator/EndOfDayReport";
@@ -66,6 +68,14 @@ export function SimulatorClient({
   const [state, dispatch] = useReducer(reducer, scenario, createInitialState);
   const [view, setView] = useState<"report" | "replay">("report");
   const [savedToComparison, setSavedToComparison] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const [briefingSkipped, setBriefingSkipped] = useState(false);
+
+  // The opening briefing stages the first step into place. It runs only at the
+  // very start of the day, only when motion is allowed, and is skippable. Once
+  // a decision is made it never returns.
+  const briefingActive =
+    !reducedMotion && !briefingSkipped && !state.completed && state.decisions.length === 0;
 
   const currentStep = state.completed
     ? null
@@ -170,24 +180,50 @@ export function SimulatorClient({
         <div className="order-2 flex flex-col gap-4 lg:order-2">
           {currentStep && (
             <>
-              <ScenarioCard step={currentStep} />
+              {briefingActive && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setBriefingSkipped(true)}
+                    className="rounded-lg border border-surface-line px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-accent hover:text-ink"
+                  >
+                    Skip intro
+                  </button>
+                </div>
+              )}
+              <ScenarioCard step={currentStep} staged={briefingActive} />
               {currentStep.codeSnippet && (
-                <CodeReviewCard code={currentStep.codeSnippet} />
+                <div
+                  className={stageProps(briefingActive, 1100).className}
+                  style={stageProps(briefingActive, 1100).style}
+                >
+                  <CodeReviewCard code={currentStep.codeSnippet} />
+                </div>
               )}
               {currentStep.systemSignals && (
-                <SystemSignals signals={currentStep.systemSignals} />
+                <div
+                  className={stageProps(briefingActive, 1300).className}
+                  style={stageProps(briefingActive, 1300).style}
+                >
+                  <SystemSignals signals={currentStep.systemSignals} />
+                </div>
               )}
               {lastDecision?.consequence && (
                 <p className="rounded-lg border border-surface-line bg-surface-overlay px-4 py-3 text-xs italic leading-relaxed text-ink-muted">
                   {lastDecision.consequence}
                 </p>
               )}
-              <DecisionPanel
-                options={currentStep.options}
-                onDecide={(optionId) =>
-                  dispatch({ type: "decide", optionId })
-                }
-              />
+              <div
+                className={stageProps(briefingActive, 1600).className}
+                style={stageProps(briefingActive, 1600).style}
+              >
+                <DecisionPanel
+                  options={currentStep.options}
+                  onDecide={(optionId) =>
+                    dispatch({ type: "decide", optionId })
+                  }
+                />
+              </div>
             </>
           )}
           {report && view === "report" && (
