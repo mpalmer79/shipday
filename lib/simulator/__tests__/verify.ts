@@ -33,6 +33,16 @@ import {
   loadDraft,
   validationTarget,
 } from "../../studio";
+import {
+  countPaths,
+  enumerateDistribution,
+  previewDistribution,
+  sampleDistribution,
+  PREVIEW_PATH_CEILING,
+  PREVIEW_SAMPLE_SIZE,
+  PREVIEW_SEED,
+  type OutcomeCounts,
+} from "../distribution";
 import { METRIC_ORDER } from "../metrics";
 import { SAMPLE_SCENARIO } from "../../sampleScenario";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
@@ -251,62 +261,23 @@ const EXPORT_DATE = new Date("2026-01-01T00:00:00Z");
   assert.equal(name, "shipday-just-add-a-button-2026-01-01.md");
 }
 
-export type Distribution = {
-  totalRuns: number;
-  counts: Map<OutcomeId, number>;
-};
-
 /**
- * Number of distinct complete runs through a scenario, computed by
- * memoizing the path count from each step. This is purely structural (it
- * does not depend on metrics or flags), so it stays linear in the graph
- * even when paths reconverge, and it cross-checks the brute-force walk
- * below. Throws on a cycle, which would make the count unbounded.
+ * The walk itself lives in the shared distribution module (the studio's
+ * preview runs the same implementation in a web worker). Verify passes a
+ * callback so every enumerated run still gets the full set of per-run
+ * assertions below.
  */
-function countPaths(scenario: Scenario): number {
-  const memo = new Map<string, number>();
-  const visiting = new Set<string>();
-
-  function from(stepId: string): number {
-    if (stepId === END_STEP_ID) {
-      return 1;
-    }
-    const cached = memo.get(stepId);
-    if (cached !== undefined) {
-      return cached;
-    }
-    assert.ok(
-      !visiting.has(stepId),
-      `Cycle through step "${stepId}" in ${scenario.id}`
-    );
-    visiting.add(stepId);
-    const step = scenario.steps.find((s) => s.id === stepId);
-    assert.ok(step, `Unknown step "${stepId}" in ${scenario.id}`);
-    let total = 0;
-    for (const option of step.options) {
-      total += from(option.nextStepId);
-    }
-    visiting.delete(stepId);
-    memo.set(stepId, total);
-    return total;
-  }
-
-  return from(scenario.initialStepId);
-}
-
-function enumerateRuns(scenario: Scenario): Distribution {
-  const counts = new Map<OutcomeId, number>();
-  let totalRuns = 0;
-
+function assertEveryRun(scenario: Scenario): {
+  totalRuns: number;
+  counts: OutcomeCounts;
+} {
   const curated = scenario.steps.some((step) =>
     step.options.some((option) => option.strong !== undefined)
   );
 
-  function walk(state: SimulatorState): void {
-    if (state.completed) {
-      totalRuns += 1;
+  return enumerateDistribution(scenario, (state: SimulatorState) => {
+    {
       assert.ok(state.outcomeId, "completed run must have an outcome");
-      counts.set(state.outcomeId!, (counts.get(state.outcomeId!) ?? 0) + 1);
       // Every completed run must produce a coherent report.
       const report = generateReport(scenario, state);
       assert.equal(report.timeline.length, state.decisions.length);
@@ -377,16 +348,8 @@ function enumerateRuns(scenario: Scenario): Distribution {
         state.decisions.length,
         "one timeline section per decision"
       );
-      return;
     }
-    const step = getCurrentStep(scenario, state);
-    for (const option of step.options) {
-      walk(applyDecision(scenario, state, option.id));
-    }
-  }
-
-  walk(createInitialState(scenario));
-  return { totalRuns, counts };
+  });
 }
 
 /**
@@ -407,6 +370,7 @@ assert.ok(
 );
 
 const incidentCurve: { id: string; share: number }[] = [];
+const walkCounts = new Map<string, OutcomeCounts>();
 
 const WALK_BUDGET_MS = 10_000;
 const walkStart = Date.now();
@@ -414,21 +378,22 @@ const walkStart = Date.now();
 for (const scenario of scenarios) {
   // Memoized structural path count, cross-checked against the brute walk.
   const pathCount = countPaths(scenario);
-  const { totalRuns, counts } = enumerateRuns(scenario);
+  const { totalRuns, counts } = assertEveryRun(scenario);
   assert.equal(
     totalRuns,
     pathCount,
     `Walk visited ${totalRuns} runs but the path count is ${pathCount} in ${scenario.id}`
   );
+  walkCounts.set(scenario.id, counts);
 
   incidentCurve.push({
     id: scenario.id,
-    share: (counts.get("customer-incident") ?? 0) / totalRuns,
+    share: (counts["customer-incident"] ?? 0) / totalRuns,
   });
 
   console.log(`\n${scenario.name}: ${totalRuns} distinct runs (${pathCount} paths)`);
   for (const outcome of scenario.outcomes) {
-    const n = counts.get(outcome.id) ?? 0;
+    const n = counts[outcome.id] ?? 0;
     const pct = ((n / totalRuns) * 100).toFixed(1);
     console.log(
       `  ${outcome.title.padEnd(28)} ${String(n).padStart(5)}  (${pct}%)`
@@ -436,7 +401,7 @@ for (const scenario of scenarios) {
   }
 
   for (const outcome of scenario.outcomes) {
-    const n = counts.get(outcome.id) ?? 0;
+    const n = counts[outcome.id] ?? 0;
     assert.ok(n > 0, `Outcome "${outcome.id}" unreachable in ${scenario.id}`);
     const share = n / totalRuns;
     assert.ok(
@@ -453,7 +418,7 @@ for (const scenario of scenarios) {
   if (expected) {
     for (const [outcomeId, expectedCount] of Object.entries(expected)) {
       assert.equal(
-        counts.get(outcomeId as OutcomeId) ?? 0,
+        counts[outcomeId as OutcomeId] ?? 0,
         expectedCount,
         `Distribution regression in ${scenario.id}: ${outcomeId}`
       );
@@ -1455,6 +1420,129 @@ console.log(
 
   console.log(
     "\nStudio: lossless round trips for all built-ins, authored-draft import, and issue routing verified."
+  );
+}
+
+// --- Phase 9: distribution preview -------------------------------------
+
+{
+  // The studio preview and the verify walk are the same implementation, so
+  // for every built-in (all under the path ceiling) the preview's counts
+  // must equal the walk's exact counts, which the pins above already froze.
+  for (const scenario of scenarios) {
+    const preview = previewDistribution(scenario);
+    assert.equal(
+      preview.sampled,
+      false,
+      `${scenario.id} sits under the preview ceiling and must walk exhaustively`
+    );
+    assert.equal(preview.pathCount, preview.totalRuns);
+    assert.deepEqual(
+      preview.counts,
+      walkCounts.get(scenario.id),
+      `preview counts must match the exhaustive walk in ${scenario.id}`
+    );
+  }
+
+  // A constructed scenario above the ceiling takes the sampled path: the
+  // result is labeled, sized to the sample, and deterministic across runs.
+  const wide: Scenario = {
+    id: "wide-smoke",
+    name: "Wide Smoke",
+    tagline: "Eight steps of five options to overflow the preview ceiling.",
+    initialStepId: "s0",
+    initialMetrics: {
+      quality: 50,
+      speed: 50,
+      risk: 20,
+      trust: 60,
+      focus: 70,
+      testConfidence: 50,
+    },
+    steps: Array.from({ length: 8 }, (_, i) => ({
+      id: `s${i}`,
+      time: `${9 + i}:00 AM`,
+      title: `Step ${i}`,
+      narrative: "One more call.",
+      context: "Keep going.",
+      options: Array.from({ length: 5 }, (_, j) => ({
+        id: `o${j}`,
+        label: `Option ${j}`,
+        description: "A choice.",
+        impact: { risk: j * 4 - 6 },
+        nextStepId: i === 7 ? END_STEP_ID : `s${i + 1}`,
+      })),
+    })),
+    outcomes: [
+      {
+        id: "minor-issue",
+        time: "5:00 PM",
+        title: "Minor Production Issue",
+        summary: "It mostly held.",
+        tone: "mixed",
+      },
+      {
+        id: "customer-incident",
+        time: "5:00 PM",
+        title: "Customer Impact Incident",
+        summary: "It did not hold.",
+        tone: "negative",
+      },
+    ],
+    outcomeRules: [
+      {
+        outcomeId: "customer-incident",
+        priority: 1,
+        when: { kind: "metricAtLeast", metric: "risk", value: 60 },
+      },
+    ],
+    fallbackOutcomeId: "minor-issue",
+  };
+  assert.equal(countPaths(wide), 5 ** 8);
+  assert.ok(
+    countPaths(wide) > PREVIEW_PATH_CEILING,
+    "the constructed scenario must exceed the preview ceiling"
+  );
+  const sampledA = previewDistribution(wide);
+  assert.equal(sampledA.sampled, true, "above the ceiling the preview samples");
+  assert.equal(sampledA.totalRuns, PREVIEW_SAMPLE_SIZE);
+  assert.equal(sampledA.pathCount, 5 ** 8);
+  const tallied = Object.values(sampledA.counts).reduce((a, b) => a + b, 0);
+  assert.equal(tallied, PREVIEW_SAMPLE_SIZE, "every sampled run is tallied");
+  assert.ok(
+    (sampledA.counts["minor-issue"] ?? 0) > 0 &&
+      (sampledA.counts["customer-incident"] ?? 0) > 0,
+    "the sample must see both reachable outcomes"
+  );
+  const sampledB = previewDistribution(wide);
+  assert.deepEqual(
+    sampledB,
+    sampledA,
+    "the seeded sample must be deterministic for the same scenario"
+  );
+
+  // The sampler agrees with the exhaustive walk to sampling precision on a
+  // small scenario where both can run: every share within two points.
+  {
+    const exact = enumerateDistribution(scenario1);
+    const sampled = sampleDistribution(
+      scenario1,
+      PREVIEW_SAMPLE_SIZE,
+      PREVIEW_SEED
+    );
+    for (const outcome of scenario1.outcomes) {
+      const exactShare = (exact.counts[outcome.id] ?? 0) / exact.totalRuns;
+      const sampledShare =
+        (sampled.counts[outcome.id] ?? 0) / sampled.totalRuns;
+      assert.ok(
+        Math.abs(exactShare - sampledShare) < 0.02,
+        `sampled share for ${outcome.id} must track the exact share (exact ${exactShare}, sampled ${sampledShare})`
+      );
+    }
+  }
+
+  console.log(
+    "\nDistribution preview: exact counts for built-ins, seeded sampling above the ceiling."
   );
 }
 

@@ -810,6 +810,61 @@ draft the only state. Known quirk, accepted: two missed-signal entries
 whose flags are momentarily identical collapse into one, since the map is
 keyed by flag.
 
+## Milestone 4
+
+### M4: One walk implementation, shared via a per-run callback
+
+The exhaustive walk moved from the verify script into
+`lib/simulator/distribution.ts`, which imports nothing Node-specific and is
+what both verify and the studio's web worker run. Verify's twenty-odd
+per-run assertions (report coherence, replay fidelity, consequence and
+run-code round trips, markdown structure) did not move into the shared
+module; instead `enumerateDistribution` takes an optional callback invoked
+with every completed run's final state, and verify passes its assertions
+through it. The walk that computes the preview is therefore byte-for-byte
+the walk that computes the pins, which verify also asserts directly by
+comparing `previewDistribution` counts against the walk counts for all four
+built-ins. The memoized structural path counter moved into the same module
+and verify consumes it from there.
+
+### M4: Preview budget, ceiling 100,000 paths, sample 20,000 runs
+
+The preview walks exhaustively up to 100,000 structural paths. The
+built-ins sit at 4,096 to 6,400 paths and verify walks all of them with
+heavy per-run assertions in under half a second, so a bare tally of
+100,000 runs stays around a second inside a worker, which cannot freeze
+the page in any case. Above the ceiling the preview draws 20,000 runs,
+which puts the standard error of a share around 0.35 points at worst, fine
+for advisory guidance against 2 and 45 percent bounds; the panel labels
+the result as sampled with both the sample size and the true path count.
+
+### M4: Sampling is uniform over paths via the structural counts
+
+A naive walk that picks uniformly among a step's options does not sample
+paths uniformly once branches have different widths. The sampler reuses
+the memoized path counts and picks each option with probability
+proportional to the complete paths through it, which makes every complete
+path equally likely, exactly like drawing runs at random from the
+exhaustive enumeration. Draws are with replacement, seeded with a fixed
+constant through a small deterministic generator (mulberry32), so the same
+draft always shows the same preview. Verify asserts the sampled path on a
+constructed 390,625-path scenario (eight steps of five options): sampled
+label, exact sample size, full tally, both outcomes seen, and run-to-run
+determinism; it also asserts the sampler tracks the exact shares within
+two points on a built-in.
+
+### M4: The panel runs on demand in a bundled worker
+
+The distribution panel posts the draft to a worker created with the
+standard `new Worker(new URL(...))` pattern, which the bundler turns into
+a static chunk; no dependency was added and the page stays static. The
+walk runs off the main thread and the panel re-runs only on its button.
+The worker re-validates the draft it receives, so a malformed message can
+only produce a readable error, and walk failures (a cycle, an unknown
+step) come back as messages rather than crashes. The 2 to 45 percent band
+renders as advisory guidance per outcome, in words, not as a validation
+error; the panel says so in one line.
+
 # Decision log: launch fix session
 
 Three tasks on top of the merged v3: raster social cards, the ink-faint

@@ -23,6 +23,16 @@ export {
 export type { ValidationResult } from "./validate";
 export { lintScenario } from "./lint";
 export {
+  countPaths,
+  enumerateDistribution,
+  previewDistribution,
+  sampleDistribution,
+  PREVIEW_PATH_CEILING,
+  PREVIEW_SAMPLE_SIZE,
+  PREVIEW_SEED,
+} from "./distribution";
+export type { Distribution, OutcomeCounts } from "./distribution";
+export {
   decodeRunCode,
   encodeRun,
   playRunCode,

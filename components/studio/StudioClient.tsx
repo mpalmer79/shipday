@@ -32,6 +32,7 @@ import {
   TextField,
 } from "./controls";
 import { newStep, StepEditor } from "./StepEditor";
+import { DistributionPanel } from "./DistributionPanel";
 import {
   MissedSignalsEditor,
   OutcomesEditor,
@@ -227,6 +228,13 @@ export function StudioClient() {
             Play this draft
           </button>
         </div>
+
+        <section className="mt-8">
+          <SectionHeading>Outcome distribution</SectionHeading>
+          <div className="mt-3">
+            <DistributionPanel draft={draft} valid={validation.ok} />
+          </div>
+        </section>
 
         <section className="mt-8">
           <SectionHeading>JSON in and out</SectionHeading>
