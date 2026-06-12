@@ -1924,3 +1924,49 @@ alert state clears AA.
 ### Verification
 
 `npm run verify` green (pins hold). `npm run build` green.
+
+## Milestone 5: the ambitious WebGL command center
+
+### What shipped
+
+- `components/hero/HeroScene.tsx` rebuilt into the volumetric command-center
+  space: a converging floor grid for depth, a drifting tactical network of nodes
+  wired into a faint lattice, and a glowing core that breathes at centre, lit
+  cool and warming toward the hot accent under pointer activity, with slow
+  parallax that leans the room toward the operative. All geometry plus one
+  runtime point sprite; no model or texture asset files.
+- `components/hero/HeroPoster.tsx`: a new static dramatic poster as inline SVG
+  (a command-center floor grid, a tactical node network, and a glowing core).
+  Server rendered, so it is the LCP base and paints on first paint. It is also
+  the fallback whenever the scene cannot run.
+- `components/hero/Hero.tsx` now uses the SVG poster as the base layer instead of
+  the raster placeholder; the gate to the 3D scene is unchanged.
+
+### Performance budget and how each rule is enforced
+
+- Lazy chunk: the scene is `dynamic(() => import("./HeroScene"), { ssr: false })`,
+  so Three.js lands in its own chunk: 322 KB raw, 75.5 KB gzipped, unchanged by
+  the rebuild (the same Three.js core).
+- LCP independent of WebGL: the landing route first load is 114 KB and does not
+  include the 75.5 KB Three.js chunk. The LCP base is the server-rendered SVG
+  poster, which paints before the scene chunk is even requested.
+- Capability and reduced-motion gating: `Hero` mounts the scene only when WebGL
+  is present and motion is permitted, and not under save-data, a 2g link, or low
+  core or memory counts; otherwise the poster stands alone.
+- Offscreen and hidden-tab pause: the render loop is driven by an
+  IntersectionObserver and a visibilitychange listener; it stops when the canvas
+  scrolls offscreen or the tab is hidden, and only restarts when both are true.
+- DPR cap: pixel ratio is capped at 1.5 on init and on every resize.
+- Resource disposal: every geometry, material, the sprite texture, and the
+  renderer are disposed on unmount, and the canvas is removed from the DOM.
+- No layout shift: the hero band reserves its height (min-h-[88vh]) and the
+  poster fills it before the scene initializes.
+
+### Route sizes (before and after)
+
+- `/` landing first load: 110 KB baseline, 113 KB after M2, 114 KB after M5 (the
+  inline SVG poster markup). The Three.js scene is never in this number.
+
+### Verification
+
+`npm run verify` green (pins hold). `npm run build` green.
