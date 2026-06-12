@@ -2,6 +2,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { EndOfDayReport as Report } from "@/lib/simulator";
 import { METRIC_LABELS, METRIC_ORDER } from "@/lib/simulator";
+import { ClassifiedStamp } from "@/components/cinematic";
 
 type ShareState =
   | { status: "idle" }
@@ -49,18 +50,16 @@ export function EndOfDayReport({
   return (
     <div className="flex flex-col gap-5">
       <div className="overflow-hidden rounded-lg border border-surface-line bg-surface-raised">
-        <header className="flex items-baseline justify-between border-b border-surface-line bg-surface-overlay px-5 py-3">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
-            Debrief
-          </span>
+        <header className="flex items-center justify-between border-b border-surface-line bg-surface-overlay px-5 py-3">
+          <ClassifiedStamp label="After-action file" />
           <span className="clock-tracking font-mono text-sm text-accent">
             5:00 PM
           </span>
         </header>
         <div className="p-5">
-          <h2 className="text-lg font-semibold">End-of-day debrief</h2>
+          <h2 className="text-lg font-semibold">Mission debrief</h2>
           <p className="mt-1 text-xs text-ink-muted">
-            How the day added up, decision by decision.
+            How the operation added up, decision by decision.
           </p>
           <div className="mt-4 grid grid-cols-3 gap-3 border-t border-surface-line pt-4 sm:grid-cols-6">
             {METRIC_ORDER.map((key) => (
@@ -79,7 +78,7 @@ export function EndOfDayReport({
 
       <div className="rounded-lg border border-surface-line bg-surface-raised p-5">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
-          How the day unfolded
+          Mission log
         </h3>
         <ol className="mt-4 space-y-4">
           {report.timeline.map((decision, i) => (
@@ -160,7 +159,7 @@ export function EndOfDayReport({
             onClick={onRestart}
             className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-accent/90"
           >
-            Run the day again
+            Run the mission again
           </button>
         )}
         {onReplay && (
@@ -169,7 +168,7 @@ export function EndOfDayReport({
             onClick={onReplay}
             className="rounded-lg border border-surface-line px-6 py-2.5 text-sm font-medium transition-colors hover:border-accent"
           >
-            Replay the day
+            Replay the mission
           </button>
         )}
         {onDownload && (

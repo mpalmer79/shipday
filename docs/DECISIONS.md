@@ -1878,3 +1878,49 @@ alert red text at 7.20, comfortably above AA.
 ### Verification
 
 `npm run verify` green (pins hold). `npm run build` green.
+
+## Milestone 4: the alert states and the resolution climax
+
+### What shipped
+
+- `components/cinematic/AlertBar.tsx`: the mission alert bar. A tactical amber
+  strip at the raised threshold and a red-alert banner with a sweeping alarm
+  rail at the high threshold, both with role="status" so the state change is
+  announced. It stands down on its own as risk recedes because it renders off
+  the live risk state.
+- `components/layout/AppShell.tsx`: now carries a `data-alert` attribute and a
+  fixed, pointer-transparent, aria-hidden alert overlay (the tactical and
+  red-alert vignettes from M1), and renders the alert bar. The overlay never
+  recolours body text or surfaces.
+- `components/simulator/ResolutionSequence.tsx` rebuilt as the full-screen
+  climax: the system output streams in matching the real outcome, then a verdict
+  card lands themed by outcome tone with an original mission-verdict line for
+  each of the five outcomes (accomplished, contained, compromised, held,
+  stalled), then it dismisses to the debrief. Built on `useCinematicSequence`,
+  skippable, capped at about 2.6s, reduced-motion safe.
+- `components/simulator/EndOfDayReport.tsx` restyled as the classified
+  after-action file: an after-action stamp header, mission-debrief framing, and
+  mission-log labelling. All report actions (restart, replay, download, add to
+  comparison, copy link) are unchanged and still work.
+
+### Contrast in the alert states (re-confirmed)
+
+The red-alert takeover keeps body text as light ink on the darkened high surface
+at 16.6:1. The red banner uses light ink on the solid alert colour at 8.58:1.
+The tactical strip uses classified amber on the dark surface at 12.29:1. Every
+alert state clears AA.
+
+### Decisions
+
+- Alert presentation is driven entirely by the existing risk state at the
+  existing 40 and 65 thresholds, so the takeover and the stand-down can never
+  disagree with the simulation. No new thresholds were introduced.
+- The verdict lines are original genre language in the cinematic layer; the
+  realistic system-output scripts (the part that makes the stakes land) are
+  unchanged.
+- The debrief restyle is chrome only; the exported markdown report and its
+  section names (which verify asserts) are untouched.
+
+### Verification
+
+`npm run verify` green (pins hold). `npm run build` green.
