@@ -94,6 +94,13 @@ const EXPECTED_DISTRIBUTIONS: Record<
     "responsible-delay": 1545,
     overcontrolled: 730,
   },
+  "the-missing-requirement": {
+    "safe-rollout": 750,
+    "minor-issue": 1625,
+    "customer-incident": 337,
+    "responsible-delay": 1024,
+    overcontrolled: 360,
+  },
   "friday-deploy": {
     "safe-rollout": 934,
     "minor-issue": 1458,
@@ -1095,6 +1102,95 @@ console.log(
     )!,
     /paged about an hour ago/,
     "scenario 4: ship-it-now base without mitigation"
+  );
+
+  // Scenario 5 (branching): proposing ship-and-patch reads differently when
+  // the bad file was produced at 9:00 AM; the column patch reads differently
+  // after reading the addendum; the final hold reads differently when the
+  // day already produced a written record.
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      ["test-the-claim", "assume-two-columns", "ship-and-patch"],
+      2
+    )!,
+    /still open on your screen while you propose it/,
+    "scenario 5: ship-and-patch override after producing the file"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      ["merge-on-schedule", "assume-two-columns", "ship-and-patch"],
+      2
+    )!,
+    /promise stapled to it/,
+    "scenario 5: ship-and-patch base without the file"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      ["read-addendum", "assume-two-columns", "quiet-quick-filter", "mask-two-columns"],
+      3
+    )!,
+    /Your own reading of the addendum/,
+    "scenario 5: mask-two-columns override after reading the addendum"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      ["merge-on-schedule", "assume-two-columns", "quiet-quick-filter", "mask-two-columns"],
+      3
+    )!,
+    /named categories, not columns/,
+    "scenario 5: mask-two-columns base without the addendum"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      [
+        "ask-lena",
+        "write-acceptance",
+        "propose-descope",
+        "offer-flagged-v1",
+        "merge-with-notes",
+        "hold-and-write",
+      ],
+      5
+    )!,
+    /you have been writing it all day/,
+    "scenario 5: hold-and-write override after a documented day"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      [
+        "merge-on-schedule",
+        "assume-two-columns",
+        "reopen-properly",
+        "field-policy-tests",
+        "one-more-pass",
+        "hold-and-write",
+      ],
+      5
+    )!,
+    /everyone who cares knows why, from you, tonight/,
+    "scenario 5: hold-and-write base on an undocumented day"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      [
+        "merge-on-schedule",
+        "assume-two-columns",
+        "quiet-quick-filter",
+        "disable-non-admin",
+        "merge-quiet",
+        "full-send",
+      ],
+      5
+    )!,
+    /admin gate you built this afternoon/,
+    "scenario 5: full-send override behind the admin gate"
   );
 
   console.log(

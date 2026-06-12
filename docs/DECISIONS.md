@@ -865,6 +865,116 @@ step) come back as messages rather than crashes. The 2 to 45 percent band
 renders as advisory guidance per outcome, in words, not as a validation
 error; the panel says so in one line.
 
+## Milestone 5
+
+### M5: How the JSON-first path was actually used
+
+This run is autonomous and headless, so nobody clicked the studio's forms.
+The dogfooding used the studio's own machinery the way its code paths
+define it: the scenario was written as studio-format JSON first, then
+driven through loadDraft, the validator, lint, exportDraft, and
+previewDistribution (the exact pipeline behind the forms and the
+distribution panel) via a small uncommitted harness, through five
+edit-preview iterations, before being converted mechanically to the
+built-in TypeScript file. The conversion was scripted (flag strings to the
+FLAGS constants, the end sentinel to END_STEP_ID, keys unquoted) rather
+than retyped, and the pinned distribution proves the committed file
+behaves identically to the tuned JSON. The friction list below reads the
+forms critically against that same workflow.
+
+### M5: Scenario 5 design
+
+The Missing Requirement: an order-history export is approved, QA-passed,
+and scheduled to merge when a stakeholder mentions in passing that
+enterprise contracts require role-based masking of payment and address
+fields, a constraint written down nowhere. Seven steps, six decisions per
+run, with a Page-style branch at the 11:30 AM call: two options route to a
+renegotiation step (the strategy conversation) and two to a rework step
+(reopening the code), reconverging at the merge window. The branch serves
+the premise directly, since reopen versus renegotiate is the day's stated
+question. The scenario reuses the existing flag vocabulary (mitigated-
+impact covers gating the export, reproduced-failure covers producing the
+bad file); no new flag was needed. It carries five conditional
+consequences, a codeSnippet of the role-blind serializer, systemSignals on
+three steps, scenario-authored missed-signal copy, and curated strong
+markers.
+
+### M5: Incidents require the export to have actually shipped
+
+The incident rule is wrapped in lacksFlag delayed-release and lacksFlag
+blocked-release: a run that ends by holding or pulling the export cannot
+produce a data-exposure incident, whatever wreckage the earlier day
+accumulated, because the file never reaches customers. Without the guard,
+the maximally reckless prefix plus a final hold landed in Customer Impact
+Incident, which contradicts the premise. Some existing scenarios do allow
+high-risk held runs to reach the incident outcome; their pins were not
+touched, and this scenario simply makes the cleaner choice for a premise
+where exposure is the only incident channel.
+
+### M5: Registry placement and tuning
+
+Placed third of five, labeled intermediate, between The Broken Build and
+Friday Deploy. Reasoning: the day is about scope discovery and
+negotiation, with no live production fire; it is harder than The Broken
+Build (contract stakes, a branch, and more political surface) but its
+failure modes are slower and more recoverable than a Friday-evening global
+config change or a live page, so it sits below advanced. Two scenarios now
+share the intermediate label, which keeps the labels monotone along the
+registry order. Tuning to the slot took three threshold moves, all in
+scenario data: the first draft had Minor Production Issue at 48.2 percent
+(over the bound) and incident at 5.66 percent (below the slot); loosening
+the safe gate from risk at most 25 and testConfidence at least 65 to 28
+and 60 brought minor-issue inside, and lowering the incident flag-clause
+risk threshold from 45 to 40 and then 35 lifted the incident share to 8.23
+percent, comfortably inside the 6.55 to 9.06 slot. Final distribution over
+4,096 runs: Safe Rollout 750 (18.3 percent), Minor Production Issue 1,625
+(39.7 percent), Customer Impact Incident 337 (8.2 percent), Responsible
+Delay 1,024 (25.0 percent), Overcontrolled Delivery 360 (8.8 percent),
+now pinned. No existing pin moved; the curve assertion passes with the new
+point.
+
+### M5: Dogfooding friction list
+
+What the studio made easy:
+
+- The distribution preview is the tool that makes authoring viable. Five
+  edit-preview loops took the scenario from out of bounds to pinned, with
+  exact counts to copy into the pin table. Without it, tuning is guesswork.
+- Path-routed validation caught every structural mistake during drafting
+  (a misspelled nextStepId, a missing metric) with messages that named the
+  exact option.
+- The export-import round trip is trustworthy enough to move freely
+  between the forms and a text editor, and that movement turns out to be
+  the real workflow: forms for structure and checks, JSON in a proper
+  editor for copy passes. Long narrative text wants an editor, not a
+  textarea.
+
+What the studio made painful, in order of cost:
+
+- No duplicate button for steps or options. Scenario steps are heavily
+  templated (four options, the same seven fields each); building each
+  option field by field is the single largest time sink in the form path.
+- Building condition trees by clicking. The incident rule here is a
+  three-level tree with six leaves; that is roughly twenty interactions in
+  the nested condition editor versus six lines of JSON. Fine for hasFlag,
+  costly for allOf trees.
+- Flags are free-text inputs with no view of the vocabulary already in
+  use, in the draft or in the built-ins. A typo becomes a dead flag that
+  only lint catches later. The draft's own set of flags should be offered
+  as suggestions.
+- No reordering of steps or options; authoring order rarely matches final
+  order, and the workaround is export, reorder in JSON, reload.
+- The distribution panel says where runs landed but not why. During
+  tuning, the missing artifact was one example trail per outcome; the
+  harness compensated by replaying runs manually.
+- The known missed-signals quirk from the M3 log (two entries with the
+  same momentary flag key collapse) means the second entry must wait until
+  the first has its flag typed. Hit during design; survivable, annoying.
+
+No studio code changes were required to complete this milestone; the
+pipeline handled the full loop. The friction items above are recorded as
+the v4 known weak spots rather than fixed silently here.
+
 # Decision log: launch fix session
 
 Three tasks on top of the merged v3: raster social cards, the ink-faint
