@@ -1708,3 +1708,83 @@ static or statically generated content with no server, API key, or environment
 variable. The landing first load is 110 KB with the Three.js scene in a separate
 lazy chunk, so the budget and the LCP independence hold. No distribution pin
 moved across the entire run.
+
+---
+
+# ShipDay v7: maximum-spectacle cinematic rebuild
+
+The v7 run rebuilds the entire experience layer and theming as a spy-thriller
+agency-operations interface, on top of the same untouched engine, scenarios,
+simulator decision logic, studio, and run pages. Gameplay is unchanged. Every
+distribution pin in verify is fixed and no assertion is weakened. The only
+creative boundary: no real film or franchise marks; all genre language is
+original.
+
+## Baseline (pre-M1)
+
+Established green before any change. `npm run verify` and `npm run build` both
+pass. Route JS first load, recorded for the M5 before/after comparison:
+
+- `/` landing: 110 kB first load (4.14 kB route).
+- `/scenarios`: 106 kB.
+- `/simulator/[scenarioId]`: 120 kB.
+- Shared baseline: 103 kB.
+
+The branch already carried the v6 showpiece merge plus the CI workflow commits;
+it is a superset of main, so the work starts from v6 as required.
+
+## Milestone 1: the cinematic design system
+
+### What shipped
+
+- Agency-ops palette tokens in `app/globals.css`: `--classified`, `--signal`,
+  `--alert`, `--alert-bright`, `--alert-deep`, `--alert-banner`, plus the
+  `--countdown-tracking` mission-clock token. Registered as Tailwind colours in
+  `tailwind.config.ts`.
+- `lib/cinematic/sequence.ts`: `useCinematicSequence`, the single
+  sequence-orchestration primitive, with skip and reduced motion built in and a
+  total run time bounded by the sum of stage holds.
+- `lib/cinematic/clock.ts`: pure mission-clock math over the scenario's existing
+  time labels.
+- `lib/cinematic/dossier.ts`: codenames and difficulty-derived threat levels for
+  the five scenarios, with a fallback for imported scenarios.
+- `components/cinematic/`: `HudFrame`, `ClassifiedStamp`, `ThreatBadge`,
+  `DecodeText`, `SkipButton`, all pure presentation with reduced-motion and
+  accessibility built in.
+- Alert-state token system: `data-alert` layered on the shell, with a tactical
+  mid vignette and a red-alert high takeover, both defined in CSS and
+  neutralized under reduced motion.
+
+### Contrast (computed, WCAG relative luminance)
+
+All new pairings clear AA (4.5 normal, 3.0 large/UI). Measured:
+
+- ink on calm surface: 15.78; ink on high (alert) surface: 16.62.
+- ink-muted on calm surface: 7.67; on high surface: 8.08.
+- alert red text on high surface: 7.20; alert red on void: 7.20.
+- alert-bright on alert-deep surface: 8.83; ink on alert-deep: 15.39.
+- light ink on the solid alert banner (140 22 26): 8.58.
+- classified amber on void: 12.29; signal green on void: 11.43.
+- cool accent on void and void ink on the accent button: 7.94.
+
+The red-alert takeover never recolours body text or surfaces, so the 16.6:1 ink
+contrast holds through the most intense state. The weakest new pairing is the
+alert red text at 7.20, comfortably above AA.
+
+### Decisions
+
+- The alert layer is additive (`data-alert`) rather than a rewrite of
+  `data-risk`, so the existing risk treatment and its de-escalation transition
+  are preserved and the takeover composes on top.
+- `DecodeText` exposes the resolved string as the accessible label and scrambles
+  only an aria-hidden layer, so the effect never hides information from assistive
+  tech and is inert under reduced motion.
+- Threat levels are derived from difficulty, not authored independently, so the
+  mission framing cannot contradict the registry's difficulty order (which
+  verify already pins through the incident curve).
+- No scenario data, engine code, or verify assertion was touched. Distribution
+  pins unchanged.
+
+### Verification
+
+`npm run verify` green (all distribution pins hold). `npm run build` green.

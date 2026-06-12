@@ -44,6 +44,17 @@ const config: Config = {
           DEFAULT: "rgb(var(--hot) / <alpha-value>)",
           soft: "rgb(var(--hot-soft) / <alpha-value>)",
         },
+        // Agency-ops (v7) cinematic tokens. Classified amber, tactical signal
+        // green, and the alert reds drive the mission framing and the
+        // red-alert takeover. Channels so alpha modifiers keep working.
+        classified: "rgb(var(--classified) / <alpha-value>)",
+        signal: "rgb(var(--signal) / <alpha-value>)",
+        alert: {
+          DEFAULT: "rgb(var(--alert) / <alpha-value>)",
+          bright: "rgb(var(--alert-bright) / <alpha-value>)",
+          deep: "rgb(var(--alert-deep) / <alpha-value>)",
+          banner: "rgb(var(--alert-banner) / <alpha-value>)",
+        },
         good: "#4ade80",
         warn: "#fbbf24",
         bad: "#f87171",

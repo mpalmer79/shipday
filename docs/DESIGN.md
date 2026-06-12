@@ -180,3 +180,104 @@ stands alone. Performance is enforced in code: the render loop runs only when
 the canvas is on screen and the tab is visible, the device pixel ratio is capped
 at 1.5, and all GL resources are disposed on unmount. The full budget is in
 docs/DECISIONS.md.
+
+---
+
+# ShipDay v7: the cinematic mission layer
+
+The v7 run rebuilds the entire experience and theming on top of the same
+untouched engine, scenarios, simulator logic, studio, and run pages. The
+framing is a spy-thriller agency operation: the user is an operative, each
+scenario is a mission, the workday is an operation under a ticking clock. Every
+distribution pin and every assertion is fixed; this layer is presentation only.
+The one creative boundary is that nothing borrows a real film or franchise's
+marks. The genre language (countdowns, dossiers, threat levels, classified
+files, tactical HUDs, red alerts, after-action reports) is all original work.
+
+## The agency-ops palette
+
+The command-center darks reuse the existing `--void` and `--panel`. v7 adds the
+tactical and alarm language as channel-triplet tokens in `:root`:
+
+- `--classified` (245 197 66): amber for classification stamps and the tactical
+  (mid) state.
+- `--signal` (74 222 128): tactical online green for secure and nominal
+  readouts.
+- `--alert` (248 113 113) and `--alert-bright` (255 120 120): the red-alert
+  accent reds.
+- `--alert-deep` (40 10 12): the deep alert surface.
+- `--alert-banner` (140 22 26): the solid red-alert bar; light ink on it clears
+  AA at 8.58:1.
+
+The semantic good, warn, and bad stay fixed. The cinematic tokens are the
+room's temperature and alarm, separate from the metric semantics.
+
+## The mission clock
+
+`lib/cinematic/clock.ts` reads the scenario's existing time labels ("9:00 AM",
+"5:00 PM") and turns them into a countdown: remaining time, fraction elapsed,
+and a final-stretch flag. It never invents time; it only presents the times the
+scenario already carries. The clock face widens its tracking as the day
+escalates through the `--countdown-tracking` token, set per risk state.
+
+## The sequence orchestrator
+
+`lib/cinematic/sequence.ts` exposes one primitive, `useCinematicSequence`. It
+walks a list of stages on real timers, settles on the last stage, and reports
+`done`. Skip and reduced motion are built in: `skip()` clears every pending
+timer and jumps to the resting state, and under reduced motion the sequence is
+born finished so the final state paints at once with no timers armed. The total
+run time can never exceed the sum of the authored stage holds, so a sequence
+cannot run past its budget. Every cinematic set piece composes from this one
+hook.
+
+## The classified-file and HUD primitives
+
+`components/cinematic/` holds the reusable chrome, all pure presentation:
+
+- `HudFrame`: a tactical panel with corner brackets and a faint engineering
+  grid, with calm, tactical, and alert tones. Corners are aria-hidden.
+- `ClassifiedStamp`: a stamped, tracked classification tag.
+- `ThreatBadge`: a four-segment threat meter with a tracked label; the numeric
+  rank and label carry the meaning, the meter reinforces.
+- `DecodeText`: a finite decode-scramble effect that resolves once on mount and
+  stops. The resolved text is always the accessible label; under reduced motion
+  it renders immediately with no scramble.
+- `SkipButton`: the one obvious, keyboard-reachable control every sequence
+  renders.
+
+`lib/cinematic/dossier.ts` maps the five registry scenarios to codenames
+(Blue Feather, Red Circuit, Silent Ledger, Night Window, Black Signal) and
+derives threat levels from scenario difficulty, so the framing can never
+disagree with the registry order. Imported scenarios get a codename derived
+from their id.
+
+## The alert-state token system
+
+The simulator already classifies risk at 40 and 65 (`lib/simulator/risk.ts`).
+v7 layers a `data-alert` attribute on the shell alongside the existing
+`data-risk`:
+
+| Risk state | data-alert | Treatment                                                       |
+| ---------- | ---------- | -------------------------------------------------------------- |
+| calm       | (none)     | Nominal. Cool accent, relaxed clock.                           |
+| raised     | `mid`      | Tactical. A cool classified vignette, clock tightens.          |
+| high       | `high`     | Red alert. A red vignette breathing under 1Hz, an alarm rail.  |
+
+The overlay (`.alert-overlay`) is fixed, pointer-transparent, aria-hidden, and
+sits behind content. It never touches body text or surface colour, so light ink
+on the darkened high surface holds at 16.6:1 through the whole takeover. Under
+reduced motion the breath animation is neutralized and the overlay shows its
+final static state. Standing down is the reverse: as a later decision lowers
+risk, the attribute changes and the vignette eases back through the existing
+risk colour transition.
+
+## Motion budget (v7 additions)
+
+All new motion is CSS, the Web Animations API, or React state. No animation
+libraries. The full inventory with durations, skip controls, and reduced-motion
+behaviour is in docs/DECISIONS.md and the closeout motion table. The cinematic
+sequences (cold open, briefing, resolution) each run up to a few seconds and are
+skippable; the ambient loops (clock pulse, alert breath, alarm rail, 3D loop)
+are subtle, well under 1Hz where they breathe, and obey the visible and
+reduced-motion rules.

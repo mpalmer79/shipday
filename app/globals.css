@@ -26,6 +26,26 @@
     --hot: 245 158 66;
     --hot-soft: 92 60 28;
 
+    /* Agency-ops (v7) cinematic palette. The command-center darks reuse void
+       and panel above. These add the tactical and alarm language: a classified
+       amber for stamps and the tactical state, a tactical online green for
+       secure/nominal signals, and an unmistakable alert red for the red-alert
+       takeover. Every pairing against the surfaces clears WCAG AA (computed and
+       logged in docs/DECISIONS.md under M1). Channels, not hex, so alpha
+       modifiers keep working. */
+    --classified: 245 197 66;
+    --signal: 74 222 128;
+    --alert: 248 113 113;
+    --alert-bright: 255 120 120;
+    /* Deep alert surface and the solid red-alert banner colour. Light ink on
+       the banner clears AA (8.58:1). */
+    --alert-deep: 40 10 12;
+    --alert-banner: 140 22 26;
+
+    /* Mission-clock typography. The clock face widens its tracking as the day
+       escalates; these are the resting (calm) values, overridden by risk. */
+    --countdown-tracking: 0.04em;
+
     /* Motion primitives: one place for every duration and easing the
        cinematic layer uses. */
     --motion-fast: 120ms;
@@ -52,6 +72,7 @@
     --accent: 232 168 90;
     --accent-soft: 92 70 38;
     --clock-tracking: 0.08em;
+    --countdown-tracking: 0.1em;
   }
 
   /*
@@ -66,7 +87,8 @@
     --surface-line: 58 38 46;
     --accent: 242 135 111;
     --accent-soft: 92 44 40;
-    --clock-tracking: 0.14em;
+    --clock-tracking: 0.18em;
+    --countdown-tracking: 0.16em;
   }
 
   body {
@@ -103,6 +125,123 @@
   .clock-tracking {
     letter-spacing: var(--clock-tracking);
   }
+
+  /* The mission-clock countdown face tracking, escalating with risk. */
+  .countdown-tracking {
+    letter-spacing: var(--countdown-tracking);
+  }
+
+  /* A faint horizontal scanline texture for control-room surfaces. Decorative,
+     static, and very low contrast so it never touches text legibility. */
+  .scanlines {
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgb(var(--edge) / 0.06) 0px,
+      rgb(var(--edge) / 0.06) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+}
+
+/*
+ * The red-alert takeover. When the simulator crosses the high-risk threshold
+ * the shell carries data-alert="high"; a fixed, pointer-transparent overlay
+ * lays a red vignette over the room and a slow alarm breath pulses the edges.
+ * Body text and surfaces are untouched, so contrast holds (light ink on the
+ * darkened high surface stays at 16.6:1). At data-alert="mid" a cooler tactical
+ * vignette signals the elevated state without the alarm. The overlay sits
+ * behind content (z-0 in the shell) and is aria-hidden.
+ */
+.alert-overlay {
+  opacity: 0;
+  background:
+    radial-gradient(
+      120% 90% at 50% 0%,
+      rgb(var(--alert-banner) / 0.28),
+      transparent 55%
+    ),
+    radial-gradient(
+      130% 100% at 50% 120%,
+      rgb(var(--alert-banner) / 0.22),
+      transparent 60%
+    );
+}
+
+[data-alert="mid"] .alert-overlay {
+  opacity: 0.5;
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    rgb(var(--classified) / 0.1),
+    transparent 60%
+  );
+}
+
+[data-alert="high"] .alert-overlay {
+  opacity: 1;
+  animation: alertBreath 2.4s ease-in-out infinite;
+}
+
+@keyframes alertBreath {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* A thin alarm rail across the top of the alert bar that sweeps under high
+   alert and holds steady otherwise. */
+@keyframes alarmSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.alarm-rail {
+  animation: alarmSweep 1.6s linear infinite;
+}
+
+/* The cold-open boot flicker: a one-shot opacity settle as a line comes online.
+   Finite, used by the boot sequence, neutralized under reduced motion. */
+@keyframes bootIn {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.4;
+  }
+  60% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.boot-in {
+  animation: bootIn var(--motion-base) var(--ease-standard) both;
+}
+
+/* The mission-clock pulse: a subtle low breath on the countdown digits in the
+   final stretch and under alarm. Well under 1Hz, opacity only. */
+@keyframes clockPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+.clock-pulse {
+  animation: clockPulse 2s ease-in-out infinite;
 }
 
 /*
