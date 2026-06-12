@@ -1708,3 +1708,265 @@ static or statically generated content with no server, API key, or environment
 variable. The landing first load is 110 KB with the Three.js scene in a separate
 lazy chunk, so the budget and the LCP independence hold. No distribution pin
 moved across the entire run.
+
+---
+
+# ShipDay v7: maximum-spectacle cinematic rebuild
+
+The v7 run rebuilds the entire experience layer and theming as a spy-thriller
+agency-operations interface, on top of the same untouched engine, scenarios,
+simulator decision logic, studio, and run pages. Gameplay is unchanged. Every
+distribution pin in verify is fixed and no assertion is weakened. The only
+creative boundary: no real film or franchise marks; all genre language is
+original.
+
+## Baseline (pre-M1)
+
+Established green before any change. `npm run verify` and `npm run build` both
+pass. Route JS first load, recorded for the M5 before/after comparison:
+
+- `/` landing: 110 kB first load (4.14 kB route).
+- `/scenarios`: 106 kB.
+- `/simulator/[scenarioId]`: 120 kB.
+- Shared baseline: 103 kB.
+
+The branch already carried the v6 showpiece merge plus the CI workflow commits;
+it is a superset of main, so the work starts from v6 as required.
+
+## Milestone 1: the cinematic design system
+
+### What shipped
+
+- Agency-ops palette tokens in `app/globals.css`: `--classified`, `--signal`,
+  `--alert`, `--alert-bright`, `--alert-deep`, `--alert-banner`, plus the
+  `--countdown-tracking` mission-clock token. Registered as Tailwind colours in
+  `tailwind.config.ts`.
+- `lib/cinematic/sequence.ts`: `useCinematicSequence`, the single
+  sequence-orchestration primitive, with skip and reduced motion built in and a
+  total run time bounded by the sum of stage holds.
+- `lib/cinematic/clock.ts`: pure mission-clock math over the scenario's existing
+  time labels.
+- `lib/cinematic/dossier.ts`: codenames and difficulty-derived threat levels for
+  the five scenarios, with a fallback for imported scenarios.
+- `components/cinematic/`: `HudFrame`, `ClassifiedStamp`, `ThreatBadge`,
+  `DecodeText`, `SkipButton`, all pure presentation with reduced-motion and
+  accessibility built in.
+- Alert-state token system: `data-alert` layered on the shell, with a tactical
+  mid vignette and a red-alert high takeover, both defined in CSS and
+  neutralized under reduced motion.
+
+### Contrast (computed, WCAG relative luminance)
+
+All new pairings clear AA (4.5 normal, 3.0 large/UI). Measured:
+
+- ink on calm surface: 15.78; ink on high (alert) surface: 16.62.
+- ink-muted on calm surface: 7.67; on high surface: 8.08.
+- alert red text on high surface: 7.20; alert red on void: 7.20.
+- alert-bright on alert-deep surface: 8.83; ink on alert-deep: 15.39.
+- light ink on the solid alert banner (140 22 26): 8.58.
+- classified amber on void: 12.29; signal green on void: 11.43.
+- cool accent on void and void ink on the accent button: 7.94.
+
+The red-alert takeover never recolours body text or surfaces, so the 16.6:1 ink
+contrast holds through the most intense state. The weakest new pairing is the
+alert red text at 7.20, comfortably above AA.
+
+### Decisions
+
+- The alert layer is additive (`data-alert`) rather than a rewrite of
+  `data-risk`, so the existing risk treatment and its de-escalation transition
+  are preserved and the takeover composes on top.
+- `DecodeText` exposes the resolved string as the accessible label and scrambles
+  only an aria-hidden layer, so the effect never hides information from assistive
+  tech and is inert under reduced motion.
+- Threat levels are derived from difficulty, not authored independently, so the
+  mission framing cannot contradict the registry's difficulty order (which
+  verify already pins through the incident curve).
+- No scenario data, engine code, or verify assertion was touched. Distribution
+  pins unchanged.
+
+### Verification
+
+`npm run verify` green (all distribution pins hold). `npm run build` green.
+
+## Milestone 2: the cold open and the mission select
+
+### What shipped
+
+- `components/cinematic/ColdOpen.tsx`: the landing cold-open sequence. An overlay
+  over the already-rendered landing that boots the agency interface, opens a
+  secure channel, assembles a classified briefing, and reveals the product as
+  the assignment. Built on `useCinematicSequence` (four stages, about 3.6s
+  total). Skippable with one focused control, plays once per session via
+  `sessionStorage`, and dismisses immediately under reduced motion or on a
+  return visit.
+- `components/cinematic/MissionDossier.tsx`: a scenario rendered as a classified
+  case file. Composes real registry listing data; codename, threat level, file
+  tag, and directive are derived in `lib/cinematic/dossier.ts`. The whole card
+  is the link into the mission; hover and keyboard focus lift the folder and
+  read ACTIVE, the reveal-on-open beat.
+- `app/scenarios/page.tsx` rebuilt as the mission-select wall of dossiers, two
+  up, composed from `scenarioListings`.
+- `app/page.tsx` reframed as the operative briefing: the hero copy, the
+  operations dossier, the alert-ladder section, and the mission grid, with the
+  cold open mounted at the top.
+- Header and Footer chrome reframed to the agency framing (nav label Missions,
+  taglines).
+
+### Decisions
+
+- The cold open is a client-only overlay mounted after hydration, so the
+  server-rendered landing (and the no-JavaScript view) is the real first paint
+  and LCP. The overlay never blocks reaching a decision: skip lands on the
+  briefing with the primary CTA in reach.
+- Reduced motion and return-visit gating are decided in a mount effect, not
+  during render, so neither sessionStorage nor the motion query is read at
+  render time. While the decision resolves the overlay does not show.
+- The mission-select copy and dossier directives are framing chrome, kept in the
+  cinematic layer, never in scenario data. The realistic engineering register
+  inside the simulator decisions is untouched.
+
+### Route sizes
+
+- `/` landing: 110 kB to 113 kB first load (the cold open and dossier
+  composition).
+- `/scenarios`: 106 kB to 109 kB first load.
+
+### Verification
+
+`npm run verify` green (pins hold). `npm run build` green.
+
+## Milestone 3: the briefing and the mission clock
+
+### What shipped
+
+- `components/cinematic/MissionBriefing.tsx`: the scenario-entry briefing. A
+  full-screen sequence (four stages, about 3.8s) where the case file opens, the
+  directive is read into the record, the threat and objective and starting
+  readout appear, and the mission clock is armed before handing off. Built on
+  `useCinematicSequence`. Skippable with one focused control, never mounted
+  under reduced motion.
+- `components/simulator/WorkdayStatus.tsx` rebuilt as the mission clock: the
+  prominent figure is the countdown to end of day (T-minus), with the current
+  time, a day burn-down bar, and the day's beats underneath. It escalates with
+  risk through the global tokens and breathes (a sub-1Hz pulse) in the final
+  hour or under red alert, neutralized under reduced motion.
+- `lib/cinematic/clock.ts` wired into the clock; the clock reads the real step
+  progression through `beats` and `currentIndex`, so it tracks the day exactly.
+- `SimulatorClient` mounts the briefing overlay over the already-rendered
+  workday and threads the registry `difficulty` into it for the threat level.
+
+### Decisions
+
+- The briefing is an overlay over the mounted workday, not a gate in front of
+  it, so skipping or finishing continues play with no layout shift, and a
+  reduced-motion user gets the workday immediately.
+- `dossier.ts` was decoupled from the scenario registry: `threatFor` now takes a
+  difficulty, threaded as a prop from the server simulator page through
+  `SimulatorClient` to the briefing. This kept the simulator route from
+  bundling all five scenarios' data. Pulling the full registry briefly pushed
+  the route to 156 kB; with the prop and a type-only import it is back to 123 kB
+  (120 kB baseline plus 3 kB of briefing and clock code). Imported and studio
+  scenarios, which have no registry difficulty, default to the guarded tier.
+- The countdown is derived from the scenario's own time labels, never invented,
+  so it cannot disagree with the day.
+
+### Route sizes
+
+- `/simulator/[scenarioId]`: 120 kB baseline to 123 kB first load.
+
+### Verification
+
+`npm run verify` green (pins hold). `npm run build` green.
+
+## Milestone 4: the alert states and the resolution climax
+
+### What shipped
+
+- `components/cinematic/AlertBar.tsx`: the mission alert bar. A tactical amber
+  strip at the raised threshold and a red-alert banner with a sweeping alarm
+  rail at the high threshold, both with role="status" so the state change is
+  announced. It stands down on its own as risk recedes because it renders off
+  the live risk state.
+- `components/layout/AppShell.tsx`: now carries a `data-alert` attribute and a
+  fixed, pointer-transparent, aria-hidden alert overlay (the tactical and
+  red-alert vignettes from M1), and renders the alert bar. The overlay never
+  recolours body text or surfaces.
+- `components/simulator/ResolutionSequence.tsx` rebuilt as the full-screen
+  climax: the system output streams in matching the real outcome, then a verdict
+  card lands themed by outcome tone with an original mission-verdict line for
+  each of the five outcomes (accomplished, contained, compromised, held,
+  stalled), then it dismisses to the debrief. Built on `useCinematicSequence`,
+  skippable, capped at about 2.6s, reduced-motion safe.
+- `components/simulator/EndOfDayReport.tsx` restyled as the classified
+  after-action file: an after-action stamp header, mission-debrief framing, and
+  mission-log labelling. All report actions (restart, replay, download, add to
+  comparison, copy link) are unchanged and still work.
+
+### Contrast in the alert states (re-confirmed)
+
+The red-alert takeover keeps body text as light ink on the darkened high surface
+at 16.6:1. The red banner uses light ink on the solid alert colour at 8.58:1.
+The tactical strip uses classified amber on the dark surface at 12.29:1. Every
+alert state clears AA.
+
+### Decisions
+
+- Alert presentation is driven entirely by the existing risk state at the
+  existing 40 and 65 thresholds, so the takeover and the stand-down can never
+  disagree with the simulation. No new thresholds were introduced.
+- The verdict lines are original genre language in the cinematic layer; the
+  realistic system-output scripts (the part that makes the stakes land) are
+  unchanged.
+- The debrief restyle is chrome only; the exported markdown report and its
+  section names (which verify asserts) are untouched.
+
+### Verification
+
+`npm run verify` green (pins hold). `npm run build` green.
+
+## Milestone 5: the ambitious WebGL command center
+
+### What shipped
+
+- `components/hero/HeroScene.tsx` rebuilt into the volumetric command-center
+  space: a converging floor grid for depth, a drifting tactical network of nodes
+  wired into a faint lattice, and a glowing core that breathes at centre, lit
+  cool and warming toward the hot accent under pointer activity, with slow
+  parallax that leans the room toward the operative. All geometry plus one
+  runtime point sprite; no model or texture asset files.
+- `components/hero/HeroPoster.tsx`: a new static dramatic poster as inline SVG
+  (a command-center floor grid, a tactical node network, and a glowing core).
+  Server rendered, so it is the LCP base and paints on first paint. It is also
+  the fallback whenever the scene cannot run.
+- `components/hero/Hero.tsx` now uses the SVG poster as the base layer instead of
+  the raster placeholder; the gate to the 3D scene is unchanged.
+
+### Performance budget and how each rule is enforced
+
+- Lazy chunk: the scene is `dynamic(() => import("./HeroScene"), { ssr: false })`,
+  so Three.js lands in its own chunk: 322 KB raw, 75.5 KB gzipped, unchanged by
+  the rebuild (the same Three.js core).
+- LCP independent of WebGL: the landing route first load is 114 KB and does not
+  include the 75.5 KB Three.js chunk. The LCP base is the server-rendered SVG
+  poster, which paints before the scene chunk is even requested.
+- Capability and reduced-motion gating: `Hero` mounts the scene only when WebGL
+  is present and motion is permitted, and not under save-data, a 2g link, or low
+  core or memory counts; otherwise the poster stands alone.
+- Offscreen and hidden-tab pause: the render loop is driven by an
+  IntersectionObserver and a visibilitychange listener; it stops when the canvas
+  scrolls offscreen or the tab is hidden, and only restarts when both are true.
+- DPR cap: pixel ratio is capped at 1.5 on init and on every resize.
+- Resource disposal: every geometry, material, the sprite texture, and the
+  renderer are disposed on unmount, and the canvas is removed from the DOM.
+- No layout shift: the hero band reserves its height (min-h-[88vh]) and the
+  poster fills it before the scene initializes.
+
+### Route sizes (before and after)
+
+- `/` landing first load: 110 KB baseline, 113 KB after M2, 114 KB after M5 (the
+  inline SVG poster markup). The Three.js scene is never in this number.
+
+### Verification
+
+`npm run verify` green (pins hold). `npm run build` green.

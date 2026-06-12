@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { HeroPoster } from "./HeroPoster";
 
 // The 3D scene loads in its own chunk, only on the client, only after the
 // static hero is already painted. The poster underneath is the LCP image, so
@@ -69,15 +70,11 @@ export function Hero({ children }: { children?: ReactNode }) {
       className="relative flex min-h-[88vh] w-full items-center overflow-hidden bg-void"
     >
       <div className="absolute inset-0">
-        {/* Static poster: the fallback and the LCP image. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/hero/shipday-workspace.png"
-          alt="A dark engineering operations room at night, a network of glowing nodes over a faint grid."
-          className="h-full w-full object-cover opacity-70"
-          fetchPriority="high"
-          decoding="async"
-        />
+        {/* Static poster: the fallback and the LCP base. Server-rendered inline
+            SVG, so it paints on first paint and the LCP never waits on WebGL. */}
+        <div className="absolute inset-0 opacity-80">
+          <HeroPoster />
+        </div>
         {/* The 3D enhancement, composited over the poster. */}
         {enable3D && <HeroScene />}
         {/* Scrim: guarantees text contrast over any scene state. */}
