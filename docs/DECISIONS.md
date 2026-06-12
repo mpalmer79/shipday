@@ -1338,3 +1338,37 @@ the experience (the arc, the risk treatment, the close) and to render the
 five-scenario registry from the data, so it can no longer drift from the
 number of scenarios. The register stays flat and specific and the
 deterministic, no-external-AI note is kept verbatim.
+
+## Milestone 5
+
+### M5: Playwright drove the pass, dependency files untouched
+
+The v4 pass used Chrome for Testing fetched from an allowlisted mirror. This
+environment already carries Playwright browsers at `/opt/pw-browsers` and a
+global Playwright install, so the driver resolved Playwright from the global
+install through `createRequire` rather than adding it to the project. The
+repository's `package.json` and lockfile are unchanged, matching the v4 rule
+that dependency files stay fixed during a QA pass.
+
+### M5: Outcomes and risk states reached by real play, not by fixture
+
+The driver computes decision trails from the engine (one trail per outcome,
+plus an escalation and a de-escalation trail), then drives the browser by
+clicking decision options by their labels, so every risk state and every
+outcome is reached through real play. The data-risk attribute and the absence
+of the resolution overlay under reduced motion are read off the live DOM, so
+the assertions test the rendered result, not the intent.
+
+### M5: The QA driver was not committed
+
+Following the v4 precedent, the throwaway trail and driver scripts were run and
+then removed; only the evidence (screenshots and REPORT.md) is committed. The
+scripts duplicate what the verify assertions and the build already guard, and
+keeping them out of the tree keeps them out of the production type-check.
+
+### M5: One pass, no findings
+
+All 19 automated checks passed, including the reduced-motion contract (briefing
+absent, no resolution overlay, verdict and report immediate) and high-risk
+contrast measured in the browser at 15.80. Nothing needed reporting as a
+blocked check or an unfixed finding.
