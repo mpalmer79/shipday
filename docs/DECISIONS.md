@@ -1645,3 +1645,38 @@ Every route prerenders as static or statically generated content.
   never mounting under reduced motion).
 - No information lives only inside an animation: the pipeline and metrics show
   their values as text, and the 3D scene is purely decorative.
+
+## Milestone 6
+
+### M6: One isolated browser pass, Playwright from the global install
+
+The pass built once, started the server once on port 3211, drove every flow, and
+tore the server down, exactly as the no-browser-before-this rule requires. As in
+v5, Playwright was resolved from the environment's global install, so the
+repository's dependency files are unchanged.
+
+### M6: The capable-device path was forced to exercise the real 3D
+
+Headless Chromium renders WebGL through software and reports a low core count,
+which the hero's capability gate treats as a low-power device. To drive the real
+3D path, the capable contexts override `hardwareConcurrency` and `deviceMemory`
+to typical laptop values; the fallback and reduced-motion contexts override
+nothing, so they test the true gated behaviour. This is recorded plainly because
+it means the frame rate seen here is software, not a real GPU, and a human
+on-device pass is still required.
+
+### M6: Render-loop pause proven by frame counting
+
+Rather than trust the lifecycle code, the pass counted requestAnimationFrame
+ticks: 24 frames per 400ms while the hero was visible, 0 after emulating a hidden
+tab, and 0 after scrolling the hero offscreen. The loop demonstrably runs only
+when on screen and visible.
+
+### M6: 13 of 13 checks passed
+
+The 3D mount, the fallback poster with WebGL disabled, the reduced-motion inert
+paths (no canvas, no scroll progress, content visible), the living sections, the
+scroll positions, mobile, the framing pages, keyboard reachability of nav and
+CTA, and a 16.63 hero contrast all passed. Evidence is in docs/qa/v6 with a
+REPORT.md, and the report states plainly that a human on-device performance pass
+is still needed.
