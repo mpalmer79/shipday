@@ -1680,3 +1680,31 @@ scroll positions, mobile, the framing pages, keyboard reachability of nav and
 CTA, and a 16.63 hero contrast all passed. Evidence is in docs/qa/v6 with a
 REPORT.md, and the report states plainly that a human on-device performance pass
 is still needed.
+
+## Milestone 7
+
+### M7: The sweep is clean
+
+The repository-wide sweep found no em dashes anywhere, no banned words in
+user-facing copy (only the verify assertion list names them), and no theme-rule
+violations: no film, spy, mission, agent, or operative language in any
+user-facing string. The intensity of the front door lives entirely in light,
+type, motion, and information density. The one "agent" in the repository remains
+"support agent" in untouchable scenario data, a help-desk worker, not spy
+language.
+
+### M7: README updated for the front door and the dependency
+
+The README gained a front-door section describing the WebGL hero, the living
+sections, and the narrative scroll, a dependencies section recording Three.js
+and its isolated 74 KB gzipped lazy chunk, an expanded structure listing, and
+the v6 roadmap entries. The hero placeholder and its swap are pointed at
+`public/hero/README.md`.
+
+### M7: Final state is fully static and green
+
+Final `npm run verify` and `npm run build` both pass. Every route prerenders as
+static or statically generated content with no server, API key, or environment
+variable. The landing first load is 110 KB with the Three.js scene in a separate
+lazy chunk, so the budget and the LCP independence hold. No distribution pin
+moved across the entire run.
