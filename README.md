@@ -47,13 +47,40 @@ The full system is documented in [docs/DESIGN.md](docs/DESIGN.md); in short:
   motion, where the verdict and debrief present immediately.
 - **Replay as scenes.** Each recorded step is staged as a scene with its
   decision, metric movement, and the paths not taken.
-- **Motion budget and accessibility.** All motion is CSS transitions and
-  keyframes with no animation library and no new dependency. Nothing animates
-  longer than 600ms except the resolution moment, nothing loops except one
-  ambient glow in the high-risk state, and `prefers-reduced-motion` removes all
-  nonessential motion. Every risk state holds AA contrast (the high-risk state
-  improves it); the numbers are in docs/DESIGN.md. The browser evidence is in
-  [docs/qa/v5/](docs/qa/v5/).
+- **Motion budget and accessibility.** All 2D motion is CSS transitions and
+  keyframes and React state, with no animation library. Nothing animates longer
+  than 600ms except the resolution moment, nothing loops except one ambient glow
+  in the high-risk state and the landing cursor blink, and
+  `prefers-reduced-motion` removes all nonessential motion. Every state holds AA
+  contrast; the numbers are in docs/DESIGN.md. Browser evidence is in
+  [docs/qa/v5/](docs/qa/v5/) and [docs/qa/v6/](docs/qa/v6/).
+
+## The front door
+
+The public landing is a showpiece in a cinematic engineering operations-room
+language (the full visual system is in [docs/DESIGN.md](docs/DESIGN.md)):
+
+- **A WebGL hero.** A Three.js scene of systems under load: a drifting lattice
+  of glowing nodes wired into a faint network, lit cool and warming under
+  pointer activity. It is an enhancement, never a requirement. A static poster
+  (`public/hero/shipday-workspace.png`) is the base layer and the Largest
+  Contentful Paint image; the scene loads in its own lazy chunk and mounts only
+  when WebGL is available and motion is permitted. Under reduced motion,
+  save-data, a 2g link, or low-power hints, the poster stands alone. The render
+  loop pauses offscreen and when the tab is hidden, the device pixel ratio is
+  capped, and GL resources are disposed on unmount.
+- **Living sections.** The mid-page is presentational set dressing built from
+  showcase primitives, not screenshots: a sprint board, a deploy pipeline that
+  runs its stages once on view, a stakeholder message feed, and a metrics panel
+  echoing the simulator's six metrics. All seeded with deterministic sample
+  content; no engine calls.
+- **A narrative scroll.** Sections rise into view on a reveal that is visible by
+  default (legible without JavaScript), and a thin scroll-progress line tracks
+  position. Both are transform and opacity only and inert under reduced motion.
+
+The hero illustration shipped here is a placeholder; see
+[public/hero/README.md](public/hero/README.md) for how to drop in the final
+16:9 art with no code change.
 
 ## Scenarios
 
@@ -189,20 +216,37 @@ no environment variables, backend, database, or API keys.
 
 ```
 app/                  Pages: landing, scenarios, simulator, run, import, studio, compare; metadata and icon
-components/           Layout, simulator, run, import, studio, and compare UI components
+components/layout/    App shell, header, footer, scroll progress
+components/simulator/ The simulator gameplay, report, replay, and metrics UI
+components/showcase/  Showpiece primitives and the living landing sections
+components/hero/       The WebGL hero and its poster fallback
+components/{run,import,studio,compare}/  The framing-page clients
 lib/simulator/        Types, pure engine, outcomes, risk states, report, replay, export, validate, lint, comparison, run codes, distribution
 lib/site.ts           Site metadata helpers
 lib/runStore.ts       In-memory store of completed runs for the session
 lib/runLink.ts        Run link parsing and registry resolution
 lib/studio.ts         Studio draft load and export, issue routing
 lib/sampleScenario.ts Sample scenario offered on the import page
-lib/useReducedMotion.ts  Reduced-motion preference hook for gating the cinematic sequences
+lib/useReducedMotion.ts  Reduced-motion preference hook for gating motion
+lib/useInView.ts      IntersectionObserver hook for the living sections and reveals
 data/scenarios/       Scenario content (steps, options, rules, flags)
-docs/DESIGN.md        The cinematic design system: risk states, tokens, motion budget, contrast
+public/hero/          The hero poster placeholder and its swap instructions
+docs/DESIGN.md        The design system: risk states, the showpiece layer, tokens, motion, contrast
 docs/DECISIONS.md     Audit trail of build decisions
 docs/qa/              Browser QA evidence and reports per release
-scripts/contrast.mjs  Contrast audit for the risk-state palette
+scripts/contrast.mjs  Contrast audit for the palette
+scripts/gen-hero-placeholder.mjs  Generates the placeholder hero PNG
 ```
+
+## Dependencies
+
+The runtime dependencies are Next, React, and Three.js. Three.js powers the
+landing's WebGL hero and is the only heavy dependency; it is isolated in its own
+dynamically imported chunk (about 74 KB gzipped) that loads only when the hero
+scene mounts, so it is absent from the landing's first-load JavaScript and the
+Largest Contentful Paint never waits on it. Everything else (Tailwind,
+TypeScript, tsx) is a dev dependency. There is no animation library; all 2D
+motion is CSS and React.
 
 ## Roadmap
 
@@ -225,6 +269,11 @@ scripts/contrast.mjs  Contrast audit for the risk-state palette
 - [x] v5: full-screen outcome resolution moment and a debrief report
 - [x] v5: replay restaged as scenes and a rebuilt landing page
 - [x] v5: reduced-motion contract and AA contrast across every risk state
+- [x] v6: showpiece landing in a cinematic operations-room language
+- [x] v6: Three.js WebGL hero with a static poster fallback and full lifecycle management
+- [x] v6: living dashboard sections (board, pipeline, feed, metrics) as set dressing
+- [x] v6: narrative scroll, restyled framing pages, header and footer
+- [ ] hero: drop in the final illustration (placeholder at public/hero/)
 - [ ] studio: duplicate and reorder steps and options
 - [ ] studio: suggest the draft's existing flags instead of free-text only
 - [ ] distribution preview: show an example decision trail per outcome

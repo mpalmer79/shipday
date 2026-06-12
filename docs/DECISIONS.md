@@ -1401,3 +1401,310 @@ Final `npm run verify` and `npm run build` both pass. Every route prerenders
 as static or statically generated content, with no server, API key, or
 environment variable, so the accessibility and deployment floor from earlier
 releases holds. No distribution pin moved across the entire run.
+
+# Decision log: v6 autonomous build
+
+The showpiece. This run rebuilds ShipDay's public front door into a cinematic
+engineering operations room, with a WebGL hero, living dashboard sections, and
+a narrative scroll, without touching the engine, scenarios, simulator gameplay,
+studio, run page, or any existing assertion. No distribution pin moves. One
+entry per decision, tagged by milestone.
+
+## Milestone 1
+
+### M1: Showpiece tokens layer on top of v5, they do not replace it
+
+The deeper palette (void, panel, edge, hot) is added as new `:root` tokens and
+new Tailwind colours, leaving the simulator's risk tokens and the semantic
+good, warn, and bad untouched. The front door and the gameplay share one token
+system, so bringing the framing pages into the new language later is additive,
+and the simulator views keep behaving exactly as they do today.
+
+### M1: Hot is a showcase accent, separate from warn and bad
+
+The art direction asks the terminal accent to run cool in calm and hot under
+pressure. Rather than overload the semantic warn or bad (which mean specific
+things in the simulator), the showcase gets its own `--hot` amber. It carries
+the pressure temperature on the landing without changing what warn and bad mean
+where the engine uses them.
+
+### M1: Light is a composed shadow token, not a stack of utilities
+
+Panel depth and glow are one `shadow-panel` token (edge highlight, grounded
+drop, faint tonal glow) plus a hot variant, because Tailwind box-shadow
+utilities override rather than stack. One token per panel keeps the lit-by-
+screens look consistent and avoids per-panel shadow soup.
+
+### M1: No new font
+
+The headline scale is fluid (`text-display`, clamp based) and uses the existing
+Inter at display weight and tight tracking rather than loading a display face.
+This keeps the build free of a new font fetch and the page free of an extra
+font payload, and Inter is already a strong sans. If a designer later wants a
+distinct display face, the scale is the single place to change.
+
+### M1: Primitives are pure presentation, verified by types and the build
+
+The six landing primitives carry no logic and never call the engine; they
+render caller-supplied content. They are verified at this milestone by the type
+checker and the build (Tailwind generates their classes from the literal
+strings in the files), not by a browser, per the no-browser rule for the build
+milestones. Dot and fill colours are static maps, not constructed strings, so
+the Tailwind scanner sees every class.
+
+### M1: Landing route JS unchanged at this milestone
+
+The primitives are not yet imported by any route, so the landing route's first
+load JS is unchanged from the baseline (165 B page, 106 kB first load). The
+budget tracking starts here so later milestones can be measured against it.
+
+## Milestone 2
+
+### M2: The sections are set dressing, never the engine
+
+The sprint board, deploy pipeline, message feed, and metrics panel are pure
+presentation seeded with deterministic sample content in the established
+register. None call the engine, resolve an outcome, or read a live run. This is
+the trailer, not the game, so the landing can never disagree with the simulator
+or drift its distributions.
+
+### M2: Two sections live, two rest
+
+The deploy pipeline and the metrics panel are the living pieces: each starts its
+animation only when it scrolls into view (an IntersectionObserver that
+disconnects after firing), so nothing animates offscreen. The sprint board and
+message feed are static by design, because a board and a message log are
+snapshots; their motion would be decoration, which the budget forbids.
+
+### M2: The pipeline runs once, it does not loop
+
+The deploy pipeline advances through its stages a single time when seen and then
+rests at all-passed. It is a finite sequence of short state changes, not a
+perpetual loop, so it stays inside the motion budget. The only loops on the
+landing are the cursor blink in the message feed and, in the simulator, the
+high-risk glow. Under reduced motion the pipeline renders finished immediately
+and the metrics present full.
+
+### M2: The metrics panel imports labels narrowly
+
+The metrics panel echoes the simulator's six metrics by importing only
+`METRIC_LABELS` and `METRIC_ORDER` from `lib/simulator/metrics` and the
+`MetricKey` type, not the barrel, so the engine never enters the landing's
+client bundle. The values are a fixed sample, not a run.
+
+### M2: Reveal and in-view are shared, lean primitives
+
+The scroll-reveal wrapper and the in-view hook are small client utilities that
+the living sections and the later narrative scroll reuse. The reveal animates
+transform and opacity only and is reduced-motion safe; the hook is SSR-safe and
+disconnects after the first intersection so it costs nothing afterward.
+
+## Milestone 3
+
+### M3: Three.js added as the one permitted runtime dependency
+
+The hero is a Three.js scene (three 0.180.0), the single new runtime dependency
+the run allows. Its bundle cost is contained: the scene lives in its own
+dynamically imported chunk of 316 KB raw, 74 KB gzipped, loaded only when the
+scene mounts. The landing route's first load JS moved from 106 KB to 108 KB (a
+2 KB Hero gate), and Three is absent from the first-load and shared chunks, so
+the Largest Contentful Paint never waits on WebGL. The scene is built from
+geometry and a runtime-generated sprite, with no model or texture asset files.
+
+### M3: The poster is the LCP, the scene is an enhancement
+
+The hero reserves an 88vh band and renders the static poster
+(`public/hero/shipday-workspace.png`) as the base layer immediately, so there is
+no layout shift and first paint never waits on WebGL. The 3D scene composites
+over the poster through a dynamic import with ssr false, after hydration. A
+scrim guarantees text contrast over any scene state, so the headline meets AA
+regardless of what the scene is doing.
+
+### M3: The 3D scene is gated behind capability and preference
+
+The scene mounts only when a real WebGL context is available and none of these
+hold: reduced-motion preference, save-data, a 2g effective connection, two or
+fewer logical cores, or two or fewer GB of device memory. Any uncertainty falls
+to the poster. This keeps the heavy path off low-power and constrained devices
+without a server or a feature flag.
+
+### M3: Performance rules enforced in the scene lifecycle
+
+The render loop runs only when the canvas is on screen (IntersectionObserver)
+and the tab is visible (visibilitychange); it is cancelled otherwise, so an
+offscreen or backgrounded hero costs nothing. The device pixel ratio is capped
+at 1.5, the geometry is fixed at 520 nodes and at most 700 line segments, and on
+unmount every geometry, material, texture, and the renderer itself is disposed
+and the canvas removed. The material runs `low-power` power preference.
+
+### M3: Calm to hot is driven by pointer load, not gameplay
+
+To share the app's risk-temperature language without inventing gameplay on the
+landing, the scene warms from the cool accent toward the hot accent based on
+pointer speed (a heat value that rises with fast movement and decays when idle),
+reading as systems heating under load. It is presentation only and resets to
+calm at rest.
+
+### M3: The hero asset is a generated placeholder with a documented swap
+
+The final illustration drops at `public/hero/shipday-workspace.png` at 16:9
+(1600 x 900 or larger). Until then a placeholder is generated by
+`scripts/gen-hero-placeholder.mjs` (a hand-rolled PNG encoder, no image library
+or browser) and clearly marked with the standard placeholder frame and cross.
+`public/hero/README.md` documents the swap: replace the file at the same path,
+no code change. The `alt` text lives in `components/hero/Hero.tsx`.
+
+## Milestone 4
+
+### M4: The landing gets its own void shell
+
+The landing composes its own shell (the restyled header, a full-bleed hero, the
+sections, and the footer) over the deeper `bg-void` base, rather than the
+constrained AppShell main, so the hero can run full width and the front door can
+sit on the showpiece's darkest surface. The framing pages keep AppShell, now
+with an opt-in footer, so the chrome is shared without forcing the landing into
+a constrained column.
+
+### M4: The scroll narrative is reveals plus one progress line
+
+The narrative is built from the in-view Reveal wrapper (transform and opacity
+only, gated under reduced motion, the observer disconnecting after it fires) and
+a single scroll-progress line that updates a scaleX transform on a passive,
+requestAnimationFrame-throttled scroll listener and does not render at all under
+reduced motion. There is no scroll-linked layout work, so the narrative stays
+cheap.
+
+### M4: The footer is opt-in, the simulator stays clean
+
+The footer is an AppShell prop, off by default. The framing pages (scenarios,
+import, studio, run, compare) and the landing carry it; the focused simulator
+gameplay view does not, so the rule against altering gameplay holds while the
+front door gains shared chrome.
+
+### M4: Landing JS stayed lean
+
+Adding the living sections, the reveals, and the scroll progress moved the
+landing route's first load JS from the 106 KB baseline to 110 KB, a 4 KB
+increase for all of the front-door interactivity. The Three.js scene remains in
+its own lazy chunk and is still absent from the first load, so the budget and
+the LCP independence hold.
+
+### M4: Framing pages share the language through chrome and tokens
+
+The header and footer and the showpiece tokens bring the framing pages into the
+new language; the scenarios picker was additionally restyled with the display
+heading and glowing panels. The interiors of the studio, run, import, and
+compare clients were left on the shared token system rather than rebuilt, to
+keep this run away from gameplay-adjacent logic; they read consistently through
+the shared chrome and palette.
+
+## Milestone 5
+
+### M5: The reveals are no-JavaScript safe
+
+The scroll reveal originally hid content with client state, which would have
+left the landing's sections invisible without JavaScript. The Reveal wrapper was
+rebuilt to render visible by default (an idle state with no opacity) and to hide
+then reveal only after mount, and only for content still below the fold, so the
+page is fully legible without JavaScript and nothing already on screen flashes.
+The metric bars now default to filled and the deploy pipeline defaults to
+all-passed, so both degrade to coherent static states without JavaScript or
+under reduced motion; their animations are enhancements layered on top.
+
+### M5: Route JS budgets (final)
+
+From the production build, first load JS per route:
+
+- `/` landing: 110 KB (4.14 KB page). The Three.js scene is a separate lazy
+  chunk (316 KB raw, 74 KB gzip) and is not in this figure, so the LCP poster
+  never waits on it. The landing rose 4 KB over the 106 KB pre-v6 baseline for
+  all of the living sections, reveals, and scroll progress.
+- `/scenarios`: 106 KB. `/simulator/[scenarioId]`: 120 KB. `/studio`: 160 KB.
+  `/import`: 122 KB. `/compare`: 148 KB. `/run`: 150 KB.
+
+Every route prerenders as static or statically generated content.
+
+### M5: Accessibility self-audit
+
+- Landmarks: header, main, footer, and nav on the landing and framing pages.
+  Each landing section is a labelled region (aria-labelledby its heading).
+- Headings: one h1 per page (the hero on the landing), h2 per section, h3 for
+  sub-panels, in order.
+- Alt text: the hero poster carries descriptive alt; no other content imagery on
+  the landing.
+- Decorative elements are aria-hidden: the WebGL canvas, the scroll-progress
+  line, the hero scrims, the risk ambient layer, the cursor blink, and the
+  status dots.
+- Keyboard: all interactive elements are links or buttons, reachable in DOM
+  order, with the global focus-visible ring. The reveal wrapper never traps
+  focus and its content is visible by default.
+- Motion: every animation is reduced-motion gated. The inventory is
+  bar-grow, cursor-blink, and stage-in (neutralized by the global CSS contract),
+  plus the Reveal transition, the scroll-progress line, the deploy pipeline run,
+  the metrics grow, and the WebGL scene (all gated in component logic, the scene
+  never mounting under reduced motion).
+- No information lives only inside an animation: the pipeline and metrics show
+  their values as text, and the 3D scene is purely decorative.
+
+## Milestone 6
+
+### M6: One isolated browser pass, Playwright from the global install
+
+The pass built once, started the server once on port 3211, drove every flow, and
+tore the server down, exactly as the no-browser-before-this rule requires. As in
+v5, Playwright was resolved from the environment's global install, so the
+repository's dependency files are unchanged.
+
+### M6: The capable-device path was forced to exercise the real 3D
+
+Headless Chromium renders WebGL through software and reports a low core count,
+which the hero's capability gate treats as a low-power device. To drive the real
+3D path, the capable contexts override `hardwareConcurrency` and `deviceMemory`
+to typical laptop values; the fallback and reduced-motion contexts override
+nothing, so they test the true gated behaviour. This is recorded plainly because
+it means the frame rate seen here is software, not a real GPU, and a human
+on-device pass is still required.
+
+### M6: Render-loop pause proven by frame counting
+
+Rather than trust the lifecycle code, the pass counted requestAnimationFrame
+ticks: 24 frames per 400ms while the hero was visible, 0 after emulating a hidden
+tab, and 0 after scrolling the hero offscreen. The loop demonstrably runs only
+when on screen and visible.
+
+### M6: 13 of 13 checks passed
+
+The 3D mount, the fallback poster with WebGL disabled, the reduced-motion inert
+paths (no canvas, no scroll progress, content visible), the living sections, the
+scroll positions, mobile, the framing pages, keyboard reachability of nav and
+CTA, and a 16.63 hero contrast all passed. Evidence is in docs/qa/v6 with a
+REPORT.md, and the report states plainly that a human on-device performance pass
+is still needed.
+
+## Milestone 7
+
+### M7: The sweep is clean
+
+The repository-wide sweep found no em dashes anywhere, no banned words in
+user-facing copy (only the verify assertion list names them), and no theme-rule
+violations: no film, spy, mission, agent, or operative language in any
+user-facing string. The intensity of the front door lives entirely in light,
+type, motion, and information density. The one "agent" in the repository remains
+"support agent" in untouchable scenario data, a help-desk worker, not spy
+language.
+
+### M7: README updated for the front door and the dependency
+
+The README gained a front-door section describing the WebGL hero, the living
+sections, and the narrative scroll, a dependencies section recording Three.js
+and its isolated 74 KB gzipped lazy chunk, an expanded structure listing, and
+the v6 roadmap entries. The hero placeholder and its swap are pointed at
+`public/hero/README.md`.
+
+### M7: Final state is fully static and green
+
+Final `npm run verify` and `npm run build` both pass. Every route prerenders as
+static or statically generated content with no server, API key, or environment
+variable. The landing first load is 110 KB with the Three.js scene in a separate
+lazy chunk, so the budget and the LCP independence hold. No distribution pin
+moved across the entire run.
