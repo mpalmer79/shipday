@@ -1303,3 +1303,38 @@ a header strip with the timestamp, a title, and a one-line standfirst, with the
 final metrics under a rule. This matches the ticket document language from the
 briefing, so the day opens and closes in the same visual register. No data or
 control was removed; only the framing changed.
+
+## Milestone 4
+
+### M4: Replay scenes remount to replay their entrance
+
+Each replay frame is staged in the document language, and navigating between
+scenes remounts only the scene content (keyed by index) so the staged entrance
+plays again, while the Previous and Next controls stay mounted and keep focus.
+Replay stays a pure reconstruction: no new state, no stored frames. The metric
+movement is staged chip by chip within the budget rather than listed all at
+once, which is the "staged rather than listed" the milestone asks for.
+
+### M4: The landing stays a static server component
+
+The opening treatment is pure CSS staged entrance with inline animation delays,
+so the landing page needs no client JavaScript and still demonstrates the
+visual language. The reduced-motion contract in globals.css neutralizes the
+entrance, so no JS gate is required on this page.
+
+### M4: The risk triptych uses the real tokens, not a mockup
+
+The "room responds to risk" panels each set the actual data-risk attribute, so
+the calm, raised, and high panels render through the same token layer the
+simulator uses. The miniature is therefore the real treatment at three states,
+which keeps the landing honest: what you see before you start is what the room
+does while you play.
+
+### M4: Landing copy corrected to five workdays
+
+The previous landing described three workdays and named three tickets, which
+went stale when the registry grew to five. The copy was rewritten to describe
+the experience (the arc, the risk treatment, the close) and to render the
+five-scenario registry from the data, so it can no longer drift from the
+number of scenarios. The register stays flat and specific and the
+deterministic, no-external-AI note is kept verbatim.
