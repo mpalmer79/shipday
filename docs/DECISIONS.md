@@ -1262,3 +1262,44 @@ not a click anywhere or a keypress handler. This keeps it keyboard operable
 and avoids any motion tied to keystrokes. Keyboard users can also act on the
 options immediately during the briefing, since the options are in the DOM the
 whole time and only their opacity is staged.
+
+## Milestone 3
+
+### M3: The resolution script keys off the outcome, not the path
+
+Each of the five outcomes has its own system-output script in
+`ResolutionSequence.tsx`. A clean ship, a ship with a small problem, a ship
+that broke and rolled back, a deliberate hold with a plan, and a change
+strangled by its own gates all read differently. Because the script keys off
+the resolved outcome id, a flagged rollout, a direct ship, and a hold
+naturally resolve differently here, since they resolve to different outcomes
+in the engine. The sequence is presentation only: the engine has already
+decided the outcome before the overlay mounts, so nothing about the script can
+change what happened.
+
+### M3: The moment is capped by a timer, not by trust in the animation
+
+The overlay sets a single 2.5 second timeout to dismiss, matching the
+`--motion-resolution` token, and the line and verdict delays are tuned to land
+inside that window (the verdict at 1.9s plus its 480ms entrance ends at 2.38s).
+The cap is enforced by the timer regardless of how the staged delays are
+tuned, so the moment can never run long. The Skip button is focused on mount
+and dismisses immediately, so the moment is always escapable by click or by
+keyboard.
+
+### M3: Reduced motion skips the moment entirely
+
+The overlay is gated behind `showResolution`, which is false under reduced
+motion, so the component never mounts. The verdict (the outcome badge) and the
+debrief present immediately in that case. With motion allowed, the verdict and
+debrief are held back until the moment dismisses, then staged in, so the order
+reads as output, then verdict, then report.
+
+### M3: The report became a debrief document
+
+The end-of-day report keeps every section and every action (download, share,
+replay, add to comparison, restart) and is restyled with a document masthead:
+a header strip with the timestamp, a title, and a one-line standfirst, with the
+final metrics under a rule. This matches the ticket document language from the
+briefing, so the day opens and closes in the same visual register. No data or
+control was removed; only the framing changed.

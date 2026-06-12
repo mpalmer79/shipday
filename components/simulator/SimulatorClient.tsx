@@ -12,6 +12,7 @@ import { OutcomeBadge } from "@/components/simulator/OutcomeBadge";
 import { ScenarioCard } from "@/components/simulator/ScenarioCard";
 import { SystemSignals } from "@/components/simulator/SystemSignals";
 import { ReplayView } from "@/components/simulator/ReplayView";
+import { ResolutionSequence } from "@/components/simulator/ResolutionSequence";
 import { Timeline } from "@/components/simulator/Timeline";
 import {
   WorkdayStatus,
@@ -70,6 +71,7 @@ export function SimulatorClient({
   const [savedToComparison, setSavedToComparison] = useState(false);
   const reducedMotion = useReducedMotion();
   const [briefingSkipped, setBriefingSkipped] = useState(false);
+  const [resolutionDismissed, setResolutionDismissed] = useState(false);
 
   // The opening briefing stages the first step into place. It runs only at the
   // very start of the day, only when motion is allowed, and is skippable. Once
@@ -168,6 +170,12 @@ export function SimulatorClient({
   // back down when a later choice lowers risk below a threshold.
   const shellRiskState = riskState(state.metrics.risk);
 
+  // The resolution moment plays once when the day ends, unless motion is off
+  // or it has been skipped. Under reduced motion the verdict and report show
+  // immediately. It resets on restart so a new day resolves again.
+  const showResolution =
+    state.completed && !reducedMotion && !resolutionDismissed;
+
   return (
     <AppShell riskState={shellRiskState}>
       <h1 className="sr-only">{scenario.name}</h1>
@@ -226,38 +234,55 @@ export function SimulatorClient({
               </div>
             </>
           )}
-          {report && view === "report" && (
+          {showResolution && report && (
+            <ResolutionSequence
+              outcome={report.outcome}
+              onDone={() => setResolutionDismissed(true)}
+            />
+          )}
+          {report && view === "report" && !showResolution && (
             <>
-              <OutcomeBadge outcome={report.outcome} />
-              <EndOfDayReport
-                report={report}
-                shareCode={
-                  shareable
-                    ? encodeRun(
-                        scenario.id,
-                        state.decisions.map((d) => d.optionId)
-                      )
-                    : undefined
-                }
-                shareNote={
-                  shareable
-                    ? undefined
-                    : "This scenario is not in the built-in registry, so the run cannot be shared by link; a link carries only the scenario id."
-                }
-                onRestart={() => {
-                  setView("report");
-                  setSavedToComparison(false);
-                  dispatch({ type: "restart" });
-                }}
-                onReplay={
-                  replayFrames && replayFrames.length > 0
-                    ? () => setView("replay")
-                    : undefined
-                }
-                onDownload={downloadReport}
-                onAddToComparison={addToComparison}
-                savedToComparison={savedToComparison}
-              />
+              <div
+                className={stageProps(!reducedMotion, 0).className}
+                style={stageProps(!reducedMotion, 0).style}
+              >
+                <OutcomeBadge outcome={report.outcome} />
+              </div>
+              <div
+                className={stageProps(!reducedMotion, 250).className}
+                style={stageProps(!reducedMotion, 250).style}
+              >
+                <EndOfDayReport
+                  report={report}
+                  shareCode={
+                    shareable
+                      ? encodeRun(
+                          scenario.id,
+                          state.decisions.map((d) => d.optionId)
+                        )
+                      : undefined
+                  }
+                  shareNote={
+                    shareable
+                      ? undefined
+                      : "This scenario is not in the built-in registry, so the run cannot be shared by link; a link carries only the scenario id."
+                  }
+                  onRestart={() => {
+                    setView("report");
+                    setSavedToComparison(false);
+                    setResolutionDismissed(false);
+                    dispatch({ type: "restart" });
+                  }}
+                  onReplay={
+                    replayFrames && replayFrames.length > 0
+                      ? () => setView("replay")
+                      : undefined
+                  }
+                  onDownload={downloadReport}
+                  onAddToComparison={addToComparison}
+                  savedToComparison={savedToComparison}
+                />
+              </div>
             </>
           )}
           {report && view === "replay" && replayFrames && (
