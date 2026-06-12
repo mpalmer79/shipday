@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { Hero } from "@/components/hero/Hero";
 import {
   defaultScenarioId,
   scenarioListings,
@@ -59,53 +60,50 @@ const stageStyle = (delay: number) => ({ animationDelay: `${delay}ms` });
 export default function LandingPage() {
   return (
     <AppShell>
-      <div className="mx-auto max-w-4xl py-16 sm:py-20">
-        <div className="flex flex-col items-center text-center">
-          <p
-            className="mb-4 animate-stage-in font-mono text-xs uppercase tracking-widest text-accent"
-            style={stageStyle(0)}
-          >
-            a software engineering simulator
-          </p>
-          <h1
-            className="animate-stage-in text-5xl font-bold tracking-tight sm:text-6xl"
-            style={stageStyle(80)}
-          >
-            ShipDay
-          </h1>
-          <p
-            className="mt-4 animate-stage-in text-xl text-ink-muted"
-            style={stageStyle(160)}
-          >
-            One workday, one decision at a time, with the pressure made visible.
-          </p>
-          <p
-            className="mt-6 max-w-xl animate-stage-in text-base leading-relaxed text-ink-muted"
-            style={stageStyle(240)}
-          >
-            A ticket arrives at 9:00 AM and you have until end of day to ship it
-            or decide not to. Every choice moves your quality, speed, risk, and
-            the trust people place in you. As risk climbs, the interface
-            tightens: the accent warms, the clock sharpens, and past a point the
-            room darkens. At 5:00 PM you see exactly how it added up, can replay
-            every decision, and can take the report with you.
-          </p>
+      <Hero>
+        <p
+          className="animate-stage-in font-mono text-xs uppercase tracking-widest text-accent"
+          style={stageStyle(0)}
+        >
+          a software engineering simulator
+        </p>
+        <h1
+          className="mt-4 animate-stage-in text-display font-bold text-ink"
+          style={stageStyle(80)}
+        >
+          ShipDay
+        </h1>
+        <p
+          className="mt-4 max-w-xl animate-stage-in text-xl text-ink-muted"
+          style={stageStyle(160)}
+        >
+          One workday, one decision at a time, with the pressure made visible.
+        </p>
+        <p
+          className="mt-6 max-w-xl animate-stage-in text-base leading-relaxed text-ink-muted"
+          style={stageStyle(240)}
+        >
+          A ticket arrives at 9:00 AM and you have until end of day to ship it or
+          decide not to. Every choice moves your quality, speed, risk, and the
+          trust people place in you. As risk climbs, the interface tightens: the
+          accent warms, the clock sharpens, and past a point the room darkens. At
+          5:00 PM you see exactly how it added up.
+        </p>
+        <div className="mt-10 flex animate-stage-in flex-wrap items-center gap-4" style={stageStyle(320)}>
           <Link
             href={ctaHref}
-            className="mt-10 animate-stage-in rounded-lg bg-accent px-8 py-3 text-base font-semibold text-surface transition-colors hover:bg-accent/90"
-            style={stageStyle(320)}
+            className="rounded-lg bg-accent px-8 py-3 text-base font-semibold text-void shadow-glow transition-colors hover:bg-accent/90"
           >
             Start the workday
           </Link>
-          <p
-            className="mt-6 animate-stage-in font-mono text-xs text-ink-faint"
-            style={stageStyle(400)}
-          >
+          <span className="font-mono text-xs text-ink-faint">
             fully deterministic · runs entirely in your browser · no API calls
-          </p>
+          </span>
         </div>
+      </Hero>
 
-        <section className="mt-20" aria-labelledby="language-heading">
+      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-20">
+        <section aria-labelledby="language-heading">
           <h2
             id="language-heading"
             className="text-center text-xs font-semibold uppercase tracking-wider text-ink-faint"

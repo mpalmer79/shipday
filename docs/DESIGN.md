@@ -161,3 +161,22 @@ Computed with WCAG relative luminance. Ink is fixed across the palette.
 
 Every text pairing meets AA (4.5 for normal text, 3.0 for large and UI); the
 weakest is ink-faint on panel at 4.92.
+
+### The WebGL hero
+
+The landing hero is a Three.js scene: an abstract operations room of systems
+under load, a drifting lattice of nodes wired into a faint network, lit cool and
+warming toward the hot accent under pointer activity, with slow parallax. It is
+built entirely from geometry and a runtime-generated point sprite, with no model
+or texture asset files.
+
+The hero is an enhancement, never a requirement. A static poster
+(`public/hero/shipday-workspace.png`, a 16:9 placeholder until the final art
+lands) is the base layer and the Largest Contentful Paint image, with a scrim
+guaranteeing text contrast. The 3D scene loads in its own dynamically imported
+chunk and mounts only when WebGL is available and motion is permitted; under
+reduced motion, save-data, a 2g link, or low core or memory counts, the poster
+stands alone. Performance is enforced in code: the render loop runs only when
+the canvas is on screen and the tab is visible, the device pixel ratio is capped
+at 1.5, and all GL resources are disposed on unmount. The full budget is in
+docs/DECISIONS.md.
