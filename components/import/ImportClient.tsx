@@ -59,7 +59,7 @@ export function ImportClient() {
   }
 
   return (
-    <AppShell>
+    <AppShell footer>
       <div className="mx-auto max-w-3xl py-10">
         <h1 className="text-3xl font-bold tracking-tight">Import a scenario</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-muted">

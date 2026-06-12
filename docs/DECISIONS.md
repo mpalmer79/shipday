@@ -1553,3 +1553,47 @@ The final illustration drops at `public/hero/shipday-workspace.png` at 16:9
 or browser) and clearly marked with the standard placeholder frame and cross.
 `public/hero/README.md` documents the swap: replace the file at the same path,
 no code change. The `alt` text lives in `components/hero/Hero.tsx`.
+
+## Milestone 4
+
+### M4: The landing gets its own void shell
+
+The landing composes its own shell (the restyled header, a full-bleed hero, the
+sections, and the footer) over the deeper `bg-void` base, rather than the
+constrained AppShell main, so the hero can run full width and the front door can
+sit on the showpiece's darkest surface. The framing pages keep AppShell, now
+with an opt-in footer, so the chrome is shared without forcing the landing into
+a constrained column.
+
+### M4: The scroll narrative is reveals plus one progress line
+
+The narrative is built from the in-view Reveal wrapper (transform and opacity
+only, gated under reduced motion, the observer disconnecting after it fires) and
+a single scroll-progress line that updates a scaleX transform on a passive,
+requestAnimationFrame-throttled scroll listener and does not render at all under
+reduced motion. There is no scroll-linked layout work, so the narrative stays
+cheap.
+
+### M4: The footer is opt-in, the simulator stays clean
+
+The footer is an AppShell prop, off by default. The framing pages (scenarios,
+import, studio, run, compare) and the landing carry it; the focused simulator
+gameplay view does not, so the rule against altering gameplay holds while the
+front door gains shared chrome.
+
+### M4: Landing JS stayed lean
+
+Adding the living sections, the reveals, and the scroll progress moved the
+landing route's first load JS from the 106 KB baseline to 110 KB, a 4 KB
+increase for all of the front-door interactivity. The Three.js scene remains in
+its own lazy chunk and is still absent from the first load, so the budget and
+the LCP independence hold.
+
+### M4: Framing pages share the language through chrome and tokens
+
+The header and footer and the showpiece tokens bring the framing pages into the
+new language; the scenarios picker was additionally restyled with the display
+heading and glowing panels. The interiors of the studio, run, import, and
+compare clients were left on the shared token system rather than rebuilt, to
+keep this run away from gameplay-adjacent logic; they read consistently through
+the shared chrome and palette.

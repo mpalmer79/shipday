@@ -190,7 +190,7 @@ export function StudioClient() {
   const scenarioIssues = issuesFor("scenario");
 
   return (
-    <AppShell>
+    <AppShell footer>
       <div className="mx-auto max-w-4xl py-10">
         <h1 className="text-3xl font-bold tracking-tight">Authoring studio</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-muted">

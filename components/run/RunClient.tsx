@@ -70,7 +70,7 @@ export function RunClient() {
 
   if (!code || !result) {
     return (
-      <AppShell>
+      <AppShell footer>
         <div className="mx-auto max-w-2xl py-16">
           <h1 className="text-3xl font-bold tracking-tight">Shared run</h1>
           <p className="mt-4 text-sm leading-relaxed text-ink-muted">
@@ -86,7 +86,7 @@ export function RunClient() {
 
   if (!result.ok) {
     return (
-      <AppShell>
+      <AppShell footer>
         <div className="mx-auto max-w-2xl py-16">
           <h1 className="text-3xl font-bold tracking-tight">Shared run</h1>
           <div className="mt-6 rounded-lg border border-bad/40 bg-bad/5 p-5">
@@ -124,7 +124,7 @@ export function RunClient() {
   }
 
   return (
-    <AppShell>
+    <AppShell footer>
       <div className="mx-auto max-w-2xl py-10">
         <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
           Shared run

@@ -1,4 +1,5 @@
 import { Header } from "./Header";
+import { Footer } from "./Footer";
 import type { RiskState } from "@/lib/simulator";
 
 /**
@@ -7,13 +8,18 @@ import type { RiskState } from "@/lib/simulator";
  * token layer in globals.css shifts the whole palette (surfaces, accent, clock
  * typography) for everything inside. Pages with no live risk state simply omit
  * it and render calm.
+ *
+ * The footer is opt-in so the framing pages can carry it while the focused
+ * simulator gameplay view stays uncluttered.
  */
 export function AppShell({
   children,
   riskState,
+  footer = false,
 }: {
   children: React.ReactNode;
   riskState?: RiskState;
+  footer?: boolean;
 }) {
   return (
     <div
@@ -31,6 +37,7 @@ export function AppShell({
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
           {children}
         </main>
+        {footer && <Footer />}
       </div>
     </div>
   );
