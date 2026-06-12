@@ -1,0 +1,167 @@
+[
+  {
+    "name": "Cold open plays mid-sequence",
+    "verdict": "pass",
+    "detail": "Cold-open overlay dialog present mid-sequence (01)"
+  },
+  {
+    "name": "Cold open skips to briefing",
+    "verdict": "pass",
+    "detail": "Skip control dismissed the overlay; landing and CTA in reach (02)"
+  },
+  {
+    "name": "Mission select wall of dossiers",
+    "verdict": "pass",
+    "detail": "5 dossier links into missions rendered (03)"
+  },
+  {
+    "name": "Mission briefing sequence",
+    "verdict": "pass",
+    "detail": "Full-screen briefing overlay present on scenario entry (04)"
+  },
+  {
+    "name": "Mission clock calm state",
+    "verdict": "pass",
+    "detail": "Clock reads Condition green, T-minus countdown, burn-down bar (05)"
+  },
+  {
+    "name": "Tactical (mid) alert state",
+    "verdict": "pass",
+    "detail": "data-alert=mid; tactical amber strip \"risk elevated · holding tactical\" shown (06)"
+  },
+  {
+    "name": "Full red-alert takeover",
+    "verdict": "pass",
+    "detail": "data-alert=high; red banner \"Red alert · risk critical\" + alarm rail; clock Condition red=true (07)"
+  },
+  {
+    "name": "Mission clock escalated state",
+    "verdict": "pass",
+    "detail": "Clock escalates to Condition red under high alert (07)"
+  },
+  {
+    "name": "Red-alert contrast AA (every text-on-bg pairing)",
+    "verdict": "pass",
+    "detail": "16 unique pairings measured; weakest normal text 4.82:1 (AA needs 4.5). Full table in contrast-red-alert.txt"
+  },
+  {
+    "name": "Alert stands down as risk recedes",
+    "verdict": "pass",
+    "detail": "After a lower-risk decision the red takeover stands down to tactical amber (data-alert=mid) (08)"
+  },
+  {
+    "name": "Resolution climax: safe-rollout",
+    "verdict": "pass",
+    "detail": "Verdict \"Mission accomplished\" streamed and landed for safe-rollout (09)"
+  },
+  {
+    "name": "Debrief after-action file",
+    "verdict": "pass",
+    "detail": "After-action debrief renders with report actions intact (14)"
+  },
+  {
+    "name": "Resolution climax: minor-issue",
+    "verdict": "pass",
+    "detail": "Verdict \"fallout contained\" streamed and landed for minor-issue (10)"
+  },
+  {
+    "name": "Resolution climax: customer-incident",
+    "verdict": "pass",
+    "detail": "Verdict \"Mission compromised\" streamed and landed for customer-incident (11)"
+  },
+  {
+    "name": "Resolution climax: responsible-delay",
+    "verdict": "pass",
+    "detail": "Verdict \"Mission held\" streamed and landed for responsible-delay (12)"
+  },
+  {
+    "name": "Resolution climax: overcontrolled",
+    "verdict": "pass",
+    "detail": "Verdict \"Mission stalled\" streamed and landed for overcontrolled (13)"
+  },
+  {
+    "name": "3D command-center hero mounts",
+    "verdict": "pass",
+    "detail": "WebGL canvas mounted over the poster in the hero region (15)"
+  },
+  {
+    "name": "Render loop runs only while visible",
+    "verdict": "pass",
+    "detail": "18 frames / 400ms while hero visible"
+  },
+  {
+    "name": "Render loop pauses when tab hidden",
+    "verdict": "pass",
+    "detail": "0 frames / 400ms after emulating a hidden tab"
+  },
+  {
+    "name": "Render loop pauses when hero offscreen",
+    "verdict": "pass",
+    "detail": "0 frames / 400ms after scrolling the hero offscreen"
+  },
+  {
+    "name": "Hero fallback with WebGL disabled",
+    "verdict": "pass",
+    "detail": "No WebGL canvas; the inline SVG poster stands alone (canvas=0, svgPoster=1) (16)"
+  },
+  {
+    "name": "Mobile width landing",
+    "verdict": "pass",
+    "detail": "Landing at 390px, no horizontal overflow=true (17)"
+  },
+  {
+    "name": "Mobile width mission select",
+    "verdict": "pass",
+    "detail": "Mission select wall reflows to one column at 390px, no horizontal overflow=true (18)"
+  },
+  {
+    "name": "Reduced motion: cold open inert, final state",
+    "verdict": "pass",
+    "detail": "No cold-open overlay (count=0); landing and CTA present and legible (19)"
+  },
+  {
+    "name": "Reduced motion: 3D scene inert, poster final state",
+    "verdict": "pass",
+    "detail": "No WebGL canvas (count=0); SVG poster shows the scene's final state (19)"
+  },
+  {
+    "name": "Reduced motion: landing animations neutralized by computed style",
+    "verdict": "pass",
+    "detail": "stage-in animation-duration neutralized to <=1ms by the global contract (19)"
+  },
+  {
+    "name": "Reduced motion: briefing inert, workday final state",
+    "verdict": "pass",
+    "detail": "No briefing overlay (count=0); the workday and clock present immediately (20)"
+  },
+  {
+    "name": "Reduced motion: resolution inert, debrief final state",
+    "verdict": "pass",
+    "detail": "No streaming resolution dialog (count=0); outcome and after-action report shown at once (21)"
+  },
+  {
+    "name": "Keyboard: cold-open skip focused and operable",
+    "verdict": "pass",
+    "detail": "Skip control auto-focused (true) and Enter dismissed the overlay (true)"
+  },
+  {
+    "name": "Keyboard: primary CTA reachable with visible focus",
+    "verdict": "pass",
+    "detail": "CTA focusable=true, focus-visible ring present (outline 2px solid)"
+  },
+  {
+    "name": "Keyboard: briefing skip focused and operable",
+    "verdict": "pass",
+    "detail": "Briefing skip auto-focused (true); Enter continued to the workday (true)"
+  },
+  {
+    "name": "Every route returns 200",
+    "verdict": "pass",
+    "detail": "/ 200, /scenarios 200, /simulator/the-page 200, /simulator/just-add-a-button 200, /simulator/the-broken-build 200, /simulator/the-missing-requirement 200, /simulator/friday-deploy 200, /studio 200, /import 200, /compare 200, /run 200"
+  },
+  {
+    "name": "Legacy /simulator redirect works",
+    "verdict": "pass",
+    "detail": "/simulator resolved to /simulator/just-add-a-button (status 200)"
+  }
+]
