@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   ...socialMetadata({
     title: `${PAGE_TITLE} · ShipDay`,
     description: PAGE_DESCRIPTION,
-    card: "/og/card.svg",
     path: "/import",
   }),
 };

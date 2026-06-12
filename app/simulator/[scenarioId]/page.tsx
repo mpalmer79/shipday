@@ -26,7 +26,6 @@ export async function generateMetadata({
     ...socialMetadata({
       title: `${scenario.name} · ShipDay`,
       description: scenario.tagline,
-      card: `/og/${scenario.id}.svg`,
       path: `/simulator/${scenario.id}`,
     }),
   };

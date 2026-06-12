@@ -22,7 +22,6 @@ export const metadata: Metadata = {
   ...socialMetadata({
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
-    card: "/og/card.svg",
     path: "/",
   }),
 };

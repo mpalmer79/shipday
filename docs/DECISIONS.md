@@ -656,3 +656,132 @@ API key requirement. All routes were smoke tested: the landing page, scenario
 picker, importer, comparison page, all four scenarios, the favicon, and a
 social card return 200, and the legacy `/simulator` path returns its 307
 redirect.
+
+# Decision log: launch fix session
+
+Three tasks on top of the merged v3: raster social cards, the ink-faint
+contrast item, and a tuning review of The Page. Milestone numbers are task
+numbers for this session.
+
+## Task 1
+
+### T1: Social cards moved to build-time PNG via the file convention
+
+The committed SVG cards did not render on the major link scrapers, which do
+not accept SVG for og:image. The cards are now PNGs produced at build time by
+the opengraph-image and twitter-image file conventions with ImageResponse,
+which ships inside Next, so no dependency was added. A root pair renders the
+product card and a pair under the scenario route renders per-scenario cards
+from the registry (name, tagline, difficulty), so the copy cannot drift from
+the data. All image routes prerender statically (the per-scenario ones export
+generateStaticParams), and every page route remains static or SSG. The
+committed SVGs under public/og, the generator script, and the npm cards
+script entry were deleted; one shared renderer in lib/ogCard.tsx replaces
+them. The favicon (app/icon.svg) is unchanged: browsers accept SVG favicons,
+and the scraper limitation applies only to og:image.
+
+### T1: Per-segment re-export image files instead of one root card
+
+Config-based metadata in a child segment replaces the parent's openGraph
+object wholesale rather than merging, so the root convention image did not
+reach /scenarios, /import, or /compare, which define their own openGraph
+text fields. Each of those segments now has a two-line opengraph-image and
+twitter-image file re-exporting the root card, which keeps a single renderer
+while guaranteeing every HTML-rendering route emits og:image and
+twitter:image. Verified in the prerendered HTML for every route.
+
+### T1: Card style compromises under ImageResponse
+
+The renderer restates the app palette as hex and reproduces the SVG card
+layout: outer surface, raised panel with the line border, accent bar, accent
+eyebrow, large title, muted tagline, faint footer. Two compromises, matching
+intent rather than pixels as the task allows: the embedded default font is a
+single sans weight, so the eyebrow and footer are not monospaced and the
+title's hierarchy comes from size (92px against 36px) rather than weight;
+embedding JetBrains Mono or a bold face would need a committed font binary
+or a network fetch at render time, both out of scope. Letter spacing keeps
+the eyebrow's set-apart look.
+
+## Task 2
+
+### T2: ink-faint raised from #5e6b80 to #78859e
+
+The v3 audit left ink-faint below AA as a known item. The token moves from
+#5e6b80 to #78859e. Measured ratios (WCAG relative luminance), before to
+after:
+
+- against surface (#0e1117): 3.50 to 5.08
+- against surface-raised (#161b24): 3.20 to 4.64
+- against the accent/5 panel blend over surface (#121922): 3.28 to 4.75
+
+All backgrounds the token sits on now measure at or above the 4.5:1 AA
+threshold for normal text. ink-faint text never sits on surface-overlay
+(overlay hosts only ink and ink-muted text, the workday status dot, and the
+two meter bar tracks), so overlay was not a constraint. ink-muted stays at
+#9aa6b8 (7.01 on raised): the gap between 4.64 and 7.01 keeps faint visibly
+subordinate to muted, so ink-muted did not need to move. The social card
+renderer restates the palette as hex and was updated to the same value. No
+layout or markup changed.
+
+Pages checked after the change, each rendering ink-faint where listed:
+
+- Landing (/): the footer line under the call to action, on surface.
+- Scenario picker (/scenarios): the decision-count label on each card, on
+  raised.
+- Simulator (all four scenarios): workday status times and pending labels,
+  timeline header and timestamps, the "What do you do?" heading, system
+  signals header, code review card header and filename, on raised.
+- End-of-day report: metric labels, timeline timestamps, section headings,
+  on raised.
+- Replay view: section headings and the descriptions under "Paths not
+  taken", on raised.
+- Import (/import): the textarea placeholder, on raised.
+- Compare (/compare): trajectory table head, step time and title lines
+  (including on the accent-tinted differing rows), and the table footnote,
+  on surface and the accent/5 blend.
+- Header: the tagline next to the wordmark, on surface.
+
+The built stylesheet contains only the new value (rgb 120 133 158); the old
+value appears nowhere in the build output.
+
+## Task 3
+
+### T3: The Page Safe Rollout retuned from 32.9% to 20.2%
+
+The trace confirmed a tuning artifact, not a design choice. Two causes:
+
+First, the reconverging branch structure funnels every run through the-fix,
+where two of the five options (canary, flag-and-ramp) grant the safe-rollout
+gate flag; 81 percent of safe runs satisfied the gate at that one step, so
+the gate barely depended on how the incident itself was handled. Second, the
+risk threshold of 38 did not bind: the scenario is dense with risk-reducing
+options, and the mean final risk among safe runs was 14.8, far under the
+threshold. Together these let runs containing keep-coding (18 percent of
+safe runs), rollback-on-suspicion (17 percent), keep-digging (11 percent),
+quick-patch (11 percent), and even silent-close (22 percent) still land Safe
+Rollout, giving the expert scenario the registry's highest safe share.
+
+The call: retune. The safe-rollout thresholds move from risk at most 38 and
+testConfidence at least 55 to risk at most 28 and testConfidence at least
+60. The reading: an incident day only counts as a safe rollout if it ends
+with meaningfully less risk than it started with (initial risk is 30) and
+the fix verified rather than assumed. The gate's anyOf structure is
+unchanged. An alternative that additionally required the mitigated-impact
+flag was tested and rejected: it dropped Safe Rollout to 8 to 11 percent and
+pushed Minor Production Issue past the 45 percent bound.
+
+Only the priority-4 safe rule moved, so the incident, overcontrolled, and
+responsible-delay counts are untouched and the incident curve stays at
+2.95, 6.55, 9.06, 12.60. Safe shares across the registry are now 19.5, 14.9,
+22.8, 20.2, so The Page is no longer the outlier. Pins before and after:
+
+- safe-rollout: 1682 to 1035
+- minor-issue: 1452 to 2099
+- customer-incident: 645 to 645 (unchanged)
+- responsible-delay: 942 to 942 (unchanged)
+- overcontrolled: 399 to 399 (unchanged)
+
+All five outcomes remain inside the 2 to 45 percent bounds (Minor Production
+Issue is the highest at 41.0 percent). The README already describes
+difficulty next to the scenario table, so the one-line summary of the call
+was added to that paragraph rather than a new section.

@@ -22,21 +22,18 @@ function resolveSiteUrl(): string {
 
 export const SITE_URL = resolveSiteUrl();
 
-const OG_CARD_SIZE = { width: 1200, height: 630 };
-
 /**
- * Builds the Open Graph and Twitter card fields for a route from a title,
- * description, and the social card asset committed under public/og. Shared
- * so every route emits the same shape of tags.
+ * Builds the Open Graph and Twitter card fields for a route. The og:image
+ * and twitter:image tags come from the opengraph-image and twitter-image
+ * file conventions (a product card at the root, a per-scenario card under
+ * the scenario route), so this helper carries only the text fields.
  */
 export function socialMetadata(params: {
   title: string;
   description: string;
-  card: string;
   path: string;
 }): Metadata {
-  const { title, description, card, path } = params;
-  const images = [{ url: card, ...OG_CARD_SIZE, alt: `${title} social card` }];
+  const { title, description, path } = params;
   return {
     openGraph: {
       type: "website",
@@ -44,13 +41,11 @@ export function socialMetadata(params: {
       title,
       description,
       url: path,
-      images,
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images,
     },
   };
 }
