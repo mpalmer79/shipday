@@ -127,19 +127,19 @@ export function lintScenario(scenario: Scenario): string[] {
   for (const step of scenario.steps) {
     for (const option of step.options) {
       (option.consequenceOverrides ?? []).forEach((override, i) => {
-        const where = `${step.id}/${option.id} override ${i}`;
+        const where = `consequence override ${i} on ${step.id}/${option.id}`;
         const readFlags = new Set<string>();
         collectReferencedFlags(override.when, readFlags);
         for (const flag of readFlags) {
           if (!setFlags.has(flag)) {
             problems.push(
-              `Dead flag "${flag}": read by consequence override ${where} but set by no option`
+              `Dead flag "${flag}": read by ${where} but set by no option`
             );
           }
         }
         if (!isSatisfiable(override.when, setFlags)) {
           problems.push(
-            `Consequence override ${where} can never fire: its condition is unsatisfiable`
+            `Unsatisfiable ${where}: its condition can never be true`
           );
         }
       });

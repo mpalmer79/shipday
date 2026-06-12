@@ -27,6 +27,12 @@ import { parseScenarioJson, validateScenario, OUTCOME_IDS } from "../validate";
 import { compareRuns } from "../comparison";
 import { decodeRunCode, encodeRun, playRunCode } from "../runCode";
 import { extractRunCode, loadRunFromCode } from "../../runLink";
+import {
+  exportDraft,
+  lintTarget,
+  loadDraft,
+  validationTarget,
+} from "../../studio";
 import { METRIC_ORDER } from "../metrics";
 import { SAMPLE_SCENARIO } from "../../sampleScenario";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
@@ -1233,6 +1239,222 @@ console.log(
 
   console.log(
     `\nRun codes: round trip asserted for every enumerated run; ${badCodes.length} malformed codes rejected.`
+  );
+}
+
+// --- Phase 8: authoring studio round trips -----------------------------
+
+{
+  // Every built-in scenario loads into the studio and re-exports without
+  // loss: the exported JSON is deep-equal to the scenario's own JSON, still
+  // validates through the import path, and still lints clean.
+  for (const scenario of scenarios) {
+    const loaded = loadDraft(JSON.stringify(scenario));
+    assert.ok(loaded.ok, `${scenario.id} must load into the studio`);
+    if (!loaded.ok) {
+      continue;
+    }
+    const exported = exportDraft(loaded.draft);
+    assert.deepEqual(
+      JSON.parse(exported),
+      JSON.parse(JSON.stringify(scenario)),
+      `${scenario.id} must re-export from the studio without loss`
+    );
+    const reimported = parseScenarioJson(exported);
+    assert.ok(
+      reimported.ok,
+      `${scenario.id} exported from the studio must pass the import validator`
+    );
+    if (reimported.ok) {
+      assert.equal(
+        lintScenario(reimported.scenario).length,
+        0,
+        `${scenario.id} exported from the studio must lint clean`
+      );
+    }
+  }
+
+  // A scenario authored as a draft (the shape the studio's forms build)
+  // exports to JSON that the import path accepts and plays to an outcome.
+  const authored = {
+    id: "studio-smoke",
+    name: "Studio Smoke",
+    tagline: "A two-step day to prove the authoring loop.",
+    initialStepId: "first",
+    initialMetrics: {
+      quality: 50,
+      speed: 50,
+      risk: 20,
+      trust: 60,
+      focus: 70,
+      testConfidence: 50,
+    },
+    steps: [
+      {
+        id: "first",
+        time: "9:00 AM",
+        title: "First call",
+        narrative: "The day starts.",
+        context: "One early decision.",
+        options: [
+          {
+            id: "careful",
+            label: "Take it slow",
+            description: "Check before acting.",
+            impact: { risk: -10 },
+            nextStepId: "second",
+            flags: ["took-care"],
+          },
+          {
+            id: "rushed",
+            label: "Rush it",
+            description: "Act before checking.",
+            impact: { risk: 60 },
+            nextStepId: "second",
+          },
+        ],
+      },
+      {
+        id: "second",
+        time: "4:00 PM",
+        title: "Last call",
+        narrative: "The day ends.",
+        context: "One late decision.",
+        options: [
+          {
+            id: "wrap-up",
+            label: "Wrap up",
+            description: "Close it out.",
+            impact: { quality: 5 },
+            nextStepId: "__end__",
+            consequence: "The day closes quietly.",
+            consequenceOverrides: [
+              {
+                when: { kind: "hasFlag", flag: "took-care" },
+                text: "The day closes quietly, on the margin you bought this morning.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    outcomes: [
+      {
+        id: "safe-rollout",
+        time: "5:00 PM",
+        title: "Safe Rollout",
+        summary: "It ships clean.",
+        tone: "positive",
+      },
+      {
+        id: "minor-issue",
+        time: "5:00 PM",
+        title: "Minor Production Issue",
+        summary: "It mostly ships clean.",
+        tone: "mixed",
+      },
+    ],
+    outcomeRules: [
+      {
+        outcomeId: "safe-rollout",
+        priority: 1,
+        when: { kind: "metricAtMost", metric: "risk", value: 40 },
+      },
+    ],
+    fallbackOutcomeId: "minor-issue",
+  };
+  const authoredJson = exportDraft(
+    (loadDraft(JSON.stringify(authored)) as { ok: true; draft: Scenario })
+      .draft
+  );
+  const authoredImport = parseScenarioJson(authoredJson);
+  assert.ok(
+    authoredImport.ok,
+    `a studio-authored draft must pass the import validator: ${
+      authoredImport.ok ? "" : authoredImport.errors.join("; ")
+    }`
+  );
+  if (authoredImport.ok) {
+    let state = createInitialState(authoredImport.scenario);
+    state = applyDecision(authoredImport.scenario, state, "careful");
+    state = applyDecision(authoredImport.scenario, state, "wrap-up");
+    assert.equal(state.completed, true);
+    assert.equal(state.outcomeId, "safe-rollout");
+    assert.match(
+      state.decisions[1].consequence!,
+      /margin you bought this morning/,
+      "an authored conditional consequence must resolve"
+    );
+  }
+
+  // Issues route to the structure they describe, so the studio can render
+  // them in place rather than in a distant console.
+  assert.deepEqual(
+    validationTarget('steps[1].options[2].label must be a string'),
+    { section: "option", step: 1, option: 2 }
+  );
+  assert.deepEqual(validationTarget("steps[3].time must be a string"), {
+    section: "step",
+    step: 3,
+  });
+  assert.deepEqual(validationTarget('outcomes[4].tone must be one of x'), {
+    section: "outcome",
+    outcome: 4,
+  });
+  assert.deepEqual(
+    validationTarget('outcomeRules[0].priority must be a number'),
+    { section: "rule", rule: 0 }
+  );
+  assert.deepEqual(
+    validationTarget('Field "name" must be a non-empty string'),
+    { section: "scenario" }
+  );
+
+  // End to end: break one option in a clone and assert the validator's
+  // message lands on that option.
+  {
+    const broken = JSON.parse(JSON.stringify(scenario1));
+    broken.steps[2].options[1].label = 42;
+    const result = validateScenario(broken);
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      const message = result.errors.find((e) => e.includes("label"));
+      assert.ok(message, "breaking a label must produce a label error");
+      assert.deepEqual(validationTarget(message!), {
+        section: "option",
+        step: 2,
+        option: 1,
+      });
+    }
+  }
+
+  // Lint warnings route by the ids they name.
+  {
+    const draft = (
+      loadDraft(JSON.stringify(scenario1)) as { ok: true; draft: Scenario }
+    ).draft;
+    assert.deepEqual(lintTarget('Unreachable step "tests-fail"', draft), {
+      section: "step",
+      step: 3,
+    });
+    assert.deepEqual(
+      lintTarget(
+        "Outcome rule 2 (responsible-delay) can never fire: its condition is unsatisfiable",
+        draft
+      ),
+      { section: "rule", rule: 2 }
+    );
+    assert.deepEqual(
+      lintTarget(
+        'Dead flag "x": read by consequence override 0 on release-decision/full-release but set by no option',
+        draft
+      ),
+      { section: "option", step: 5, option: 0 }
+    );
+  }
+
+  console.log(
+    "\nStudio: lossless round trips for all built-ins, authored-draft import, and issue routing verified."
   );
 }
 

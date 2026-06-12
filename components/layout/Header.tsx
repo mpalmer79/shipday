@@ -24,6 +24,12 @@ export function Header() {
             Import
           </Link>
           <Link
+            href="/studio"
+            className="text-ink-muted transition-colors hover:text-ink"
+          >
+            Studio
+          </Link>
+          <Link
             href="/compare"
             className="text-ink-muted transition-colors hover:text-ink"
           >

@@ -752,6 +752,64 @@ explanation, so the share flow cannot dead-end. The link is built at click
 time from `window.location.origin`, which keeps the component free of any
 configured site URL and correct on any deploy.
 
+## Milestone 3
+
+### M3: The draft is the scenario object, edited immutably
+
+The studio's draft is a plain Scenario-shaped object in component state,
+edited with immutable spreads. Export is JSON.stringify of the draft and
+load is JSON.parse plus a structural normalization, so the export matches
+the import schema by construction and a loaded scenario that is never
+touched re-exports deep-equal. Verify pins this with a load-and-export
+round trip of every built-in scenario, asserted as deep equality and
+re-checked through the import validator and lint. Optional fields
+(consequence, lesson, codeSnippet, systemSignals, flags, overrides, the
+strong marker, missedSignals) are deleted from the object when cleared
+rather than set to empty values, so editing cannot leave behind keys the
+original scenario did not have.
+
+### M3: Load normalizes containers, not values
+
+Loading JSON into forms requires the containers the editors iterate
+(steps, options, impact, flags, overrides, outcomes, rules) to actually be
+arrays and objects, so load coerces a wrong-typed container to its empty
+container. Scalar fields are left exactly as loaded, even when invalid, and
+surface through live validation instead. A valid scenario passes through
+normalization unchanged, which the round-trip assertion proves.
+
+### M3: Issues are routed to structures by parsing messages
+
+The validator already prefixes every message with its path
+(steps[2].options[1]...), and lint names structures by id, so the studio
+routes messages with two small parsers (validationTarget, lintTarget in
+lib/studio.ts) instead of changing the validator's return shape, which the
+import page and its assertions depend on. Anything unparseable lands on the
+scenario header rather than disappearing. The routing is pure and verified
+directly, including an end-to-end case that breaks one option and asserts
+the message lands on it. One lint message format changed for this (the
+consequence override messages now read "consequence override N on
+step/option"), which no assertion pinned.
+
+### M3: Validation runs on every change, lint only on valid drafts
+
+The validator is a single linear pass over the draft and is run on every
+edit; its errors gate "Play this draft" exactly as the import page gates
+playing. Lint needs a structurally valid scenario, so warnings are computed
+only when validation passes, matching the import page's behavior. Playing
+a draft hands the validated scenario to the same SimulatorClient the
+import page uses, in memory; the draft is not shareable by link, and the
+report says so through the existing share note.
+
+### M3: Flags edit as one input per flag
+
+Flags and missed signals are edited as lists of single inputs with add and
+remove buttons rather than a comma-separated text field, because parsing a
+separator on every keystroke either eats the separator being typed or
+needs shadow text state beside the draft. One input per value keeps the
+draft the only state. Known quirk, accepted: two missed-signal entries
+whose flags are momentarily identical collapse into one, since the map is
+keyed by flag.
+
 # Decision log: launch fix session
 
 Three tasks on top of the merged v3: raster social cards, the ink-faint
