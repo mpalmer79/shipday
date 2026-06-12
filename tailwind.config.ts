@@ -33,9 +33,43 @@ const config: Config = {
           DEFAULT: "rgb(var(--accent) / <alpha-value>)",
           soft: "rgb(var(--accent-soft) / <alpha-value>)",
         },
+        // Showpiece (v6) palette: a deeper operations-room layer on top of the
+        // simulator surfaces. The accent runs cool by default and hot under
+        // pressure; hot is the showcase's pressure colour, distinct from the
+        // semantic warn/bad.
+        void: "rgb(var(--void) / <alpha-value>)",
+        panel: "rgb(var(--panel) / <alpha-value>)",
+        edge: "rgb(var(--edge) / <alpha-value>)",
+        hot: {
+          DEFAULT: "rgb(var(--hot) / <alpha-value>)",
+          soft: "rgb(var(--hot-soft) / <alpha-value>)",
+        },
         good: "#4ade80",
         warn: "#fbbf24",
         bad: "#f87171",
+      },
+      fontSize: {
+        // Headline scale for the showpiece. Fluid so it reads on phone and
+        // desktop without per-breakpoint overrides.
+        display: ["clamp(2.5rem, 6vw, 4.5rem)", { lineHeight: "1.04", letterSpacing: "-0.02em" }],
+        "display-sm": ["clamp(1.75rem, 3.5vw, 2.5rem)", { lineHeight: "1.1", letterSpacing: "-0.01em" }],
+      },
+      boxShadow: {
+        // Light as the primary effect: panels catch accent light at their edge.
+        glow: "0 0 40px -12px rgb(var(--accent) / 0.45)",
+        "glow-hot": "0 0 40px -12px rgb(var(--hot) / 0.5)",
+        "glow-sm": "0 0 20px -8px rgb(var(--accent) / 0.4)",
+        // Composed panel depth: a top edge highlight, a grounded drop, and a
+        // faint tonal glow, so a panel reads as lit by screens in a dim room.
+        panel:
+          "0 1px 0 0 rgb(var(--edge) / 0.3) inset, 0 24px 48px -28px rgb(0 0 0 / 0.85), 0 0 36px -16px rgb(var(--accent) / 0.3)",
+        "panel-hot":
+          "0 1px 0 0 rgb(var(--edge) / 0.3) inset, 0 24px 48px -28px rgb(0 0 0 / 0.85), 0 0 36px -16px rgb(var(--hot) / 0.34)",
+      },
+      backgroundImage: {
+        // A faint engineering grid for panel interiors.
+        "grid-faint":
+          "linear-gradient(rgb(var(--edge) / 0.08) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--edge) / 0.08) 1px, transparent 1px)",
       },
       keyframes: {
         riskPulse: {
@@ -52,6 +86,20 @@ const config: Config = {
           "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        // Showpiece living-UI keyframes. All are short, transform/opacity only,
+        // and gated under reduced motion by the global contract in globals.css.
+        sweep: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        blink: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.2" },
+        },
+        barGrow: {
+          "0%": { transform: "scaleX(0)" },
+          "100%": { transform: "scaleX(1)" },
+        },
       },
       animation: {
         // Every animation except the outcome resolution moment stays at or
@@ -61,6 +109,11 @@ const config: Config = {
         "risk-pulse": "riskPulse 0.6s ease-out 1",
         "delta-fade": "deltaFade 0.6s ease-out forwards",
         "stage-in": "stageIn var(--motion-slow) var(--ease-entrance) both",
+        // The cursor blink is the one permitted showpiece loop; like the high
+        // risk glow it is ambient and stops under reduced motion.
+        "cursor-blink": "blink 1.2s step-end infinite",
+        "bar-grow": "barGrow var(--motion-slow) var(--ease-entrance) both",
+        sweep: "sweep var(--motion-slow) var(--ease-standard) 1",
       },
     },
   },

@@ -17,6 +17,15 @@
     --accent: 91 168 245;
     --accent-soft: 43 69 100;
 
+    /* Showpiece (v6) palette: a deeper operations-room layer for the public
+       front door. Static tokens; the simulator's risk tokens above are
+       untouched. Hot is the showcase pressure colour. */
+    --void: 7 9 13;
+    --panel: 17 21 29;
+    --edge: 56 68 88;
+    --hot: 245 158 66;
+    --hot-soft: 92 60 28;
+
     /* Motion primitives: one place for every duration and easing the
        cinematic layer uses. */
     --motion-fast: 120ms;

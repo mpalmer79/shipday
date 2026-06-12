@@ -1401,3 +1401,59 @@ Final `npm run verify` and `npm run build` both pass. Every route prerenders
 as static or statically generated content, with no server, API key, or
 environment variable, so the accessibility and deployment floor from earlier
 releases holds. No distribution pin moved across the entire run.
+
+# Decision log: v6 autonomous build
+
+The showpiece. This run rebuilds ShipDay's public front door into a cinematic
+engineering operations room, with a WebGL hero, living dashboard sections, and
+a narrative scroll, without touching the engine, scenarios, simulator gameplay,
+studio, run page, or any existing assertion. No distribution pin moves. One
+entry per decision, tagged by milestone.
+
+## Milestone 1
+
+### M1: Showpiece tokens layer on top of v5, they do not replace it
+
+The deeper palette (void, panel, edge, hot) is added as new `:root` tokens and
+new Tailwind colours, leaving the simulator's risk tokens and the semantic
+good, warn, and bad untouched. The front door and the gameplay share one token
+system, so bringing the framing pages into the new language later is additive,
+and the simulator views keep behaving exactly as they do today.
+
+### M1: Hot is a showcase accent, separate from warn and bad
+
+The art direction asks the terminal accent to run cool in calm and hot under
+pressure. Rather than overload the semantic warn or bad (which mean specific
+things in the simulator), the showcase gets its own `--hot` amber. It carries
+the pressure temperature on the landing without changing what warn and bad mean
+where the engine uses them.
+
+### M1: Light is a composed shadow token, not a stack of utilities
+
+Panel depth and glow are one `shadow-panel` token (edge highlight, grounded
+drop, faint tonal glow) plus a hot variant, because Tailwind box-shadow
+utilities override rather than stack. One token per panel keeps the lit-by-
+screens look consistent and avoids per-panel shadow soup.
+
+### M1: No new font
+
+The headline scale is fluid (`text-display`, clamp based) and uses the existing
+Inter at display weight and tight tracking rather than loading a display face.
+This keeps the build free of a new font fetch and the page free of an extra
+font payload, and Inter is already a strong sans. If a designer later wants a
+distinct display face, the scale is the single place to change.
+
+### M1: Primitives are pure presentation, verified by types and the build
+
+The six landing primitives carry no logic and never call the engine; they
+render caller-supplied content. They are verified at this milestone by the type
+checker and the build (Tailwind generates their classes from the literal
+strings in the files), not by a browser, per the no-browser rule for the build
+milestones. Dot and fill colours are static maps, not constructed strings, so
+the Tailwind scanner sees every class.
+
+### M1: Landing route JS unchanged at this milestone
+
+The primitives are not yet imported by any route, so the landing route's first
+load JS is unchanged from the baseline (165 B page, 106 kB first load). The
+budget tracking starts here so later milestones can be measured against it.
