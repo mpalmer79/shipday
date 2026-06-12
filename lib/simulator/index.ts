@@ -9,6 +9,12 @@ export {
   SimulatorError,
 } from "./engine";
 export { evaluateCondition, getOutcome, resolveOutcome } from "./outcomes";
+export {
+  riskState,
+  RISK_THRESHOLD_RAISED,
+  RISK_THRESHOLD_HIGH,
+} from "./risk";
+export type { RiskState } from "./risk";
 export { generateReport } from "./report";
 export { reconstructRun } from "./replay";
 export type { ReplayFrame, ReconstructedRun } from "./replay";

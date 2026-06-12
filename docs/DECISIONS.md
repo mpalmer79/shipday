@@ -1144,3 +1144,260 @@ All five outcomes remain inside the 2 to 45 percent bounds (Minor Production
 Issue is the highest at 41.0 percent). The README already describes
 difficulty next to the scenario table, so the one-line summary of the call
 was added to that paragraph rather than a new section.
+
+# Decision log: v5 autonomous build
+
+The cinematic overhaul. This run rebuilds how ShipDay feels without changing
+what it does: the engine, scenarios, routes, and every existing assertion are
+untouched. No distribution pin moves. One entry per decision, tagged by the
+milestone it belongs to.
+
+## Milestone 1
+
+### M1: One data attribute drives the whole treatment
+
+The global risk treatment is a single `data-risk` attribute on the app shell,
+read by a CSS token layer in `app/globals.css`. The alternative, threading
+per-state classes through every component, would have scattered the thresholds
+and made de-escalation hard to keep consistent. With one attribute on an
+ancestor, every descendant inherits the shifted palette, and falling back
+below a threshold is just the attribute changing, with the colour transition
+running in reverse.
+
+### M1: Palette tokens became RGB channel triplets
+
+To let one attribute shift the whole palette while Tailwind's alpha modifiers
+(`bg-accent/10`, `border-good/30`) keep working, surface, ink, and accent
+colours moved from hex in the Tailwind config to `rgb(var(--token) /
+<alpha-value>)`, with the channel triplets defined in `:root` and overridden
+per risk state. The calm values are byte-identical to the v4 palette, so the
+default state is a visual no-op. The social card renderer (`lib/ogCard.tsx`)
+already restates the palette as standalone hex, so build-time image generation
+is unaffected.
+
+### M1: Risk thresholds centralised in lib/simulator/risk.ts
+
+The meter previously carried its own 40 and 65 constants. Both the meter tone
+and the shell treatment now read `riskState()` from one module, so the
+presentation can never disagree with the simulation's own outcome thresholds.
+This is a refactor of presentation code only; no engine behaviour changed and
+no assertion references it.
+
+### M1: good, warn, and bad stay fixed across states
+
+The semantic metric colours report state (a number rose, an outcome was
+negative). If they shifted with the room temperature they would stop being
+readable as fixed signals, so they remain fixed hex. Only surfaces and accent
+carry the risk treatment.
+
+### M1: Two pre-existing animations tightened to the budget
+
+The v5 motion budget caps every animation except the outcome resolution moment
+at 600ms. Two animations predating this run sat just over it: the risk pulse
+at 700ms and the delta fade at 1600ms. Both were brought to 600ms so the whole
+app obeys one rule rather than carrying grandfathered exceptions. The effect is
+cosmetic (a slightly quicker pulse and delta fade); no behaviour or assertion
+depends on their duration.
+
+### M1: High-risk surfaces darken rather than redden hard
+
+The brief asks the high-risk surface to read as a room where something is
+wrong. A literal red wash would have hurt contrast and read as cartoonish. The
+chosen treatment darkens the surfaces and adds only a faint warm cast, which
+raises text contrast rather than lowering it (every ink pairing improves over
+calm) while still shifting the room's temperature. Contrast for all three
+states is computed in `scripts/contrast.mjs` and recorded in docs/DESIGN.md;
+every pairing meets AA.
+
+### M1: The clock token is defined here, the clock is built in Milestone 2
+
+The "clock sharpens" treatment is expressed as a `--clock-tracking` token that
+tightens across the three states. The token and its per-state values are
+defined in this milestone; the workday clock that consumes it is rebuilt in
+Milestone 2, where the rest of the opening frame is restaged.
+
+## Milestone 2
+
+### M2: The briefing stages the first step in place, not as a takeover
+
+The opening briefing brings the existing first step into view on a stagger
+rather than mounting a separate full-screen sequence. The timestamp lands, then the
+request appears as a document body, then the context, then a beat, then the
+options. This keeps every piece of information identical to the static
+render (the briefing is pure pacing) and means there is no second source of
+truth for the first step. It runs only at the start of the day, only with
+motion allowed, and only until the first decision.
+
+### M2: The briefing is gated in logic and neutralized in CSS
+
+Reduced-motion safety has two independent guards. In logic, `briefingActive`
+is false whenever the reduced-motion hook reports the preference, so the
+staged classes are never applied. In CSS, the reduced-motion block zeroes both
+animation duration and animation delay, so even in the first frame before the
+hook resolves, a staged element can never be held invisible by its delay. The
+brief asks the briefing to be absent under reduced motion; either guard alone
+delivers that, and both together make it robust to hydration timing.
+
+### M2: Pacing comes from delays, durations stay in budget
+
+The briefing reads as deliberate because its elements enter on a stagger
+(0ms through 1600ms of delay), not because any one animation is long. Each
+staged entrance is the 480ms primitive. The total sequence is longer than
+600ms, but no single animation is, so the motion budget holds: the only
+animation allowed past 600ms remains the outcome resolution moment.
+
+### M2: The clock leads, the beat list stays
+
+The workday status panel now leads with the current time as the prominent
+figure and keeps end of day always visible, so time pressure is ambient. The
+time tightens through the `--clock-tracking` token as risk rises. The existing
+beat list (done, current, upcoming) stays beneath it unchanged, because it is
+the day's shape and remains good information design; the clock is added above
+it, not in place of it.
+
+### M2: The skip control is a real button
+
+The intro is skippable through a focusable button that sets the skipped flag,
+not a click anywhere or a keypress handler. This keeps it keyboard operable
+and avoids any motion tied to keystrokes. Keyboard users can also act on the
+options immediately during the briefing, since the options are in the DOM the
+whole time and only their opacity is staged.
+
+## Milestone 3
+
+### M3: The resolution script keys off the outcome, not the path
+
+Each of the five outcomes has its own system-output script in
+`ResolutionSequence.tsx`. A clean ship, a ship with a small problem, a ship
+that broke and rolled back, a deliberate hold with a plan, and a change
+strangled by its own gates all read differently. Because the script keys off
+the resolved outcome id, a flagged rollout, a direct ship, and a hold
+naturally resolve differently here, since they resolve to different outcomes
+in the engine. The sequence is presentation only: the engine has already
+decided the outcome before the overlay mounts, so nothing about the script can
+change what happened.
+
+### M3: The moment is capped by a timer, not by trust in the animation
+
+The overlay sets a single 2.5 second timeout to dismiss, matching the
+`--motion-resolution` token, and the line and verdict delays are tuned to land
+inside that window (the verdict at 1.9s plus its 480ms entrance ends at 2.38s).
+The cap is enforced by the timer regardless of how the staged delays are
+tuned, so the moment can never run long. The Skip button is focused on mount
+and dismisses immediately, so the moment is always escapable by click or by
+keyboard.
+
+### M3: Reduced motion skips the moment entirely
+
+The overlay is gated behind `showResolution`, which is false under reduced
+motion, so the component never mounts. The verdict (the outcome badge) and the
+debrief present immediately in that case. With motion allowed, the verdict and
+debrief are held back until the moment dismisses, then staged in, so the order
+reads as output, then verdict, then report.
+
+### M3: The report became a debrief document
+
+The end-of-day report keeps every section and every action (download, share,
+replay, add to comparison, restart) and is restyled with a document masthead:
+a header strip with the timestamp, a title, and a one-line standfirst, with the
+final metrics under a rule. This matches the ticket document language from the
+briefing, so the day opens and closes in the same visual register. No data or
+control was removed; only the framing changed.
+
+## Milestone 4
+
+### M4: Replay scenes remount to replay their entrance
+
+Each replay frame is staged in the document language, and navigating between
+scenes remounts only the scene content (keyed by index) so the staged entrance
+plays again, while the Previous and Next controls stay mounted and keep focus.
+Replay stays a pure reconstruction: no new state, no stored frames. The metric
+movement is staged chip by chip within the budget rather than listed all at
+once, which is the "staged rather than listed" the milestone asks for.
+
+### M4: The landing stays a static server component
+
+The opening treatment is pure CSS staged entrance with inline animation delays,
+so the landing page needs no client JavaScript and still demonstrates the
+visual language. The reduced-motion contract in globals.css neutralizes the
+entrance, so no JS gate is required on this page.
+
+### M4: The risk triptych uses the real tokens, not a mockup
+
+The "room responds to risk" panels each set the actual data-risk attribute, so
+the calm, raised, and high panels render through the same token layer the
+simulator uses. The miniature is therefore the real treatment at three states,
+which keeps the landing honest: what you see before you start is what the room
+does while you play.
+
+### M4: Landing copy corrected to five workdays
+
+The previous landing described three workdays and named three tickets, which
+went stale when the registry grew to five. The copy was rewritten to describe
+the experience (the arc, the risk treatment, the close) and to render the
+five-scenario registry from the data, so it can no longer drift from the
+number of scenarios. The register stays flat and specific and the
+deterministic, no-external-AI note is kept verbatim.
+
+## Milestone 5
+
+### M5: Playwright drove the pass, dependency files untouched
+
+The v4 pass used Chrome for Testing fetched from an allowlisted mirror. This
+environment already carries Playwright browsers at `/opt/pw-browsers` and a
+global Playwright install, so the driver resolved Playwright from the global
+install through `createRequire` rather than adding it to the project. The
+repository's `package.json` and lockfile are unchanged, matching the v4 rule
+that dependency files stay fixed during a QA pass.
+
+### M5: Outcomes and risk states reached by real play, not by fixture
+
+The driver computes decision trails from the engine (one trail per outcome,
+plus an escalation and a de-escalation trail), then drives the browser by
+clicking decision options by their labels, so every risk state and every
+outcome is reached through real play. The data-risk attribute and the absence
+of the resolution overlay under reduced motion are read off the live DOM, so
+the assertions test the rendered result, not the intent.
+
+### M5: The QA driver was not committed
+
+Following the v4 precedent, the throwaway trail and driver scripts were run and
+then removed; only the evidence (screenshots and REPORT.md) is committed. The
+scripts duplicate what the verify assertions and the build already guard, and
+keeping them out of the tree keeps them out of the production type-check.
+
+### M5: One pass, no findings
+
+All 19 automated checks passed, including the reduced-motion contract (briefing
+absent, no resolution overlay, verdict and report immediate) and high-risk
+contrast measured in the browser at 15.80. Nothing needed reporting as a
+blocked check or an unfixed finding.
+
+## Milestone 6
+
+### M6: The sweep is clean, with two deliberate non-issues
+
+The repository-wide sweep found no em dashes and no banned words in any
+user-facing copy. Two matches were examined and left as correct: "support
+agent" in The Missing Requirement is a help-desk worker, not spy-fiction agent
+language, and it lives in untouchable scenario data; and "cinematic" appears
+only in a CSS comment describing the design layer, never in a string a user
+sees. The drama lives entirely in presentation; the user-facing copy stays
+flat, realistic, and specific, with no film, franchise, spy, mission, or
+countdown language anywhere.
+
+### M6: README gained an experience section, not just a feature line
+
+The README now leads its description with how the day feels (the document
+ticket, the clock, the risk treatment, the resolution moment) and carries a
+dedicated experience section that points at docs/DESIGN.md and the v5 QA
+evidence, so a reader understands the cinematic layer is information design
+bound to simulation state, not decoration. The roadmap marks the five v5
+deliverables done and the structure listing gains the new files.
+
+### M6: Final state is fully static and green
+
+Final `npm run verify` and `npm run build` both pass. Every route prerenders
+as static or statically generated content, with no server, API key, or
+environment variable, so the accessibility and deployment floor from earlier
+releases holds. No distribution pin moved across the entire run.

@@ -9,13 +9,29 @@ type WorkdayStatusProps = {
   currentIndex: number;
 };
 
+/**
+ * The persistent workday clock. The current time is the prominent figure and
+ * end of day is always visible, so time pressure stays ambient. The clock
+ * tightens (the --clock-tracking token) as risk rises. Below the clock, the
+ * day's beats keep their shape: done, current, and still to come.
+ */
 export function WorkdayStatus({ beats, currentIndex }: WorkdayStatusProps) {
+  const safeIndex = Math.min(Math.max(currentIndex, 0), beats.length - 1);
+  const now = beats[safeIndex]?.time ?? beats[0]?.time ?? "9:00 AM";
+  const endOfDay = beats[beats.length - 1]?.time ?? "5:00 PM";
+
   return (
     <div className="rounded-lg border border-surface-line bg-surface-raised p-4">
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-faint">
-        Your workday
-      </h2>
-      <ol className="space-y-2">
+      <div className="border-b border-surface-line pb-3">
+        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+          <h2>Workday clock</h2>
+          <span>End of day {endOfDay}</span>
+        </div>
+        <div className="clock-tracking mt-2 font-mono text-3xl font-bold tabular-nums text-accent">
+          {now}
+        </div>
+      </div>
+      <ol className="mt-3 space-y-2">
         {beats.map((beat, i) => {
           const isCurrent = i === currentIndex;
           const isDone = i < currentIndex;

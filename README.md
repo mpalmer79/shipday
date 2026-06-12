@@ -14,8 +14,46 @@ side by side, and copy a link that rebuilds the whole run for anyone you send
 it to. You can import a scenario as JSON and play it, or build one in the
 authoring studio with live validation and a distribution preview.
 
+The day is staged to feel like one continuous shift. The ticket arrives as a
+document, a workday clock keeps end of day in view, and the interface responds
+to the risk metric at its real thresholds: below 40 it stays calm, past 40 the
+accent warms and the clock sharpens, past 65 the surfaces darken. The final
+decision plays a short resolution moment matching the actual outcome, then the
+report presents as a debrief. All of it respects reduced motion.
+
 Fully deterministic. Runs entirely in the browser. No API calls, no backend,
 no database, no environment variables.
+
+## The experience
+
+The presentation layer is information design: visual tension exists only where
+simulation state justifies it, and it eases back when a decision lowers risk.
+The full system is documented in [docs/DESIGN.md](docs/DESIGN.md); in short:
+
+- **Risk as a global treatment.** One `data-risk` attribute on the app shell,
+  driven by live risk through `lib/simulator/risk.ts`, shifts a CSS token layer
+  for the whole interface at the same 40 and 65 thresholds the engine resolves
+  outcomes at. Calm, raised, and high are distinct rooms, and falling back below
+  a threshold de-escalates visibly.
+- **The briefing.** The first step is staged into view as a ticket document:
+  the timestamp, then the request, then a beat, then the options. Skippable and
+  absent under reduced motion.
+- **The workday clock.** A persistent clock leads the frame with the current
+  time and end of day always visible, tightening as risk rises.
+- **The outcome moment.** The final decision plays a full-screen resolution
+  sequence with system output matching the actual outcome (a clean ship, a ship
+  that broke and rolled back, a deliberate hold, a change blocked by its gates),
+  then the verdict. Capped at 2.5 seconds, skippable, absent under reduced
+  motion, where the verdict and debrief present immediately.
+- **Replay as scenes.** Each recorded step is staged as a scene with its
+  decision, metric movement, and the paths not taken.
+- **Motion budget and accessibility.** All motion is CSS transitions and
+  keyframes with no animation library and no new dependency. Nothing animates
+  longer than 600ms except the resolution moment, nothing loops except one
+  ambient glow in the high-risk state, and `prefers-reduced-motion` removes all
+  nonessential motion. Every risk state holds AA contrast (the high-risk state
+  improves it); the numbers are in docs/DESIGN.md. The browser evidence is in
+  [docs/qa/v5/](docs/qa/v5/).
 
 ## Scenarios
 
@@ -152,14 +190,18 @@ no environment variables, backend, database, or API keys.
 ```
 app/                  Pages: landing, scenarios, simulator, run, import, studio, compare; metadata and icon
 components/           Layout, simulator, run, import, studio, and compare UI components
-lib/simulator/        Types, pure engine, outcomes, report, replay, export, validate, lint, comparison, run codes, distribution
+lib/simulator/        Types, pure engine, outcomes, risk states, report, replay, export, validate, lint, comparison, run codes, distribution
 lib/site.ts           Site metadata helpers
 lib/runStore.ts       In-memory store of completed runs for the session
 lib/runLink.ts        Run link parsing and registry resolution
 lib/studio.ts         Studio draft load and export, issue routing
 lib/sampleScenario.ts Sample scenario offered on the import page
+lib/useReducedMotion.ts  Reduced-motion preference hook for gating the cinematic sequences
 data/scenarios/       Scenario content (steps, options, rules, flags)
+docs/DESIGN.md        The cinematic design system: risk states, tokens, motion budget, contrast
 docs/DECISIONS.md     Audit trail of build decisions
+docs/qa/              Browser QA evidence and reports per release
+scripts/contrast.mjs  Contrast audit for the risk-state palette
 ```
 
 ## Roadmap
@@ -178,6 +220,11 @@ docs/DECISIONS.md     Audit trail of build decisions
 - [x] v4: authoring studio with live validation and JSON round trips
 - [x] v4: live outcome distribution preview in a web worker
 - [x] v4: a fifth scenario authored through the studio pipeline
+- [x] v5: risk-state global treatment driven by live simulation state
+- [x] v5: staged briefing and a persistent workday clock
+- [x] v5: full-screen outcome resolution moment and a debrief report
+- [x] v5: replay restaged as scenes and a rebuilt landing page
+- [x] v5: reduced-motion contract and AA contrast across every risk state
 - [ ] studio: duplicate and reorder steps and options
 - [ ] studio: suggest the draft's existing flags instead of free-text only
 - [ ] distribution preview: show an example decision trail per outcome

@@ -48,23 +48,32 @@ export function EndOfDayReport({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="rounded-lg border border-surface-line bg-surface-raised p-5">
-        <div className="flex items-baseline gap-3">
-          <span className="font-mono text-sm text-accent">5:00 PM</span>
-          <h2 className="text-lg font-semibold">End-of-day report</h2>
-        </div>
-
-        <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
-          {METRIC_ORDER.map((key) => (
-            <div key={key} className="text-center">
-              <div className="font-mono text-xl font-semibold">
-                {report.finalMetrics[key]}
+      <div className="overflow-hidden rounded-lg border border-surface-line bg-surface-raised">
+        <header className="flex items-baseline justify-between border-b border-surface-line bg-surface-overlay px-5 py-3">
+          <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
+            Debrief
+          </span>
+          <span className="clock-tracking font-mono text-sm text-accent">
+            5:00 PM
+          </span>
+        </header>
+        <div className="p-5">
+          <h2 className="text-lg font-semibold">End-of-day debrief</h2>
+          <p className="mt-1 text-xs text-ink-muted">
+            How the day added up, decision by decision.
+          </p>
+          <div className="mt-4 grid grid-cols-3 gap-3 border-t border-surface-line pt-4 sm:grid-cols-6">
+            {METRIC_ORDER.map((key) => (
+              <div key={key} className="text-center">
+                <div className="font-mono text-xl font-semibold">
+                  {report.finalMetrics[key]}
+                </div>
+                <div className="mt-1 text-[10px] uppercase tracking-wide text-ink-faint">
+                  {METRIC_LABELS[key]}
+                </div>
               </div>
-              <div className="mt-1 text-[10px] uppercase tracking-wide text-ink-faint">
-                {METRIC_LABELS[key]}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 

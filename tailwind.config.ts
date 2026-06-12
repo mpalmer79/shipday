@@ -11,21 +11,27 @@ const config: Config = {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
+      // Surface, ink, and accent are driven by CSS custom properties holding
+      // space-separated RGB channels, so the risk-state layer can shift the
+      // whole palette globally through one data attribute while Tailwind's
+      // alpha modifiers (bg-accent/10, border-good/30) keep working. The
+      // semantic good/warn/bad stay fixed: they read state, they do not set
+      // the room's temperature.
       colors: {
         surface: {
-          DEFAULT: "#0e1117",
-          raised: "#161b24",
-          overlay: "#1d2430",
-          line: "#2a3342",
+          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
+          raised: "rgb(var(--surface-raised) / <alpha-value>)",
+          overlay: "rgb(var(--surface-overlay) / <alpha-value>)",
+          line: "rgb(var(--surface-line) / <alpha-value>)",
         },
         ink: {
-          DEFAULT: "#e6ebf2",
-          muted: "#9aa6b8",
-          faint: "#78859e",
+          DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+          muted: "rgb(var(--ink-muted) / <alpha-value>)",
+          faint: "rgb(var(--ink-faint) / <alpha-value>)",
         },
         accent: {
-          DEFAULT: "#5ba8f5",
-          soft: "#2b4564",
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          soft: "rgb(var(--accent-soft) / <alpha-value>)",
         },
         good: "#4ade80",
         warn: "#fbbf24",
@@ -40,10 +46,26 @@ const config: Config = {
           "0%": { opacity: "1", transform: "translateY(0)" },
           "100%": { opacity: "0", transform: "translateY(-6px)" },
         },
+        // The staged-entrance primitive: content rises into place. Stagger is
+        // applied per element through animation-delay in the consuming view.
+        stageIn: {
+          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        // The single ambient treatment, used only in the high-risk state: a
+        // slow breathing glow well under 1Hz. Nothing else loops.
+        ambientPulse: {
+          "0%, 100%": { opacity: "0.18" },
+          "50%": { opacity: "0.42" },
+        },
       },
       animation: {
-        "risk-pulse": "riskPulse 0.7s ease-out 1",
-        "delta-fade": "deltaFade 1.6s ease-out forwards",
+        // Every animation except the outcome resolution moment stays at or
+        // under 600ms (see docs/DESIGN.md for the full inventory).
+        "risk-pulse": "riskPulse 0.6s ease-out 1",
+        "delta-fade": "deltaFade 0.6s ease-out forwards",
+        "stage-in": "stageIn var(--motion-slow) var(--ease-entrance) both",
+        "ambient-pulse": "ambientPulse 6s ease-in-out infinite",
       },
     },
   },
