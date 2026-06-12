@@ -1788,3 +1788,50 @@ alert red text at 7.20, comfortably above AA.
 ### Verification
 
 `npm run verify` green (all distribution pins hold). `npm run build` green.
+
+## Milestone 2: the cold open and the mission select
+
+### What shipped
+
+- `components/cinematic/ColdOpen.tsx`: the landing cold-open sequence. An overlay
+  over the already-rendered landing that boots the agency interface, opens a
+  secure channel, assembles a classified briefing, and reveals the product as
+  the assignment. Built on `useCinematicSequence` (four stages, about 3.6s
+  total). Skippable with one focused control, plays once per session via
+  `sessionStorage`, and dismisses immediately under reduced motion or on a
+  return visit.
+- `components/cinematic/MissionDossier.tsx`: a scenario rendered as a classified
+  case file. Composes real registry listing data; codename, threat level, file
+  tag, and directive are derived in `lib/cinematic/dossier.ts`. The whole card
+  is the link into the mission; hover and keyboard focus lift the folder and
+  read ACTIVE, the reveal-on-open beat.
+- `app/scenarios/page.tsx` rebuilt as the mission-select wall of dossiers, two
+  up, composed from `scenarioListings`.
+- `app/page.tsx` reframed as the operative briefing: the hero copy, the
+  operations dossier, the alert-ladder section, and the mission grid, with the
+  cold open mounted at the top.
+- Header and Footer chrome reframed to the agency framing (nav label Missions,
+  taglines).
+
+### Decisions
+
+- The cold open is a client-only overlay mounted after hydration, so the
+  server-rendered landing (and the no-JavaScript view) is the real first paint
+  and LCP. The overlay never blocks reaching a decision: skip lands on the
+  briefing with the primary CTA in reach.
+- Reduced motion and return-visit gating are decided in a mount effect, not
+  during render, so neither sessionStorage nor the motion query is read at
+  render time. While the decision resolves the overlay does not show.
+- The mission-select copy and dossier directives are framing chrome, kept in the
+  cinematic layer, never in scenario data. The realistic engineering register
+  inside the simulator decisions is untouched.
+
+### Route sizes
+
+- `/` landing: 110 kB to 113 kB first load (the cold open and dossier
+  composition).
+- `/scenarios`: 106 kB to 109 kB first load.
+
+### Verification
+
+`npm run verify` green (pins hold). `npm run build` green.

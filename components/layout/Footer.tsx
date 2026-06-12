@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const LINKS = [
-  { href: "/scenarios", label: "Scenarios" },
+  { href: "/scenarios", label: "Missions" },
   { href: "/studio", label: "Studio" },
   { href: "/import", label: "Import" },
   { href: "/compare", label: "Compare" },
@@ -27,7 +27,7 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-muted">
-              One workday, every tradeoff. A software engineering simulator about
+              Every workday is a mission. A software engineering simulator about
               shipping safely under pressure.
             </p>
           </div>

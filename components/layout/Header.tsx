@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const NAV = [
-  { href: "/scenarios", label: "Scenarios" },
+  { href: "/scenarios", label: "Missions" },
   { href: "/import", label: "Import" },
   { href: "/studio", label: "Studio" },
   { href: "/compare", label: "Compare" },
@@ -20,7 +20,7 @@ export function Header() {
             ShipDay
           </span>
           <span className="hidden font-mono text-xs text-ink-faint sm:inline">
-            one workday, every tradeoff
+            engineering agency operations
           </span>
         </Link>
         <nav aria-label="Main" className="flex items-center gap-4 text-sm">
