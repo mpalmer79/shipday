@@ -657,6 +657,55 @@ picker, importer, comparison page, all four scenarios, the favicon, and a
 social card return 200, and the legacy `/simulator` path returns its 307
 redirect.
 
+# Decision log: v4 autonomous build
+
+Audit trail for the v4 run (the authoring update). One entry per decision,
+tagged with the milestone it belongs to. Milestone numbers restart at 1 for
+this run.
+
+## Milestone 1
+
+### M1: Overrides resolve against the full pre-decision state
+
+The milestone fixes the evaluation point as "before the decision's own flags
+apply." The Condition type also supports metric thresholds, so the override
+condition is evaluated against the entire pre-decision state (metrics and
+flags as they stood when the step was presented), using the same
+evaluateCondition the outcome rules use. This is the only reading in which a
+condition means the same thing in an override as in a rule, and it keeps the
+resolution independent of the option's own impacts.
+
+### M1: Replay reads the engine's record, not the option
+
+The DecisionRecord stores the resolved text, and the report, the timeline,
+and comparison already render from records, so they needed no changes.
+Replay's frames previously copied the static option consequence; they now
+carry the record written by the engine during reconstruction. Reconstruction
+replays the same decisions from the same initial state, so the engine
+re-resolves to the same text deterministically; verify asserts the replayed
+consequence equals the original record for every decision of every
+enumerated run in all four scenarios.
+
+### M1: One override in The Page fixes a latent copy mismatch
+
+The base consequence for move-on-to-feature ("the rollback still
+unexplained") was written for the rollback triage path, but the step is also
+reachable through the kill switch, where no rollback happened. The new
+override on mitigated-impact gives the kill-switch path its own text, which
+is the conditional-consequence mechanism doing exactly the job it was built
+for. The base text stays for the rollback path.
+
+### M1: Retrofit shape, three overrides per scenario
+
+Each scenario carries at least three overrides (scenario 1 and 2 carry
+four), placed on later-step options and keyed to flags set in earlier steps,
+so the override text can reference the earlier behavior specifically.
+Scenario 1's full-release and scenario 2's say-green carry two ordered
+overrides each to exercise first-match-wins; verify asserts the ordering
+with a constructed run where both conditions hold. Consequence text is
+display only, so no distribution pin moved; the unchanged pins are asserted
+by the existing verify phase.
+
 # Decision log: launch fix session
 
 Three tasks on top of the merged v3: raster social cards, the ink-faint

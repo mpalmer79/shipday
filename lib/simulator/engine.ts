@@ -1,11 +1,12 @@
 import type {
+  DecisionOption,
   Metrics,
   Scenario,
   ScenarioStep,
   SimulatorState,
 } from "./types";
 import { END_STEP_ID } from "./types";
-import { resolveOutcome } from "./outcomes";
+import { evaluateCondition, resolveOutcome } from "./outcomes";
 
 export class SimulatorError extends Error {
   constructor(message: string) {
@@ -52,6 +53,25 @@ export function isComplete(state: SimulatorState): boolean {
   return state.completed;
 }
 
+/**
+ * Resolves an option's consequence text against the state before the
+ * decision's own impacts and flags apply. The first matching override wins;
+ * the base consequence is the fallback. The resolved text is stored in the
+ * DecisionRecord so replay, the report, and comparison show exactly what the
+ * player saw, with no re-resolution.
+ */
+function resolveConsequence(
+  option: DecisionOption,
+  state: SimulatorState
+): string | undefined {
+  for (const override of option.consequenceOverrides ?? []) {
+    if (evaluateCondition(override.when, state)) {
+      return override.text;
+    }
+  }
+  return option.consequence;
+}
+
 export function applyDecision(
   scenario: Scenario,
   state: SimulatorState,
@@ -68,6 +88,8 @@ export function applyDecision(
       `Unknown option "${optionId}" for step "${step.id}"`
     );
   }
+
+  const consequence = resolveConsequence(option, state);
 
   const metrics = { ...state.metrics };
   for (const [key, delta] of Object.entries(option.impact) as [
@@ -97,7 +119,7 @@ export function applyDecision(
         stepTime: step.time,
         optionLabel: option.label,
         impact: option.impact,
-        consequence: option.consequence,
+        consequence,
         lesson: option.lesson,
         strong: option.strong,
       },

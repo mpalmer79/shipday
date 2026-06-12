@@ -122,5 +122,29 @@ export function lintScenario(scenario: Scenario): string[] {
     }
   });
 
+  // Consequence override conditions obey the same rules: a flag they read
+  // must be set by some option, and the condition must be satisfiable.
+  for (const step of scenario.steps) {
+    for (const option of step.options) {
+      (option.consequenceOverrides ?? []).forEach((override, i) => {
+        const where = `${step.id}/${option.id} override ${i}`;
+        const readFlags = new Set<string>();
+        collectReferencedFlags(override.when, readFlags);
+        for (const flag of readFlags) {
+          if (!setFlags.has(flag)) {
+            problems.push(
+              `Dead flag "${flag}": read by consequence override ${where} but set by no option`
+            );
+          }
+        }
+        if (!isSatisfiable(override.when, setFlags)) {
+          problems.push(
+            `Consequence override ${where} can never fire: its condition is unsatisfiable`
+          );
+        }
+      });
+    }
+  }
+
   return problems;
 }

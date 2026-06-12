@@ -135,6 +135,12 @@ export const theBrokenBuild: Scenario = {
           flags: [FLAGS.skippedValidation],
           consequence:
             "Merges unblock. The only test watching order sync no longer gets a vote on the release.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.reproducedFailure },
+              text: "Merges unblock. You spent forty minutes proving this failure is real and repeatable, then filed it under noise anyway.",
+            },
+          ],
           lesson:
             "Quarantining a test removes the signal, not the race. Do it to unblock others, never as the fix.",
         },
@@ -301,6 +307,12 @@ export const theBrokenBuild: Scenario = {
           flags: [FLAGS.skippedValidation],
           consequence:
             "Green builds all afternoon. The ordering hazard ships, and the test is now slower and still wrong.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.investigatedTest },
+              text: "Green builds all afternoon. You measured the event arriving up to 90ms late this morning, so you know exactly which race the bigger sleep is papering over.",
+            },
+          ],
           lesson:
             "Widening a timing window does not remove a race. It reschedules the failure for a busier day.",
         },
@@ -337,6 +349,16 @@ export const theBrokenBuild: Scenario = {
           flags: [FLAGS.shippedDirect],
           consequence:
             "\"Go\" goes out to three teams. Your name is on a status you have not finished verifying.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.deletedFailingTest },
+              text: "\"Go\" goes out to three teams, vouching for a pipeline whose only integration test you deleted this morning.",
+            },
+            {
+              when: { kind: "hasFlag", flag: FLAGS.bisectedHistory },
+              text: "\"Go\" goes out to three teams. The bisection gave you real evidence this morning; the word \"handled\" is doing the rest of the work.",
+            },
+          ],
           lesson:
             "A status report is a promise other people build plans on. Report what you verified, not what you expect.",
         },

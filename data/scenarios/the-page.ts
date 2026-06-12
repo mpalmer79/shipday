@@ -290,6 +290,12 @@ export const thePage: Scenario = {
           flags: [FLAGS.skippedValidation],
           consequence:
             "You reopen the branch with the cause unknown and the rollback still unexplained.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.mitigatedImpact },
+              text: "You reopen the branch with the cause unknown and checkout still running on the bypass you flipped, which is now nobody's job to remove.",
+            },
+          ],
           lesson:
             "An incident is not over when it stops hurting. It is over when you know why it started.",
         },
@@ -342,6 +348,12 @@ export const thePage: Scenario = {
           flags: [FLAGS.skippedValidation],
           consequence:
             "The number is bigger. Whether it is big enough is a guess you are making against the next cart you have not seen.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.reproducedFailure },
+              text: "The number is bigger. You are holding a request that fails on demand, and you chose not to point it at the new limit before shipping.",
+            },
+          ],
           lesson:
             "Tuning a constant under fire bets that tomorrow's load looks like today's. That bet has a poor record.",
         },
@@ -406,6 +418,12 @@ export const thePage: Scenario = {
           flags: [FLAGS.shippedDirect],
           consequence:
             "The fix goes to every checkout at once, into the system you were paged about an hour ago.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.mitigatedImpact },
+              text: "The kill switch bought you all the time you needed, and you spent none of it: the fix goes to every checkout at once.",
+            },
+          ],
           lesson:
             "Shipping a fix at full volume assumes the fix is as right as the bug was wrong. Today is a poor day to assume.",
         },

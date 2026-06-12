@@ -216,6 +216,21 @@ for (const scenario of scenarios) {
     0,
     `Lint problems in ${scenario.id}: ${lintProblems.join("; ")}`
   );
+
+  // Every built-in scenario carries at least three conditional consequences.
+  const overrideCount = scenario.steps.reduce(
+    (total, step) =>
+      total +
+      step.options.reduce(
+        (n, option) => n + (option.consequenceOverrides?.length ?? 0),
+        0
+      ),
+    0
+  );
+  assert.ok(
+    overrideCount >= 3,
+    `${scenario.id} must carry at least 3 consequence overrides, has ${overrideCount}`
+  );
 }
 
 // --- Phase 3: exhaustive playtest per scenario ------------------------
@@ -301,12 +316,20 @@ function enumerateRuns(scenario: Scenario): Distribution {
           `Uncurated decision surfaced as strong in ${scenario.id}`
         );
       }
-      // Replaying the decision trail must reproduce the run exactly.
+      // Replaying the decision trail must reproduce the run exactly,
+      // including each decision's resolved consequence text.
       const replay = reconstructRun(scenario, state.decisions);
       assert.deepEqual(replay.finalState.metrics, state.metrics);
       assert.equal(replay.finalState.outcomeId, state.outcomeId);
       assert.equal(replay.finalState.completed, true);
       assert.equal(replay.frames.length, state.decisions.length);
+      replay.frames.forEach((frame, i) => {
+        assert.equal(
+          frame.consequence,
+          state.decisions[i].consequence,
+          `replayed consequence diverges at decision ${i} in ${scenario.id}`
+        );
+      });
       assert.deepEqual(
         replay.frames[replay.frames.length - 1].metricsAfter,
         state.metrics
@@ -568,6 +591,57 @@ console.log(
     });
   }
 
+  {
+    const s = clone();
+    s.steps[0].options[0].consequenceOverrides = "not-an-array";
+    rejections.push({
+      name: "overrides not an array",
+      input: s,
+      expect: "consequenceOverrides must be an array of overrides",
+    });
+  }
+
+  {
+    const s = clone();
+    s.steps[0].options[0].consequenceOverrides = [
+      { when: { kind: "hasFlag", flag: "skipped-validation" } },
+    ];
+    rejections.push({
+      name: "override missing text",
+      input: s,
+      expect: "consequenceOverrides[0].text must be a non-empty string",
+    });
+  }
+
+  {
+    const s = clone();
+    s.steps[0].options[0].consequenceOverrides = [
+      { when: { kind: "frobnicate" }, text: "alternate text" },
+    ];
+    rejections.push({
+      name: "override malformed condition",
+      input: s,
+      expect:
+        'consequenceOverrides[0].when has unknown condition kind "frobnicate"',
+    });
+  }
+
+  {
+    const s = clone();
+    s.steps[0].options[0].consequenceOverrides = [
+      {
+        when: { kind: "hasFlag", flag: "never-set-flag" },
+        text: "alternate text",
+      },
+    ];
+    rejections.push({
+      name: "override references undefined flag",
+      input: s,
+      expect:
+        'consequence overrides reference flag "never-set-flag" that no option ever sets',
+    });
+  }
+
   assert.ok(
     rejections.length >= 8,
     "expected at least 8 malformed-input rejection cases"
@@ -732,6 +806,308 @@ console.log(
   );
 
   console.log("\nRun comparison: self-compare and known-pair deltas verified.");
+}
+
+// --- Phase 6: conditional consequence resolution ----------------------
+
+{
+  // Plays a sequence of option ids and returns the recorded consequence at
+  // the given decision index. Resolution happens in the engine at decision
+  // time, so the record is the single source of truth being asserted.
+  function consequenceAt(
+    scenarioId: string,
+    optionIds: string[],
+    index: number
+  ): string | undefined {
+    const scenario = scenarios.find((s) => s.id === scenarioId)!;
+    assert.ok(scenario, `scenario ${scenarioId} must be registered`);
+    let state = createInitialState(scenario);
+    for (const optionId of optionIds) {
+      state = applyDecision(scenario, state, optionId);
+    }
+    return state.decisions[index]?.consequence;
+  }
+
+  // Scenario 1: accepting the AI code reads differently after reading the
+  // pricing module that morning.
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      ["inspect-checkout", "conservative-interpretation", "accept-as-is"],
+      2
+    )!,
+    /read the pricing module this morning/,
+    "scenario 1: accept-as-is override after inspecting checkout"
+  );
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      ["start-coding", "conservative-interpretation", "accept-as-is"],
+      2
+    )!,
+    /merged code you can't fully explain/,
+    "scenario 1: accept-as-is base without inspection"
+  );
+
+  // Scenario 1: skipping the failing test reads differently when the code
+  // it covered was unreviewed AI output.
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      ["ask-questions", "ask-product", "accept-as-is", "push-forward"],
+      3
+    )!,
+    /generated code you never reviewed/,
+    "scenario 1: push-forward override after unreviewed AI code"
+  );
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      ["ask-questions", "ask-product", "review-line-by-line", "push-forward"],
+      3
+    )!,
+    /backlog both know how this usually ends/,
+    "scenario 1: push-forward base after a real review"
+  );
+
+  // Scenario 1: ordered overrides on full-release. When both the deleted
+  // test and the feature flag are in play, the first override wins.
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      [
+        "start-coding",
+        "assume-stacking",
+        "accept-as-is",
+        "delete-test",
+        "feature-flag",
+        "full-release",
+      ],
+      5
+    )!,
+    /promo-interaction test you deleted/,
+    "scenario 1: first matching override wins when both match"
+  );
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      [
+        "ask-questions",
+        "ask-product",
+        "review-line-by-line",
+        "investigate-test",
+        "feature-flag",
+        "full-release",
+      ],
+      5
+    )!,
+    /chose not to use the dial/,
+    "scenario 1: second override fires when only it matches"
+  );
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      [
+        "ask-questions",
+        "ask-product",
+        "review-line-by-line",
+        "investigate-test",
+        "delay-explain",
+        "full-release",
+      ],
+      5
+    )!,
+    /every cart in production at once/,
+    "scenario 1: base consequence when no override matches"
+  );
+
+  // Scenario 2: quarantining the test reads differently after proving the
+  // failure is real.
+  assert.match(
+    consequenceAt("the-broken-build", ["reproduce-locally", "mark-flaky"], 1)!,
+    /proving this failure is real/,
+    "scenario 2: mark-flaky override after reproducing"
+  );
+  assert.match(
+    consequenceAt("the-broken-build", ["rerun-ci", "mark-flaky"], 1)!,
+    /no longer gets a vote/,
+    "scenario 2: mark-flaky base without reproduction"
+  );
+  assert.match(
+    consequenceAt(
+      "the-broken-build",
+      ["rerun-ci", "run-twenty-times", "revert-refactor", "sleep-bandage"],
+      3
+    )!,
+    /which race the bigger sleep is papering over/,
+    "scenario 2: sleep-bandage override after characterizing the test"
+  );
+  assert.match(
+    consequenceAt(
+      "the-broken-build",
+      [
+        "rerun-ci",
+        "delete-flaky-test",
+        "revert-refactor",
+        "fix-code-only",
+        "say-green",
+      ],
+      4
+    )!,
+    /only integration test you deleted/,
+    "scenario 2: say-green override after deleting the test"
+  );
+  assert.match(
+    consequenceAt(
+      "the-broken-build",
+      [
+        "reproduce-locally",
+        "run-twenty-times",
+        "bisect-commits",
+        "fix-both",
+        "say-green",
+      ],
+      4
+    )!,
+    /bisection gave you real evidence/,
+    "scenario 2: say-green second override after bisecting"
+  );
+
+  // Scenario 3: approving the diff reads differently after finding the
+  // three consumers; self-merge and the global deploy read differently
+  // with a written rollback in hand.
+  assert.match(
+    consequenceAt(
+      "friday-deploy",
+      ["find-consumers", "proceed-anyway", "trust-the-diff"],
+      2
+    )!,
+    /only answers for one of them/,
+    "scenario 3: trust-the-diff override after finding consumers"
+  );
+  assert.match(
+    consequenceAt(
+      "friday-deploy",
+      ["edit-and-deploy", "proceed-anyway", "trust-the-diff"],
+      2
+    )!,
+    /neither did you/,
+    "scenario 3: trust-the-diff base without the search"
+  );
+  assert.match(
+    consequenceAt(
+      "friday-deploy",
+      ["edit-and-deploy", "proceed-anyway", "write-rollback-plan", "self-merge"],
+      3
+    )!,
+    /four minute undo/,
+    "scenario 3: self-merge override with a rollback plan"
+  );
+  assert.match(
+    consequenceAt(
+      "friday-deploy",
+      [
+        "edit-and-deploy",
+        "proceed-anyway",
+        "write-rollback-plan",
+        "self-merge",
+        "promise-today",
+        "deploy-global",
+      ],
+      5
+    )!,
+    /the revert you wrote this afternoon/,
+    "scenario 3: deploy-global override with a rollback plan"
+  );
+  assert.match(
+    consequenceAt(
+      "friday-deploy",
+      [
+        "edit-and-deploy",
+        "proceed-anyway",
+        "trust-the-diff",
+        "self-merge",
+        "promise-today",
+        "deploy-global",
+      ],
+      5
+    )!,
+    /quietest support hours of the week/,
+    "scenario 3: deploy-global base without a rollback plan"
+  );
+
+  // Scenario 4 (branching): walking away reads differently on the
+  // kill-switch path, where there was no rollback to explain.
+  assert.match(
+    consequenceAt(
+      "the-page",
+      ["stash-and-ack", "flip-killswitch", "move-on-to-feature"],
+      2
+    )!,
+    /bypass you flipped/,
+    "scenario 4: move-on override on the kill-switch path"
+  );
+  assert.match(
+    consequenceAt(
+      "the-page",
+      ["stash-and-ack", "rollback-last-deploy", "move-on-to-feature"],
+      2
+    )!,
+    /rollback still unexplained/,
+    "scenario 4: move-on base on the rollback path"
+  );
+  assert.match(
+    consequenceAt(
+      "the-page",
+      ["stash-and-ack", "reproduce-incident", "find-shared-dep", "quick-patch"],
+      3
+    )!,
+    /fails on demand/,
+    "scenario 4: quick-patch override after reproducing"
+  );
+  assert.match(
+    consequenceAt(
+      "the-page",
+      ["stash-and-ack", "read-dashboards", "find-shared-dep", "quick-patch"],
+      3
+    )!,
+    /next cart you have not seen/,
+    "scenario 4: quick-patch base without a reproduction"
+  );
+  assert.match(
+    consequenceAt(
+      "the-page",
+      [
+        "stash-and-ack",
+        "flip-killswitch",
+        "explain-to-team",
+        "pin-library",
+        "ship-it-now",
+      ],
+      4
+    )!,
+    /kill switch bought you all the time/,
+    "scenario 4: ship-it-now override after mitigating"
+  );
+  assert.match(
+    consequenceAt(
+      "the-page",
+      [
+        "stash-and-ack",
+        "read-dashboards",
+        "find-shared-dep",
+        "pin-library",
+        "ship-it-now",
+      ],
+      4
+    )!,
+    /paged about an hour ago/,
+    "scenario 4: ship-it-now base without mitigation"
+  );
+
+  console.log(
+    "\nConditional consequences: override resolution verified across all scenarios."
+  );
 }
 
 console.log("\nAll verification checks passed.");
