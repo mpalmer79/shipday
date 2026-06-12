@@ -1372,3 +1372,32 @@ All 19 automated checks passed, including the reduced-motion contract (briefing
 absent, no resolution overlay, verdict and report immediate) and high-risk
 contrast measured in the browser at 15.80. Nothing needed reporting as a
 blocked check or an unfixed finding.
+
+## Milestone 6
+
+### M6: The sweep is clean, with two deliberate non-issues
+
+The repository-wide sweep found no em dashes and no banned words in any
+user-facing copy. Two matches were examined and left as correct: "support
+agent" in The Missing Requirement is a help-desk worker, not spy-fiction agent
+language, and it lives in untouchable scenario data; and "cinematic" appears
+only in a CSS comment describing the design layer, never in a string a user
+sees. The drama lives entirely in presentation; the user-facing copy stays
+flat, realistic, and specific, with no film, franchise, spy, mission, or
+countdown language anywhere.
+
+### M6: README gained an experience section, not just a feature line
+
+The README now leads its description with how the day feels (the document
+ticket, the clock, the risk treatment, the resolution moment) and carries a
+dedicated experience section that points at docs/DESIGN.md and the v5 QA
+evidence, so a reader understands the cinematic layer is information design
+bound to simulation state, not decoration. The roadmap marks the five v5
+deliverables done and the structure listing gains the new files.
+
+### M6: Final state is fully static and green
+
+Final `npm run verify` and `npm run build` both pass. Every route prerenders
+as static or statically generated content, with no server, API key, or
+environment variable, so the accessibility and deployment floor from earlier
+releases holds. No distribution pin moved across the entire run.
