@@ -25,6 +25,24 @@ import { reportFilename, reportToMarkdown } from "../exportReport";
 import { lintScenario } from "../lint";
 import { parseScenarioJson, validateScenario, OUTCOME_IDS } from "../validate";
 import { compareRuns } from "../comparison";
+import { decodeRunCode, encodeRun, playRunCode } from "../runCode";
+import { extractRunCode, loadRunFromCode } from "../../runLink";
+import {
+  exportDraft,
+  lintTarget,
+  loadDraft,
+  validationTarget,
+} from "../../studio";
+import {
+  countPaths,
+  enumerateDistribution,
+  previewDistribution,
+  sampleDistribution,
+  PREVIEW_PATH_CEILING,
+  PREVIEW_SAMPLE_SIZE,
+  PREVIEW_SEED,
+  type OutcomeCounts,
+} from "../distribution";
 import { METRIC_ORDER } from "../metrics";
 import { SAMPLE_SCENARIO } from "../../sampleScenario";
 import type { OutcomeId, Scenario, SimulatorState } from "../types";
@@ -75,6 +93,13 @@ const EXPECTED_DISTRIBUTIONS: Record<
     "customer-incident": 419,
     "responsible-delay": 1545,
     overcontrolled: 730,
+  },
+  "the-missing-requirement": {
+    "safe-rollout": 750,
+    "minor-issue": 1625,
+    "customer-incident": 337,
+    "responsible-delay": 1024,
+    overcontrolled: 360,
   },
   "friday-deploy": {
     "safe-rollout": 934,
@@ -216,6 +241,21 @@ for (const scenario of scenarios) {
     0,
     `Lint problems in ${scenario.id}: ${lintProblems.join("; ")}`
   );
+
+  // Every built-in scenario carries at least three conditional consequences.
+  const overrideCount = scenario.steps.reduce(
+    (total, step) =>
+      total +
+      step.options.reduce(
+        (n, option) => n + (option.consequenceOverrides?.length ?? 0),
+        0
+      ),
+    0
+  );
+  assert.ok(
+    overrideCount >= 3,
+    `${scenario.id} must carry at least 3 consequence overrides, has ${overrideCount}`
+  );
 }
 
 // --- Phase 3: exhaustive playtest per scenario ------------------------
@@ -228,62 +268,23 @@ const EXPORT_DATE = new Date("2026-01-01T00:00:00Z");
   assert.equal(name, "shipday-just-add-a-button-2026-01-01.md");
 }
 
-export type Distribution = {
-  totalRuns: number;
-  counts: Map<OutcomeId, number>;
-};
-
 /**
- * Number of distinct complete runs through a scenario, computed by
- * memoizing the path count from each step. This is purely structural (it
- * does not depend on metrics or flags), so it stays linear in the graph
- * even when paths reconverge, and it cross-checks the brute-force walk
- * below. Throws on a cycle, which would make the count unbounded.
+ * The walk itself lives in the shared distribution module (the studio's
+ * preview runs the same implementation in a web worker). Verify passes a
+ * callback so every enumerated run still gets the full set of per-run
+ * assertions below.
  */
-function countPaths(scenario: Scenario): number {
-  const memo = new Map<string, number>();
-  const visiting = new Set<string>();
-
-  function from(stepId: string): number {
-    if (stepId === END_STEP_ID) {
-      return 1;
-    }
-    const cached = memo.get(stepId);
-    if (cached !== undefined) {
-      return cached;
-    }
-    assert.ok(
-      !visiting.has(stepId),
-      `Cycle through step "${stepId}" in ${scenario.id}`
-    );
-    visiting.add(stepId);
-    const step = scenario.steps.find((s) => s.id === stepId);
-    assert.ok(step, `Unknown step "${stepId}" in ${scenario.id}`);
-    let total = 0;
-    for (const option of step.options) {
-      total += from(option.nextStepId);
-    }
-    visiting.delete(stepId);
-    memo.set(stepId, total);
-    return total;
-  }
-
-  return from(scenario.initialStepId);
-}
-
-function enumerateRuns(scenario: Scenario): Distribution {
-  const counts = new Map<OutcomeId, number>();
-  let totalRuns = 0;
-
+function assertEveryRun(scenario: Scenario): {
+  totalRuns: number;
+  counts: OutcomeCounts;
+} {
   const curated = scenario.steps.some((step) =>
     step.options.some((option) => option.strong !== undefined)
   );
 
-  function walk(state: SimulatorState): void {
-    if (state.completed) {
-      totalRuns += 1;
+  return enumerateDistribution(scenario, (state: SimulatorState) => {
+    {
       assert.ok(state.outcomeId, "completed run must have an outcome");
-      counts.set(state.outcomeId!, (counts.get(state.outcomeId!) ?? 0) + 1);
       // Every completed run must produce a coherent report.
       const report = generateReport(scenario, state);
       assert.equal(report.timeline.length, state.decisions.length);
@@ -301,12 +302,39 @@ function enumerateRuns(scenario: Scenario): Distribution {
           `Uncurated decision surfaced as strong in ${scenario.id}`
         );
       }
-      // Replaying the decision trail must reproduce the run exactly.
+      // Replaying the decision trail must reproduce the run exactly,
+      // including each decision's resolved consequence text.
       const replay = reconstructRun(scenario, state.decisions);
       assert.deepEqual(replay.finalState.metrics, state.metrics);
       assert.equal(replay.finalState.outcomeId, state.outcomeId);
       assert.equal(replay.finalState.completed, true);
       assert.equal(replay.frames.length, state.decisions.length);
+      replay.frames.forEach((frame, i) => {
+        assert.equal(
+          frame.consequence,
+          state.decisions[i].consequence,
+          `replayed consequence diverges at decision ${i} in ${scenario.id}`
+        );
+      });
+      // Run-link round trip: encode, decode, and replay through the code
+      // path must reproduce the exact trail, final metrics, and outcome.
+      const trail = state.decisions.map((d) => d.optionId);
+      const decoded = decodeRunCode(encodeRun(scenario.id, trail));
+      assert.ok(decoded.ok, `run code must decode in ${scenario.id}`);
+      if (decoded.ok) {
+        assert.equal(decoded.scenarioId, scenario.id);
+        assert.deepEqual(decoded.optionIds, trail);
+        const played = playRunCode(scenario, decoded.optionIds);
+        assert.ok(played.ok, `decoded run must play in ${scenario.id}`);
+        if (played.ok) {
+          assert.deepEqual(played.state.metrics, state.metrics);
+          assert.equal(played.state.outcomeId, state.outcomeId);
+          assert.deepEqual(
+            played.state.decisions.map((d) => d.optionId),
+            trail
+          );
+        }
+      }
       assert.deepEqual(
         replay.frames[replay.frames.length - 1].metricsAfter,
         state.metrics
@@ -327,16 +355,8 @@ function enumerateRuns(scenario: Scenario): Distribution {
         state.decisions.length,
         "one timeline section per decision"
       );
-      return;
     }
-    const step = getCurrentStep(scenario, state);
-    for (const option of step.options) {
-      walk(applyDecision(scenario, state, option.id));
-    }
-  }
-
-  walk(createInitialState(scenario));
-  return { totalRuns, counts };
+  });
 }
 
 /**
@@ -357,6 +377,7 @@ assert.ok(
 );
 
 const incidentCurve: { id: string; share: number }[] = [];
+const walkCounts = new Map<string, OutcomeCounts>();
 
 const WALK_BUDGET_MS = 10_000;
 const walkStart = Date.now();
@@ -364,21 +385,22 @@ const walkStart = Date.now();
 for (const scenario of scenarios) {
   // Memoized structural path count, cross-checked against the brute walk.
   const pathCount = countPaths(scenario);
-  const { totalRuns, counts } = enumerateRuns(scenario);
+  const { totalRuns, counts } = assertEveryRun(scenario);
   assert.equal(
     totalRuns,
     pathCount,
     `Walk visited ${totalRuns} runs but the path count is ${pathCount} in ${scenario.id}`
   );
+  walkCounts.set(scenario.id, counts);
 
   incidentCurve.push({
     id: scenario.id,
-    share: (counts.get("customer-incident") ?? 0) / totalRuns,
+    share: (counts["customer-incident"] ?? 0) / totalRuns,
   });
 
   console.log(`\n${scenario.name}: ${totalRuns} distinct runs (${pathCount} paths)`);
   for (const outcome of scenario.outcomes) {
-    const n = counts.get(outcome.id) ?? 0;
+    const n = counts[outcome.id] ?? 0;
     const pct = ((n / totalRuns) * 100).toFixed(1);
     console.log(
       `  ${outcome.title.padEnd(28)} ${String(n).padStart(5)}  (${pct}%)`
@@ -386,7 +408,7 @@ for (const scenario of scenarios) {
   }
 
   for (const outcome of scenario.outcomes) {
-    const n = counts.get(outcome.id) ?? 0;
+    const n = counts[outcome.id] ?? 0;
     assert.ok(n > 0, `Outcome "${outcome.id}" unreachable in ${scenario.id}`);
     const share = n / totalRuns;
     assert.ok(
@@ -403,7 +425,7 @@ for (const scenario of scenarios) {
   if (expected) {
     for (const [outcomeId, expectedCount] of Object.entries(expected)) {
       assert.equal(
-        counts.get(outcomeId as OutcomeId) ?? 0,
+        counts[outcomeId as OutcomeId] ?? 0,
         expectedCount,
         `Distribution regression in ${scenario.id}: ${outcomeId}`
       );
@@ -565,6 +587,57 @@ console.log(
       name: "rule outcome has no matching outcome",
       input: s,
       expect: 'outcomeId "customer-incident" has no matching outcome',
+    });
+  }
+
+  {
+    const s = clone();
+    s.steps[0].options[0].consequenceOverrides = "not-an-array";
+    rejections.push({
+      name: "overrides not an array",
+      input: s,
+      expect: "consequenceOverrides must be an array of overrides",
+    });
+  }
+
+  {
+    const s = clone();
+    s.steps[0].options[0].consequenceOverrides = [
+      { when: { kind: "hasFlag", flag: "skipped-validation" } },
+    ];
+    rejections.push({
+      name: "override missing text",
+      input: s,
+      expect: "consequenceOverrides[0].text must be a non-empty string",
+    });
+  }
+
+  {
+    const s = clone();
+    s.steps[0].options[0].consequenceOverrides = [
+      { when: { kind: "frobnicate" }, text: "alternate text" },
+    ];
+    rejections.push({
+      name: "override malformed condition",
+      input: s,
+      expect:
+        'consequenceOverrides[0].when has unknown condition kind "frobnicate"',
+    });
+  }
+
+  {
+    const s = clone();
+    s.steps[0].options[0].consequenceOverrides = [
+      {
+        when: { kind: "hasFlag", flag: "never-set-flag" },
+        text: "alternate text",
+      },
+    ];
+    rejections.push({
+      name: "override references undefined flag",
+      input: s,
+      expect:
+        'consequence overrides reference flag "never-set-flag" that no option ever sets',
     });
   }
 
@@ -732,6 +805,841 @@ console.log(
   );
 
   console.log("\nRun comparison: self-compare and known-pair deltas verified.");
+}
+
+// --- Phase 6: conditional consequence resolution ----------------------
+
+{
+  // Plays a sequence of option ids and returns the recorded consequence at
+  // the given decision index. Resolution happens in the engine at decision
+  // time, so the record is the single source of truth being asserted.
+  function consequenceAt(
+    scenarioId: string,
+    optionIds: string[],
+    index: number
+  ): string | undefined {
+    const scenario = scenarios.find((s) => s.id === scenarioId)!;
+    assert.ok(scenario, `scenario ${scenarioId} must be registered`);
+    let state = createInitialState(scenario);
+    for (const optionId of optionIds) {
+      state = applyDecision(scenario, state, optionId);
+    }
+    return state.decisions[index]?.consequence;
+  }
+
+  // Scenario 1: accepting the AI code reads differently after reading the
+  // pricing module that morning.
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      ["inspect-checkout", "conservative-interpretation", "accept-as-is"],
+      2
+    )!,
+    /read the pricing module this morning/,
+    "scenario 1: accept-as-is override after inspecting checkout"
+  );
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      ["start-coding", "conservative-interpretation", "accept-as-is"],
+      2
+    )!,
+    /merged code you can't fully explain/,
+    "scenario 1: accept-as-is base without inspection"
+  );
+
+  // Scenario 1: skipping the failing test reads differently when the code
+  // it covered was unreviewed AI output.
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      ["ask-questions", "ask-product", "accept-as-is", "push-forward"],
+      3
+    )!,
+    /generated code you never reviewed/,
+    "scenario 1: push-forward override after unreviewed AI code"
+  );
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      ["ask-questions", "ask-product", "review-line-by-line", "push-forward"],
+      3
+    )!,
+    /backlog both know how this usually ends/,
+    "scenario 1: push-forward base after a real review"
+  );
+
+  // Scenario 1: ordered overrides on full-release. When both the deleted
+  // test and the feature flag are in play, the first override wins.
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      [
+        "start-coding",
+        "assume-stacking",
+        "accept-as-is",
+        "delete-test",
+        "feature-flag",
+        "full-release",
+      ],
+      5
+    )!,
+    /promo-interaction test you deleted/,
+    "scenario 1: first matching override wins when both match"
+  );
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      [
+        "ask-questions",
+        "ask-product",
+        "review-line-by-line",
+        "investigate-test",
+        "feature-flag",
+        "full-release",
+      ],
+      5
+    )!,
+    /chose not to use the dial/,
+    "scenario 1: second override fires when only it matches"
+  );
+  assert.match(
+    consequenceAt(
+      "just-add-a-button",
+      [
+        "ask-questions",
+        "ask-product",
+        "review-line-by-line",
+        "investigate-test",
+        "delay-explain",
+        "full-release",
+      ],
+      5
+    )!,
+    /every cart in production at once/,
+    "scenario 1: base consequence when no override matches"
+  );
+
+  // Scenario 2: quarantining the test reads differently after proving the
+  // failure is real.
+  assert.match(
+    consequenceAt("the-broken-build", ["reproduce-locally", "mark-flaky"], 1)!,
+    /proving this failure is real/,
+    "scenario 2: mark-flaky override after reproducing"
+  );
+  assert.match(
+    consequenceAt("the-broken-build", ["rerun-ci", "mark-flaky"], 1)!,
+    /no longer gets a vote/,
+    "scenario 2: mark-flaky base without reproduction"
+  );
+  assert.match(
+    consequenceAt(
+      "the-broken-build",
+      ["rerun-ci", "run-twenty-times", "revert-refactor", "sleep-bandage"],
+      3
+    )!,
+    /which race the bigger sleep is papering over/,
+    "scenario 2: sleep-bandage override after characterizing the test"
+  );
+  assert.match(
+    consequenceAt(
+      "the-broken-build",
+      [
+        "rerun-ci",
+        "delete-flaky-test",
+        "revert-refactor",
+        "fix-code-only",
+        "say-green",
+      ],
+      4
+    )!,
+    /only integration test you deleted/,
+    "scenario 2: say-green override after deleting the test"
+  );
+  assert.match(
+    consequenceAt(
+      "the-broken-build",
+      [
+        "reproduce-locally",
+        "run-twenty-times",
+        "bisect-commits",
+        "fix-both",
+        "say-green",
+      ],
+      4
+    )!,
+    /bisection gave you real evidence/,
+    "scenario 2: say-green second override after bisecting"
+  );
+
+  // Scenario 3: approving the diff reads differently after finding the
+  // three consumers; self-merge and the global deploy read differently
+  // with a written rollback in hand.
+  assert.match(
+    consequenceAt(
+      "friday-deploy",
+      ["find-consumers", "proceed-anyway", "trust-the-diff"],
+      2
+    )!,
+    /only answers for one of them/,
+    "scenario 3: trust-the-diff override after finding consumers"
+  );
+  assert.match(
+    consequenceAt(
+      "friday-deploy",
+      ["edit-and-deploy", "proceed-anyway", "trust-the-diff"],
+      2
+    )!,
+    /neither did you/,
+    "scenario 3: trust-the-diff base without the search"
+  );
+  assert.match(
+    consequenceAt(
+      "friday-deploy",
+      ["edit-and-deploy", "proceed-anyway", "write-rollback-plan", "self-merge"],
+      3
+    )!,
+    /four minute undo/,
+    "scenario 3: self-merge override with a rollback plan"
+  );
+  assert.match(
+    consequenceAt(
+      "friday-deploy",
+      [
+        "edit-and-deploy",
+        "proceed-anyway",
+        "write-rollback-plan",
+        "self-merge",
+        "promise-today",
+        "deploy-global",
+      ],
+      5
+    )!,
+    /the revert you wrote this afternoon/,
+    "scenario 3: deploy-global override with a rollback plan"
+  );
+  assert.match(
+    consequenceAt(
+      "friday-deploy",
+      [
+        "edit-and-deploy",
+        "proceed-anyway",
+        "trust-the-diff",
+        "self-merge",
+        "promise-today",
+        "deploy-global",
+      ],
+      5
+    )!,
+    /quietest support hours of the week/,
+    "scenario 3: deploy-global base without a rollback plan"
+  );
+
+  // Scenario 4 (branching): walking away reads differently on the
+  // kill-switch path, where there was no rollback to explain.
+  assert.match(
+    consequenceAt(
+      "the-page",
+      ["stash-and-ack", "flip-killswitch", "move-on-to-feature"],
+      2
+    )!,
+    /bypass you flipped/,
+    "scenario 4: move-on override on the kill-switch path"
+  );
+  assert.match(
+    consequenceAt(
+      "the-page",
+      ["stash-and-ack", "rollback-last-deploy", "move-on-to-feature"],
+      2
+    )!,
+    /rollback still unexplained/,
+    "scenario 4: move-on base on the rollback path"
+  );
+  assert.match(
+    consequenceAt(
+      "the-page",
+      ["stash-and-ack", "reproduce-incident", "find-shared-dep", "quick-patch"],
+      3
+    )!,
+    /fails on demand/,
+    "scenario 4: quick-patch override after reproducing"
+  );
+  assert.match(
+    consequenceAt(
+      "the-page",
+      ["stash-and-ack", "read-dashboards", "find-shared-dep", "quick-patch"],
+      3
+    )!,
+    /next cart you have not seen/,
+    "scenario 4: quick-patch base without a reproduction"
+  );
+  assert.match(
+    consequenceAt(
+      "the-page",
+      [
+        "stash-and-ack",
+        "flip-killswitch",
+        "explain-to-team",
+        "pin-library",
+        "ship-it-now",
+      ],
+      4
+    )!,
+    /kill switch bought you all the time/,
+    "scenario 4: ship-it-now override after mitigating"
+  );
+  assert.match(
+    consequenceAt(
+      "the-page",
+      [
+        "stash-and-ack",
+        "read-dashboards",
+        "find-shared-dep",
+        "pin-library",
+        "ship-it-now",
+      ],
+      4
+    )!,
+    /paged about an hour ago/,
+    "scenario 4: ship-it-now base without mitigation"
+  );
+
+  // Scenario 5 (branching): proposing ship-and-patch reads differently when
+  // the bad file was produced at 9:00 AM; the column patch reads differently
+  // after reading the addendum; the final hold reads differently when the
+  // day already produced a written record.
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      ["test-the-claim", "assume-two-columns", "ship-and-patch"],
+      2
+    )!,
+    /still open on your screen while you propose it/,
+    "scenario 5: ship-and-patch override after producing the file"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      ["merge-on-schedule", "assume-two-columns", "ship-and-patch"],
+      2
+    )!,
+    /promise stapled to it/,
+    "scenario 5: ship-and-patch base without the file"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      ["read-addendum", "assume-two-columns", "quiet-quick-filter", "mask-two-columns"],
+      3
+    )!,
+    /Your own reading of the addendum/,
+    "scenario 5: mask-two-columns override after reading the addendum"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      ["merge-on-schedule", "assume-two-columns", "quiet-quick-filter", "mask-two-columns"],
+      3
+    )!,
+    /named categories, not columns/,
+    "scenario 5: mask-two-columns base without the addendum"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      [
+        "ask-lena",
+        "write-acceptance",
+        "propose-descope",
+        "offer-flagged-v1",
+        "merge-with-notes",
+        "hold-and-write",
+      ],
+      5
+    )!,
+    /you have been writing it all day/,
+    "scenario 5: hold-and-write override after a documented day"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      [
+        "merge-on-schedule",
+        "assume-two-columns",
+        "reopen-properly",
+        "field-policy-tests",
+        "one-more-pass",
+        "hold-and-write",
+      ],
+      5
+    )!,
+    /everyone who cares knows why, from you, tonight/,
+    "scenario 5: hold-and-write base on an undocumented day"
+  );
+  assert.match(
+    consequenceAt(
+      "the-missing-requirement",
+      [
+        "merge-on-schedule",
+        "assume-two-columns",
+        "quiet-quick-filter",
+        "disable-non-admin",
+        "merge-quiet",
+        "full-send",
+      ],
+      5
+    )!,
+    /admin gate you built this afternoon/,
+    "scenario 5: full-send override behind the admin gate"
+  );
+
+  console.log(
+    "\nConditional consequences: override resolution verified across all scenarios."
+  );
+}
+
+// --- Phase 7: shareable run codes --------------------------------------
+
+{
+  // The loader accepts a full link or a bare code.
+  const trail = [
+    "ask-questions",
+    "ask-product",
+    "review-line-by-line",
+    "investigate-test",
+    "feature-flag",
+    "flagged-staged",
+  ];
+  const code = encodeRun("just-add-a-button", trail);
+  assert.equal(
+    extractRunCode(`https://example.com/run?code=${encodeURIComponent(code)}`),
+    code,
+    "extractRunCode must pull the code parameter out of a full link"
+  );
+  assert.equal(
+    extractRunCode(`  ${code}  `),
+    code,
+    "extractRunCode must accept a bare code"
+  );
+  const viaLink = loadRunFromCode(code);
+  assert.ok(viaLink.ok, "a valid code must load through the registry");
+  if (viaLink.ok) {
+    assert.equal(viaLink.run.scenario.id, "just-add-a-button");
+    assert.equal(viaLink.run.state.completed, true);
+    assert.ok(OUTCOME_IDS.includes(viaLink.run.state.outcomeId!));
+  }
+
+  // Malformed codes are rejected with specific, readable messages.
+  const badCodes: { name: string; code: string; expect: string }[] = [
+    {
+      name: "empty code",
+      code: "   ",
+      expect: "The run code is empty.",
+    },
+    {
+      name: "unknown version",
+      code: "v9.just-add-a-button.start-coding",
+      expect: 'Unrecognized run code version "v9"',
+    },
+    {
+      name: "missing scenario id",
+      code: "v1",
+      expect: "missing its scenario id",
+    },
+    {
+      name: "no decisions",
+      code: "v1.just-add-a-button",
+      expect: "carries no decisions",
+    },
+    {
+      name: "empty decision entry",
+      code: "v1.just-add-a-button.start-coding..accept-as-is",
+      expect: "contains an empty decision entry",
+    },
+    {
+      name: "unknown scenario",
+      code: "v1.no-such-scenario.start-coding",
+      expect: 'No built-in scenario is named "no-such-scenario"',
+    },
+    {
+      name: "unknown option",
+      code: "v1.just-add-a-button.do-a-backflip",
+      expect: '"do-a-backflip") is not an option at the 9:00 AM step',
+    },
+    {
+      name: "option from the wrong step",
+      code: "v1.just-add-a-button.delete-test",
+      expect: 'Decision 1 ("delete-test") is not an option',
+    },
+    {
+      name: "truncated trail",
+      code: "v1.just-add-a-button.start-coding.assume-stacking",
+      expect: "ends before the day does",
+    },
+    {
+      name: "trail past the end",
+      code: encodeRun("just-add-a-button", [...trail, "flagged-staged"]),
+      expect: "continues past the end of the day",
+    },
+  ];
+  assert.ok(
+    badCodes.length >= 6,
+    "expected at least 6 malformed run code cases"
+  );
+  for (const { name, code: bad, expect } of badCodes) {
+    const result = loadRunFromCode(bad);
+    assert.equal(result.ok, false, `expected rejection for run code: ${name}`);
+    if (!result.ok) {
+      assert.ok(
+        result.error.includes(expect),
+        `run code rejection "${name}" should report "${expect}"; got: ${result.error}`
+      );
+      assertCleanCopy(result.error, `run code message for ${name}`);
+    }
+  }
+
+  console.log(
+    `\nRun codes: round trip asserted for every enumerated run; ${badCodes.length} malformed codes rejected.`
+  );
+}
+
+// --- Phase 8: authoring studio round trips -----------------------------
+
+{
+  // Every built-in scenario loads into the studio and re-exports without
+  // loss: the exported JSON is deep-equal to the scenario's own JSON, still
+  // validates through the import path, and still lints clean.
+  for (const scenario of scenarios) {
+    const loaded = loadDraft(JSON.stringify(scenario));
+    assert.ok(loaded.ok, `${scenario.id} must load into the studio`);
+    if (!loaded.ok) {
+      continue;
+    }
+    const exported = exportDraft(loaded.draft);
+    assert.deepEqual(
+      JSON.parse(exported),
+      JSON.parse(JSON.stringify(scenario)),
+      `${scenario.id} must re-export from the studio without loss`
+    );
+    const reimported = parseScenarioJson(exported);
+    assert.ok(
+      reimported.ok,
+      `${scenario.id} exported from the studio must pass the import validator`
+    );
+    if (reimported.ok) {
+      assert.equal(
+        lintScenario(reimported.scenario).length,
+        0,
+        `${scenario.id} exported from the studio must lint clean`
+      );
+    }
+  }
+
+  // A scenario authored as a draft (the shape the studio's forms build)
+  // exports to JSON that the import path accepts and plays to an outcome.
+  const authored = {
+    id: "studio-smoke",
+    name: "Studio Smoke",
+    tagline: "A two-step day to prove the authoring loop.",
+    initialStepId: "first",
+    initialMetrics: {
+      quality: 50,
+      speed: 50,
+      risk: 20,
+      trust: 60,
+      focus: 70,
+      testConfidence: 50,
+    },
+    steps: [
+      {
+        id: "first",
+        time: "9:00 AM",
+        title: "First call",
+        narrative: "The day starts.",
+        context: "One early decision.",
+        options: [
+          {
+            id: "careful",
+            label: "Take it slow",
+            description: "Check before acting.",
+            impact: { risk: -10 },
+            nextStepId: "second",
+            flags: ["took-care"],
+          },
+          {
+            id: "rushed",
+            label: "Rush it",
+            description: "Act before checking.",
+            impact: { risk: 60 },
+            nextStepId: "second",
+          },
+        ],
+      },
+      {
+        id: "second",
+        time: "4:00 PM",
+        title: "Last call",
+        narrative: "The day ends.",
+        context: "One late decision.",
+        options: [
+          {
+            id: "wrap-up",
+            label: "Wrap up",
+            description: "Close it out.",
+            impact: { quality: 5 },
+            nextStepId: "__end__",
+            consequence: "The day closes quietly.",
+            consequenceOverrides: [
+              {
+                when: { kind: "hasFlag", flag: "took-care" },
+                text: "The day closes quietly, on the margin you bought this morning.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    outcomes: [
+      {
+        id: "safe-rollout",
+        time: "5:00 PM",
+        title: "Safe Rollout",
+        summary: "It ships clean.",
+        tone: "positive",
+      },
+      {
+        id: "minor-issue",
+        time: "5:00 PM",
+        title: "Minor Production Issue",
+        summary: "It mostly ships clean.",
+        tone: "mixed",
+      },
+    ],
+    outcomeRules: [
+      {
+        outcomeId: "safe-rollout",
+        priority: 1,
+        when: { kind: "metricAtMost", metric: "risk", value: 40 },
+      },
+    ],
+    fallbackOutcomeId: "minor-issue",
+  };
+  const authoredJson = exportDraft(
+    (loadDraft(JSON.stringify(authored)) as { ok: true; draft: Scenario })
+      .draft
+  );
+  const authoredImport = parseScenarioJson(authoredJson);
+  assert.ok(
+    authoredImport.ok,
+    `a studio-authored draft must pass the import validator: ${
+      authoredImport.ok ? "" : authoredImport.errors.join("; ")
+    }`
+  );
+  if (authoredImport.ok) {
+    let state = createInitialState(authoredImport.scenario);
+    state = applyDecision(authoredImport.scenario, state, "careful");
+    state = applyDecision(authoredImport.scenario, state, "wrap-up");
+    assert.equal(state.completed, true);
+    assert.equal(state.outcomeId, "safe-rollout");
+    assert.match(
+      state.decisions[1].consequence!,
+      /margin you bought this morning/,
+      "an authored conditional consequence must resolve"
+    );
+  }
+
+  // Issues route to the structure they describe, so the studio can render
+  // them in place rather than in a distant console.
+  assert.deepEqual(
+    validationTarget('steps[1].options[2].label must be a string'),
+    { section: "option", step: 1, option: 2 }
+  );
+  assert.deepEqual(validationTarget("steps[3].time must be a string"), {
+    section: "step",
+    step: 3,
+  });
+  assert.deepEqual(validationTarget('outcomes[4].tone must be one of x'), {
+    section: "outcome",
+    outcome: 4,
+  });
+  assert.deepEqual(
+    validationTarget('outcomeRules[0].priority must be a number'),
+    { section: "rule", rule: 0 }
+  );
+  assert.deepEqual(
+    validationTarget('Field "name" must be a non-empty string'),
+    { section: "scenario" }
+  );
+
+  // End to end: break one option in a clone and assert the validator's
+  // message lands on that option.
+  {
+    const broken = JSON.parse(JSON.stringify(scenario1));
+    broken.steps[2].options[1].label = 42;
+    const result = validateScenario(broken);
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      const message = result.errors.find((e) => e.includes("label"));
+      assert.ok(message, "breaking a label must produce a label error");
+      assert.deepEqual(validationTarget(message!), {
+        section: "option",
+        step: 2,
+        option: 1,
+      });
+    }
+  }
+
+  // Lint warnings route by the ids they name.
+  {
+    const draft = (
+      loadDraft(JSON.stringify(scenario1)) as { ok: true; draft: Scenario }
+    ).draft;
+    assert.deepEqual(lintTarget('Unreachable step "tests-fail"', draft), {
+      section: "step",
+      step: 3,
+    });
+    assert.deepEqual(
+      lintTarget(
+        "Outcome rule 2 (responsible-delay) can never fire: its condition is unsatisfiable",
+        draft
+      ),
+      { section: "rule", rule: 2 }
+    );
+    assert.deepEqual(
+      lintTarget(
+        'Dead flag "x": read by consequence override 0 on release-decision/full-release but set by no option',
+        draft
+      ),
+      { section: "option", step: 5, option: 0 }
+    );
+  }
+
+  console.log(
+    "\nStudio: lossless round trips for all built-ins, authored-draft import, and issue routing verified."
+  );
+}
+
+// --- Phase 9: distribution preview -------------------------------------
+
+{
+  // The studio preview and the verify walk are the same implementation, so
+  // for every built-in (all under the path ceiling) the preview's counts
+  // must equal the walk's exact counts, which the pins above already froze.
+  for (const scenario of scenarios) {
+    const preview = previewDistribution(scenario);
+    assert.equal(
+      preview.sampled,
+      false,
+      `${scenario.id} sits under the preview ceiling and must walk exhaustively`
+    );
+    assert.equal(preview.pathCount, preview.totalRuns);
+    assert.deepEqual(
+      preview.counts,
+      walkCounts.get(scenario.id),
+      `preview counts must match the exhaustive walk in ${scenario.id}`
+    );
+  }
+
+  // A constructed scenario above the ceiling takes the sampled path: the
+  // result is labeled, sized to the sample, and deterministic across runs.
+  const wide: Scenario = {
+    id: "wide-smoke",
+    name: "Wide Smoke",
+    tagline: "Eight steps of five options to overflow the preview ceiling.",
+    initialStepId: "s0",
+    initialMetrics: {
+      quality: 50,
+      speed: 50,
+      risk: 20,
+      trust: 60,
+      focus: 70,
+      testConfidence: 50,
+    },
+    steps: Array.from({ length: 8 }, (_, i) => ({
+      id: `s${i}`,
+      time: `${9 + i}:00 AM`,
+      title: `Step ${i}`,
+      narrative: "One more call.",
+      context: "Keep going.",
+      options: Array.from({ length: 5 }, (_, j) => ({
+        id: `o${j}`,
+        label: `Option ${j}`,
+        description: "A choice.",
+        impact: { risk: j * 4 - 6 },
+        nextStepId: i === 7 ? END_STEP_ID : `s${i + 1}`,
+      })),
+    })),
+    outcomes: [
+      {
+        id: "minor-issue",
+        time: "5:00 PM",
+        title: "Minor Production Issue",
+        summary: "It mostly held.",
+        tone: "mixed",
+      },
+      {
+        id: "customer-incident",
+        time: "5:00 PM",
+        title: "Customer Impact Incident",
+        summary: "It did not hold.",
+        tone: "negative",
+      },
+    ],
+    outcomeRules: [
+      {
+        outcomeId: "customer-incident",
+        priority: 1,
+        when: { kind: "metricAtLeast", metric: "risk", value: 60 },
+      },
+    ],
+    fallbackOutcomeId: "minor-issue",
+  };
+  assert.equal(countPaths(wide), 5 ** 8);
+  assert.ok(
+    countPaths(wide) > PREVIEW_PATH_CEILING,
+    "the constructed scenario must exceed the preview ceiling"
+  );
+  const sampledA = previewDistribution(wide);
+  assert.equal(sampledA.sampled, true, "above the ceiling the preview samples");
+  assert.equal(sampledA.totalRuns, PREVIEW_SAMPLE_SIZE);
+  assert.equal(sampledA.pathCount, 5 ** 8);
+  const tallied = Object.values(sampledA.counts).reduce((a, b) => a + b, 0);
+  assert.equal(tallied, PREVIEW_SAMPLE_SIZE, "every sampled run is tallied");
+  assert.ok(
+    (sampledA.counts["minor-issue"] ?? 0) > 0 &&
+      (sampledA.counts["customer-incident"] ?? 0) > 0,
+    "the sample must see both reachable outcomes"
+  );
+  const sampledB = previewDistribution(wide);
+  assert.deepEqual(
+    sampledB,
+    sampledA,
+    "the seeded sample must be deterministic for the same scenario"
+  );
+
+  // The sampler agrees with the exhaustive walk to sampling precision on a
+  // small scenario where both can run: every share within two points.
+  {
+    const exact = enumerateDistribution(scenario1);
+    const sampled = sampleDistribution(
+      scenario1,
+      PREVIEW_SAMPLE_SIZE,
+      PREVIEW_SEED
+    );
+    for (const outcome of scenario1.outcomes) {
+      const exactShare = (exact.counts[outcome.id] ?? 0) / exact.totalRuns;
+      const sampledShare =
+        (sampled.counts[outcome.id] ?? 0) / sampled.totalRuns;
+      assert.ok(
+        Math.abs(exactShare - sampledShare) < 0.02,
+        `sampled share for ${outcome.id} must track the exact share (exact ${exactShare}, sampled ${sampledShare})`
+      );
+    }
+  }
+
+  console.log(
+    "\nDistribution preview: exact counts for built-ins, seeded sampling above the ceiling."
+  );
 }
 
 console.log("\nAll verification checks passed.");

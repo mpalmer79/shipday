@@ -13,6 +13,17 @@ export type DecisionImpact = Partial<Record<MetricKey, number>>;
 /** Documented flag vocabulary lives in scenario data (see data/scenarios). */
 export type FlagId = string;
 
+/**
+ * A conditional variant of an option's consequence text. The condition is
+ * evaluated against the state before the decision's own impacts and flags
+ * apply, so it reads the day as the player saw it when choosing. Display
+ * only: overrides never touch metrics, flags, or outcome resolution.
+ */
+export type ConsequenceOverride = {
+  when: Condition;
+  text: string;
+};
+
 export type DecisionOption = {
   id: string;
   label: string;
@@ -21,6 +32,11 @@ export type DecisionOption = {
   nextStepId: string;
   flags?: FlagId[];
   consequence?: string;
+  /**
+   * Ordered list of conditional consequences. The first override whose
+   * condition holds wins; `consequence` is the fallback when none match.
+   */
+  consequenceOverrides?: ConsequenceOverride[];
   lesson?: string;
   /**
    * Curated marker: true means this option is a deliberate strong decision
@@ -101,6 +117,11 @@ export type DecisionRecord = {
   stepTime: string;
   optionLabel: string;
   impact: DecisionImpact;
+  /**
+   * The consequence text resolved at decision time (overrides applied
+   * against the pre-decision state). Replay, the report, and comparison
+   * read this record; nothing re-resolves it later.
+   */
   consequence?: string;
   lesson?: string;
   /** Carried from the chosen option's curated strong marker. */

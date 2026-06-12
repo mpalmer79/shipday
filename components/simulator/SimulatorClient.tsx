@@ -18,6 +18,7 @@ import {
 import {
   applyDecision,
   createInitialState,
+  encodeRun,
   generateReport,
   getCurrentStep,
   reconstructRun,
@@ -49,7 +50,17 @@ function makeReducer(scenario: Scenario) {
   };
 }
 
-export function SimulatorClient({ scenario }: { scenario: Scenario }) {
+export function SimulatorClient({
+  scenario,
+  shareable = false,
+}: {
+  scenario: Scenario;
+  /**
+   * True only for registry scenarios. A run link carries the scenario id,
+   * so a run of a scenario that is not in the registry cannot travel.
+   */
+  shareable?: boolean;
+}) {
   const reducer = useMemo(() => makeReducer(scenario), [scenario]);
   const [state, dispatch] = useReducer(reducer, scenario, createInitialState);
   const [view, setView] = useState<"report" | "replay">("report");
@@ -179,6 +190,19 @@ export function SimulatorClient({ scenario }: { scenario: Scenario }) {
               <OutcomeBadge outcome={report.outcome} />
               <EndOfDayReport
                 report={report}
+                shareCode={
+                  shareable
+                    ? encodeRun(
+                        scenario.id,
+                        state.decisions.map((d) => d.optionId)
+                      )
+                    : undefined
+                }
+                shareNote={
+                  shareable
+                    ? undefined
+                    : "This scenario is not in the built-in registry, so the run cannot be shared by link; a link carries only the scenario id."
+                }
                 onRestart={() => {
                   setView("report");
                   setSavedToComparison(false);

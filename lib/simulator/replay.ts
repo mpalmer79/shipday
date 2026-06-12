@@ -63,7 +63,9 @@ export function reconstructRun(
       impact: chosen.impact,
       metricsBefore,
       metricsAfter: state.metrics,
-      consequence: chosen.consequence,
+      // The engine re-resolves the consequence deterministically from the
+      // same pre-decision state, so this always matches the original record.
+      consequence: state.decisions[index].consequence,
     });
   });
 

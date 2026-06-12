@@ -657,6 +657,365 @@ picker, importer, comparison page, all four scenarios, the favicon, and a
 social card return 200, and the legacy `/simulator` path returns its 307
 redirect.
 
+# Decision log: v4 autonomous build
+
+Audit trail for the v4 run (the authoring update). One entry per decision,
+tagged with the milestone it belongs to. Milestone numbers restart at 1 for
+this run.
+
+## Milestone 1
+
+### M1: Overrides resolve against the full pre-decision state
+
+The milestone fixes the evaluation point as "before the decision's own flags
+apply." The Condition type also supports metric thresholds, so the override
+condition is evaluated against the entire pre-decision state (metrics and
+flags as they stood when the step was presented), using the same
+evaluateCondition the outcome rules use. This is the only reading in which a
+condition means the same thing in an override as in a rule, and it keeps the
+resolution independent of the option's own impacts.
+
+### M1: Replay reads the engine's record, not the option
+
+The DecisionRecord stores the resolved text, and the report, the timeline,
+and comparison already render from records, so they needed no changes.
+Replay's frames previously copied the static option consequence; they now
+carry the record written by the engine during reconstruction. Reconstruction
+replays the same decisions from the same initial state, so the engine
+re-resolves to the same text deterministically; verify asserts the replayed
+consequence equals the original record for every decision of every
+enumerated run in all four scenarios.
+
+### M1: One override in The Page fixes a latent copy mismatch
+
+The base consequence for move-on-to-feature ("the rollback still
+unexplained") was written for the rollback triage path, but the step is also
+reachable through the kill switch, where no rollback happened. The new
+override on mitigated-impact gives the kill-switch path its own text, which
+is the conditional-consequence mechanism doing exactly the job it was built
+for. The base text stays for the rollback path.
+
+### M1: Retrofit shape, three overrides per scenario
+
+Each scenario carries at least three overrides (scenario 1 and 2 carry
+four), placed on later-step options and keyed to flags set in earlier steps,
+so the override text can reference the earlier behavior specifically.
+Scenario 1's full-release and scenario 2's say-green carry two ordered
+overrides each to exercise first-match-wins; verify asserts the ordering
+with a constructed run where both conditions hold. Consequence text is
+display only, so no distribution pin moved; the unchanged pins are asserted
+by the existing verify phase.
+
+## Milestone 2
+
+### M2: Run code format is version, scenario id, then option ids
+
+A run encodes as `v1.<scenarioId>.<optionId>.<optionId>...`, dot-joined.
+The version token leads so the format can evolve; everything after it is
+the scenario id and the decision trail in order. Per-step option indices
+were considered and rejected: an index code is shorter, but reordering a
+step's options in a data edit would silently remap every decision in old
+links, while option ids fail loudly through the same engine validation
+every run goes through. Built-in ids use lowercase words and hyphens, so
+the dot separator is unambiguous and the code needs no URL escaping beyond
+the standard query encoding. Decoding treats the code as untrusted: parse
+errors, an unknown version, a missing scenario, an unknown option, a
+truncated trail, and a trail that runs past the end of the day each return
+a specific message instead of throwing.
+
+### M2: Decoding splits into a pure layer and a registry layer
+
+`lib/simulator/runCode.ts` knows the format and the engine but no scenario
+data, so verify can round-trip codes per scenario through it. The registry
+lookup lives in `lib/runLink.ts`, which is the reason imported scenarios
+cannot travel by link (the code carries only the scenario id); the report
+of an unshareable run says so in one line. The run page reads the query
+parameter in a client component behind a Suspense boundary, which keeps the
+route fully static; reconstruction happens in the browser through the
+existing pure replay.
+
+### M2: Comparison loads links into the session run store
+
+The comparison page's "load a run from a link" flow decodes the pasted
+link, replays it, and adds it to the existing in-memory run store, where it
+becomes selectable as run A or run B alongside locally played runs. This
+reuses the store and pickers instead of adding a parallel two-slot input,
+and it means a loaded run can be compared against any number of local runs.
+The loader accepts a full link or a bare code; loaded runs clear on reload
+like every other saved run.
+
+### M2: Clipboard failures fall back to a visible URL
+
+"Copy link to this run" uses the clipboard API, which can be blocked.
+On failure the report shows the URL in a read-only input with a one-line
+explanation, so the share flow cannot dead-end. The link is built at click
+time from `window.location.origin`, which keeps the component free of any
+configured site URL and correct on any deploy.
+
+## Milestone 3
+
+### M3: The draft is the scenario object, edited immutably
+
+The studio's draft is a plain Scenario-shaped object in component state,
+edited with immutable spreads. Export is JSON.stringify of the draft and
+load is JSON.parse plus a structural normalization, so the export matches
+the import schema by construction and a loaded scenario that is never
+touched re-exports deep-equal. Verify pins this with a load-and-export
+round trip of every built-in scenario, asserted as deep equality and
+re-checked through the import validator and lint. Optional fields
+(consequence, lesson, codeSnippet, systemSignals, flags, overrides, the
+strong marker, missedSignals) are deleted from the object when cleared
+rather than set to empty values, so editing cannot leave behind keys the
+original scenario did not have.
+
+### M3: Load normalizes containers, not values
+
+Loading JSON into forms requires the containers the editors iterate
+(steps, options, impact, flags, overrides, outcomes, rules) to actually be
+arrays and objects, so load coerces a wrong-typed container to its empty
+container. Scalar fields are left exactly as loaded, even when invalid, and
+surface through live validation instead. A valid scenario passes through
+normalization unchanged, which the round-trip assertion proves.
+
+### M3: Issues are routed to structures by parsing messages
+
+The validator already prefixes every message with its path
+(steps[2].options[1]...), and lint names structures by id, so the studio
+routes messages with two small parsers (validationTarget, lintTarget in
+lib/studio.ts) instead of changing the validator's return shape, which the
+import page and its assertions depend on. Anything unparseable lands on the
+scenario header rather than disappearing. The routing is pure and verified
+directly, including an end-to-end case that breaks one option and asserts
+the message lands on it. One lint message format changed for this (the
+consequence override messages now read "consequence override N on
+step/option"), which no assertion pinned.
+
+### M3: Validation runs on every change, lint only on valid drafts
+
+The validator is a single linear pass over the draft and is run on every
+edit; its errors gate "Play this draft" exactly as the import page gates
+playing. Lint needs a structurally valid scenario, so warnings are computed
+only when validation passes, matching the import page's behavior. Playing
+a draft hands the validated scenario to the same SimulatorClient the
+import page uses, in memory; the draft is not shareable by link, and the
+report says so through the existing share note.
+
+### M3: Flags edit as one input per flag
+
+Flags and missed signals are edited as lists of single inputs with add and
+remove buttons rather than a comma-separated text field, because parsing a
+separator on every keystroke either eats the separator being typed or
+needs shadow text state beside the draft. One input per value keeps the
+draft the only state. Known quirk, accepted: two missed-signal entries
+whose flags are momentarily identical collapse into one, since the map is
+keyed by flag.
+
+## Milestone 4
+
+### M4: One walk implementation, shared via a per-run callback
+
+The exhaustive walk moved from the verify script into
+`lib/simulator/distribution.ts`, which imports nothing Node-specific and is
+what both verify and the studio's web worker run. Verify's twenty-odd
+per-run assertions (report coherence, replay fidelity, consequence and
+run-code round trips, markdown structure) did not move into the shared
+module; instead `enumerateDistribution` takes an optional callback invoked
+with every completed run's final state, and verify passes its assertions
+through it. The walk that computes the preview is therefore byte-for-byte
+the walk that computes the pins, which verify also asserts directly by
+comparing `previewDistribution` counts against the walk counts for all four
+built-ins. The memoized structural path counter moved into the same module
+and verify consumes it from there.
+
+### M4: Preview budget, ceiling 100,000 paths, sample 20,000 runs
+
+The preview walks exhaustively up to 100,000 structural paths. The
+built-ins sit at 4,096 to 6,400 paths and verify walks all of them with
+heavy per-run assertions in under half a second, so a bare tally of
+100,000 runs stays around a second inside a worker, which cannot freeze
+the page in any case. Above the ceiling the preview draws 20,000 runs,
+which puts the standard error of a share around 0.35 points at worst, fine
+for advisory guidance against 2 and 45 percent bounds; the panel labels
+the result as sampled with both the sample size and the true path count.
+
+### M4: Sampling is uniform over paths via the structural counts
+
+A naive walk that picks uniformly among a step's options does not sample
+paths uniformly once branches have different widths. The sampler reuses
+the memoized path counts and picks each option with probability
+proportional to the complete paths through it, which makes every complete
+path equally likely, exactly like drawing runs at random from the
+exhaustive enumeration. Draws are with replacement, seeded with a fixed
+constant through a small deterministic generator (mulberry32), so the same
+draft always shows the same preview. Verify asserts the sampled path on a
+constructed 390,625-path scenario (eight steps of five options): sampled
+label, exact sample size, full tally, both outcomes seen, and run-to-run
+determinism; it also asserts the sampler tracks the exact shares within
+two points on a built-in.
+
+### M4: The panel runs on demand in a bundled worker
+
+The distribution panel posts the draft to a worker created with the
+standard `new Worker(new URL(...))` pattern, which the bundler turns into
+a static chunk; no dependency was added and the page stays static. The
+walk runs off the main thread and the panel re-runs only on its button.
+The worker re-validates the draft it receives, so a malformed message can
+only produce a readable error, and walk failures (a cycle, an unknown
+step) come back as messages rather than crashes. The 2 to 45 percent band
+renders as advisory guidance per outcome, in words, not as a validation
+error; the panel says so in one line.
+
+## Milestone 5
+
+### M5: How the JSON-first path was actually used
+
+This run is autonomous and headless, so nobody clicked the studio's forms.
+The dogfooding used the studio's own machinery the way its code paths
+define it: the scenario was written as studio-format JSON first, then
+driven through loadDraft, the validator, lint, exportDraft, and
+previewDistribution (the exact pipeline behind the forms and the
+distribution panel) via a small uncommitted harness, through five
+edit-preview iterations, before being converted mechanically to the
+built-in TypeScript file. The conversion was scripted (flag strings to the
+FLAGS constants, the end sentinel to END_STEP_ID, keys unquoted) rather
+than retyped, and the pinned distribution proves the committed file
+behaves identically to the tuned JSON. The friction list below reads the
+forms critically against that same workflow.
+
+### M5: Scenario 5 design
+
+The Missing Requirement: an order-history export is approved, QA-passed,
+and scheduled to merge when a stakeholder mentions in passing that
+enterprise contracts require role-based masking of payment and address
+fields, a constraint written down nowhere. Seven steps, six decisions per
+run, with a Page-style branch at the 11:30 AM call: two options route to a
+renegotiation step (the strategy conversation) and two to a rework step
+(reopening the code), reconverging at the merge window. The branch serves
+the premise directly, since reopen versus renegotiate is the day's stated
+question. The scenario reuses the existing flag vocabulary (mitigated-
+impact covers gating the export, reproduced-failure covers producing the
+bad file); no new flag was needed. It carries five conditional
+consequences, a codeSnippet of the role-blind serializer, systemSignals on
+three steps, scenario-authored missed-signal copy, and curated strong
+markers.
+
+### M5: Incidents require the export to have actually shipped
+
+The incident rule is wrapped in lacksFlag delayed-release and lacksFlag
+blocked-release: a run that ends by holding or pulling the export cannot
+produce a data-exposure incident, whatever wreckage the earlier day
+accumulated, because the file never reaches customers. Without the guard,
+the maximally reckless prefix plus a final hold landed in Customer Impact
+Incident, which contradicts the premise. Some existing scenarios do allow
+high-risk held runs to reach the incident outcome; their pins were not
+touched, and this scenario simply makes the cleaner choice for a premise
+where exposure is the only incident channel.
+
+### M5: Registry placement and tuning
+
+Placed third of five, labeled intermediate, between The Broken Build and
+Friday Deploy. Reasoning: the day is about scope discovery and
+negotiation, with no live production fire; it is harder than The Broken
+Build (contract stakes, a branch, and more political surface) but its
+failure modes are slower and more recoverable than a Friday-evening global
+config change or a live page, so it sits below advanced. Two scenarios now
+share the intermediate label, which keeps the labels monotone along the
+registry order. Tuning to the slot took three threshold moves, all in
+scenario data: the first draft had Minor Production Issue at 48.2 percent
+(over the bound) and incident at 5.66 percent (below the slot); loosening
+the safe gate from risk at most 25 and testConfidence at least 65 to 28
+and 60 brought minor-issue inside, and lowering the incident flag-clause
+risk threshold from 45 to 40 and then 35 lifted the incident share to 8.23
+percent, comfortably inside the 6.55 to 9.06 slot. Final distribution over
+4,096 runs: Safe Rollout 750 (18.3 percent), Minor Production Issue 1,625
+(39.7 percent), Customer Impact Incident 337 (8.2 percent), Responsible
+Delay 1,024 (25.0 percent), Overcontrolled Delivery 360 (8.8 percent),
+now pinned. No existing pin moved; the curve assertion passes with the new
+point.
+
+### M5: Dogfooding friction list
+
+What the studio made easy:
+
+- The distribution preview is the tool that makes authoring viable. Five
+  edit-preview loops took the scenario from out of bounds to pinned, with
+  exact counts to copy into the pin table. Without it, tuning is guesswork.
+- Path-routed validation caught every structural mistake during drafting
+  (a misspelled nextStepId, a missing metric) with messages that named the
+  exact option.
+- The export-import round trip is trustworthy enough to move freely
+  between the forms and a text editor, and that movement turns out to be
+  the real workflow: forms for structure and checks, JSON in a proper
+  editor for copy passes. Long narrative text wants an editor, not a
+  textarea.
+
+What the studio made painful, in order of cost:
+
+- No duplicate button for steps or options. Scenario steps are heavily
+  templated (four options, the same seven fields each); building each
+  option field by field is the single largest time sink in the form path.
+- Building condition trees by clicking. The incident rule here is a
+  three-level tree with six leaves; that is roughly twenty interactions in
+  the nested condition editor versus six lines of JSON. Fine for hasFlag,
+  costly for allOf trees.
+- Flags are free-text inputs with no view of the vocabulary already in
+  use, in the draft or in the built-ins. A typo becomes a dead flag that
+  only lint catches later. The draft's own set of flags should be offered
+  as suggestions.
+- No reordering of steps or options; authoring order rarely matches final
+  order, and the workaround is export, reorder in JSON, reload.
+- The distribution panel says where runs landed but not why. During
+  tuning, the missing artifact was one example trail per outcome; the
+  harness compensated by replaying runs manually.
+- The known missed-signals quirk from the M3 log (two entries with the
+  same momentary flag key collapse) means the second entry must wait until
+  the first has its flag typed. Hit during design; survivable, annoying.
+
+No studio code changes were required to complete this milestone; the
+pipeline handled the full loop. The friction items above are recorded as
+the v4 known weak spots rather than fixed silently here.
+
+## Milestone 6
+
+### M6: Sweep and copy read-through
+
+A repository-wide sweep found no em dashes in any source, data, or
+documentation file, and the banned words appear only in the verify
+detector list and in this decision log where the rule itself is discussed,
+the convention every previous run used. The copy-rule assertions cover
+scenario 5 automatically since it is registered, and the run-code error
+messages are asserted clean explicitly. Every user-facing string added in
+this run (share flow, run page, compare loader, studio sections and
+notices, distribution panel, scenario 5) was read end to end against the
+register; no filler was found beyond what drafting already removed.
+
+### M6: README rewritten for the v4 state
+
+The README now describes five scenarios with the updated incident curve
+(2.95, 6.55, 8.23, 9.06, 12.60), conditional consequences, shareable run
+links and the run page, the studio, the shared distribution walk and its
+preview budget, the link-loading comparison flow, updated architecture
+notes, the routes table with /run and /studio, and the updated project
+structure. The roadmap marks the v4 items complete, including the
+conditional-consequence item left honest in v3, and lists the three
+highest-value studio improvements from the dogfooding friction list as the
+remaining items rather than inventing grander ones.
+
+### M6: Final verification scope
+
+verify and build are green; the build route table shows every route
+static or SSG. All routes were smoke tested against a running production
+server: landing, picker, all five scenarios, import, studio, compare, run
+(bare, with a valid code, and with a garbage code), the favicon, the
+product card, a per-scenario card, and the legacy /simulator redirect.
+The /run page renders its result client-side, and this harness has no
+browser, so the valid and invalid rendering paths are covered by the
+exported function tests in verify (round trip of every enumerated run,
+ten malformed codes with specific messages) plus the served shell
+returning 200 with the page heading; the same applies to the studio's
+interactive flows, whose load, export, validation routing, and preview
+logic are all asserted through their exported functions.
+
 # Decision log: launch fix session
 
 Three tasks on top of the merged v3: raster social cards, the ink-faint

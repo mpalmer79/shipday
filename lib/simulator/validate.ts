@@ -161,6 +161,8 @@ export function validateScenario(input: unknown): ValidationResult {
   // Steps.
   const stepIds = new Set<string>();
   const setFlags = new Set<string>();
+  // Flags read by consequence overrides, checked against setFlags below.
+  const overrideFlags: string[] = [];
   if (!Array.isArray(input.steps) || input.steps.length === 0) {
     errors.push("steps must be a non-empty array");
   } else {
@@ -222,6 +224,30 @@ export function validateScenario(input: unknown): ValidationResult {
                 setFlags.add(flag);
               }
             }
+          }
+        }
+        if (option.consequenceOverrides !== undefined) {
+          if (!Array.isArray(option.consequenceOverrides)) {
+            errors.push(
+              `${ow}.consequenceOverrides must be an array of overrides`
+            );
+          } else {
+            option.consequenceOverrides.forEach((override, k) => {
+              const vw = `${ow}.consequenceOverrides[${k}]`;
+              if (!isObject(override)) {
+                errors.push(`${vw} must be an object`);
+                return;
+              }
+              if (!isString(override.text) || override.text.length === 0) {
+                errors.push(`${vw}.text must be a non-empty string`);
+              }
+              validateCondition(
+                override.when,
+                `${vw}.when`,
+                errors,
+                overrideFlags
+              );
+            });
           }
         }
       }
@@ -314,6 +340,15 @@ export function validateScenario(input: unknown): ValidationResult {
     if (!setFlags.has(flag)) {
       errors.push(
         `outcome rules reference flag "${flag}" that no option ever sets`
+      );
+    }
+  }
+
+  // The same defined-flag rule applies to consequence override conditions.
+  for (const flag of overrideFlags) {
+    if (!setFlags.has(flag)) {
+      errors.push(
+        `consequence overrides reference flag "${flag}" that no option ever sets`
       );
     }
   }

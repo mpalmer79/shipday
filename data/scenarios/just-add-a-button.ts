@@ -182,6 +182,12 @@ export const justAddAButton: Scenario = {
           flags: [FLAGS.acceptedAiUnreviewed],
           consequence:
             "You just merged code you can't fully explain into the path where customers pay you.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.inspectedExistingCode },
+              text: "You read the pricing module this morning and flagged the promo mutation as touchy. This code touches that exact path, and you merged it without checking.",
+            },
+          ],
           lesson:
             "AI can write the code, but it can't own the consequences. You ship it, you own it.",
         },
@@ -306,6 +312,12 @@ export const justAddAButton: Scenario = {
           flags: [FLAGS.skippedValidation],
           consequence:
             "The ticket goes in the backlog. You and the backlog both know how this usually ends.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.acceptedAiUnreviewed },
+              text: "The skipped test was the only thing checking the generated code you never reviewed. Now nothing is.",
+            },
+          ],
           lesson:
             "“Later” is where test coverage goes to die. Skipped tests are risk wearing a polite name.",
         },
@@ -394,6 +406,16 @@ export const justAddAButton: Scenario = {
           flags: [FLAGS.shippedDirect],
           consequence:
             "The deploy goes out to every cart in production at once. Whatever happens next happens to everyone.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.deletedFailingTest },
+              text: "The deploy goes out to every cart at once, and the promo-interaction test you deleted this afternoon is no longer standing between it and a double discount.",
+            },
+            {
+              when: { kind: "hasFlag", flag: FLAGS.usedFeatureFlag },
+              text: "The flag you shipped behind this afternoon goes straight to 100 percent. The kill switch exists; you just chose not to use the dial.",
+            },
+          ],
           lesson:
             "A full release is a bet that you found every problem. Make sure today earned that bet.",
         },

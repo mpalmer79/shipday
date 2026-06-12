@@ -1,14 +1,24 @@
+import { useState } from "react";
 import Link from "next/link";
 import type { EndOfDayReport as Report } from "@/lib/simulator";
 import { METRIC_LABELS, METRIC_ORDER } from "@/lib/simulator";
 
+type ShareState =
+  | { status: "idle" }
+  | { status: "copied" }
+  | { status: "manual"; url: string };
+
 type EndOfDayReportProps = {
   report: Report;
-  onRestart: () => void;
+  onRestart?: () => void;
   onReplay?: () => void;
   onDownload?: () => void;
   onAddToComparison?: () => void;
   savedToComparison?: boolean;
+  /** Run code for "Copy link to this run". Absent when not shareable. */
+  shareCode?: string;
+  /** One-line explanation shown when sharing is unavailable. */
+  shareNote?: string;
 };
 
 export function EndOfDayReport({
@@ -18,7 +28,24 @@ export function EndOfDayReport({
   onDownload,
   onAddToComparison,
   savedToComparison = false,
+  shareCode,
+  shareNote,
 }: EndOfDayReportProps) {
+  const [share, setShare] = useState<ShareState>({ status: "idle" });
+
+  async function handleCopyLink() {
+    if (!shareCode) {
+      return;
+    }
+    const url = `${window.location.origin}/run?code=${encodeURIComponent(shareCode)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShare({ status: "copied" });
+    } catch {
+      setShare({ status: "manual", url });
+    }
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="rounded-lg border border-surface-line bg-surface-raised p-5">
@@ -118,13 +145,15 @@ export function EndOfDayReport({
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={onRestart}
-          className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-accent/90"
-        >
-          Run the day again
-        </button>
+        {onRestart && (
+          <button
+            type="button"
+            onClick={onRestart}
+            className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-accent/90"
+          >
+            Run the day again
+          </button>
+        )}
         {onReplay && (
           <button
             type="button"
@@ -153,7 +182,36 @@ export function EndOfDayReport({
             {savedToComparison ? "Added to comparison" : "Add to comparison"}
           </button>
         )}
+        {shareCode && (
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="rounded-lg border border-surface-line px-6 py-2.5 text-sm font-medium transition-colors hover:border-accent"
+          >
+            {share.status === "copied" ? "Link copied" : "Copy link to this run"}
+          </button>
+        )}
       </div>
+
+      {share.status === "manual" && (
+        <div>
+          <p className="text-xs text-ink-muted">
+            The browser blocked the clipboard. Copy the link from here:
+          </p>
+          <label htmlFor="run-share-url" className="sr-only">
+            Run link
+          </label>
+          <input
+            id="run-share-url"
+            readOnly
+            value={share.url}
+            onFocus={(e) => e.currentTarget.select()}
+            className="mt-2 w-full rounded-lg border border-surface-line bg-surface-raised px-3 py-2 font-mono text-xs text-ink"
+          />
+        </div>
+      )}
+
+      {shareNote && <p className="text-xs text-ink-faint">{shareNote}</p>}
 
       {savedToComparison && (
         <p className="text-xs text-ink-muted">

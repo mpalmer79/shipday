@@ -181,6 +181,12 @@ export const fridayDeploy: Scenario = {
           flags: [FLAGS.skippedValidation],
           consequence:
             "Approved. The notif-daemon question is still open; the diff does not answer it, and neither did you.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.inspectedExistingCode },
+              text: "Approved. You found three consumers this afternoon, and you just signed off on a diff that only answers for one of them.",
+            },
+          ],
           lesson:
             "Reviewing the diff is not the same as reviewing the change. The diff shows what moves; the consumers decide what breaks.",
         },
@@ -246,6 +252,12 @@ export const fridayDeploy: Scenario = {
           flags: [FLAGS.skippedValidation],
           consequence:
             "Merged. The one mechanism designed to catch your blind spots was the one you waived.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.preparedRollback },
+              text: "Merged without review. At least the rollback plan you wrote means the mistake you cannot see has a four minute undo.",
+            },
+          ],
           lesson:
             "Review is for the mistakes the author cannot see, which is exactly why the author cannot waive it accurately.",
         },
@@ -374,6 +386,12 @@ export const fridayDeploy: Scenario = {
           flags: [FLAGS.shippedDirect],
           consequence:
             "The deploy lands at 4:51 PM. All three services pick up the new value heading into the quietest support hours of the week.",
+          consequenceOverrides: [
+            {
+              when: { kind: "hasFlag", flag: FLAGS.preparedRollback },
+              text: "The deploy lands at 4:51 PM, all three services included. If the weekend goes sideways, Riya is at least holding the revert you wrote this afternoon.",
+            },
+          ],
           lesson:
             "A Friday evening deploy runs during the hours with the least coverage and the slowest response. The calendar is part of the risk.",
         },

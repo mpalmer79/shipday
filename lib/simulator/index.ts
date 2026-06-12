@@ -22,6 +22,23 @@ export {
 } from "./validate";
 export type { ValidationResult } from "./validate";
 export { lintScenario } from "./lint";
+export {
+  countPaths,
+  enumerateDistribution,
+  previewDistribution,
+  sampleDistribution,
+  PREVIEW_PATH_CEILING,
+  PREVIEW_SAMPLE_SIZE,
+  PREVIEW_SEED,
+} from "./distribution";
+export type { Distribution, OutcomeCounts } from "./distribution";
+export {
+  decodeRunCode,
+  encodeRun,
+  playRunCode,
+  RUN_CODE_VERSION,
+} from "./runCode";
+export type { DecodedRunCode, PlayedRunCode } from "./runCode";
 export { compareRuns } from "./comparison";
 export type {
   ChoiceSummary,
