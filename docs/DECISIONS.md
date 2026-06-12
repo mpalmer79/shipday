@@ -1457,3 +1457,44 @@ the Tailwind scanner sees every class.
 The primitives are not yet imported by any route, so the landing route's first
 load JS is unchanged from the baseline (165 B page, 106 kB first load). The
 budget tracking starts here so later milestones can be measured against it.
+
+## Milestone 2
+
+### M2: The sections are set dressing, never the engine
+
+The sprint board, deploy pipeline, message feed, and metrics panel are pure
+presentation seeded with deterministic sample content in the established
+register. None call the engine, resolve an outcome, or read a live run. This is
+the trailer, not the game, so the landing can never disagree with the simulator
+or drift its distributions.
+
+### M2: Two sections live, two rest
+
+The deploy pipeline and the metrics panel are the living pieces: each starts its
+animation only when it scrolls into view (an IntersectionObserver that
+disconnects after firing), so nothing animates offscreen. The sprint board and
+message feed are static by design, because a board and a message log are
+snapshots; their motion would be decoration, which the budget forbids.
+
+### M2: The pipeline runs once, it does not loop
+
+The deploy pipeline advances through its stages a single time when seen and then
+rests at all-passed. It is a finite sequence of short state changes, not a
+perpetual loop, so it stays inside the motion budget. The only loops on the
+landing are the cursor blink in the message feed and, in the simulator, the
+high-risk glow. Under reduced motion the pipeline renders finished immediately
+and the metrics present full.
+
+### M2: The metrics panel imports labels narrowly
+
+The metrics panel echoes the simulator's six metrics by importing only
+`METRIC_LABELS` and `METRIC_ORDER` from `lib/simulator/metrics` and the
+`MetricKey` type, not the barrel, so the engine never enters the landing's
+client bundle. The values are a fixed sample, not a run.
+
+### M2: Reveal and in-view are shared, lean primitives
+
+The scroll-reveal wrapper and the in-view hook are small client utilities that
+the living sections and the later narrative scroll reuse. The reveal animates
+transform and opacity only and is reduced-motion safe; the hook is SSR-safe and
+disconnects after the first intersection so it costs nothing afterward.
