@@ -24,6 +24,7 @@ import {
   reconstructRun,
   reportFilename,
   reportToMarkdown,
+  riskState,
   type Scenario,
   type SimulatorState,
 } from "@/lib/simulator";
@@ -153,8 +154,12 @@ export function SimulatorClient({
     : state.decisions.length;
   const lastDecision = state.decisions[state.decisions.length - 1];
 
+  // The global treatment reads live risk: it tracks every decision and eases
+  // back down when a later choice lowers risk below a threshold.
+  const shellRiskState = riskState(state.metrics.risk);
+
   return (
-    <AppShell>
+    <AppShell riskState={shellRiskState}>
       <h1 className="sr-only">{scenario.name}</h1>
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[240px_minmax(0,1fr)_280px]">
         <div className="order-3 flex flex-col gap-4 lg:order-1">

@@ -1,3 +1,5 @@
+import { riskState } from "@/lib/simulator";
+
 type RiskMeterProps = {
   value: number;
   delta?: number;
@@ -5,17 +7,15 @@ type RiskMeterProps = {
   pulseKey: number;
 };
 
-const THRESHOLD_AMBER = 40;
-const THRESHOLD_RED = 65;
-
 function riskTone(value: number) {
-  if (value >= THRESHOLD_RED) {
-    return { bar: "bg-bad", text: "text-bad", label: "High" };
+  switch (riskState(value)) {
+    case "high":
+      return { bar: "bg-bad", text: "text-bad", label: "High" };
+    case "raised":
+      return { bar: "bg-warn", text: "text-warn", label: "Raised" };
+    case "calm":
+      return { bar: "bg-good", text: "text-good", label: "Controlled" };
   }
-  if (value >= THRESHOLD_AMBER) {
-    return { bar: "bg-warn", text: "text-warn", label: "Raised" };
-  }
-  return { bar: "bg-good", text: "text-good", label: "Controlled" };
 }
 
 export function RiskMeter({ value, delta, pulseKey }: RiskMeterProps) {

@@ -1144,3 +1144,74 @@ All five outcomes remain inside the 2 to 45 percent bounds (Minor Production
 Issue is the highest at 41.0 percent). The README already describes
 difficulty next to the scenario table, so the one-line summary of the call
 was added to that paragraph rather than a new section.
+
+# Decision log: v5 autonomous build
+
+The cinematic overhaul. This run rebuilds how ShipDay feels without changing
+what it does: the engine, scenarios, routes, and every existing assertion are
+untouched. No distribution pin moves. One entry per decision, tagged by the
+milestone it belongs to.
+
+## Milestone 1
+
+### M1: One data attribute drives the whole treatment
+
+The global risk treatment is a single `data-risk` attribute on the app shell,
+read by a CSS token layer in `app/globals.css`. The alternative, threading
+per-state classes through every component, would have scattered the thresholds
+and made de-escalation hard to keep consistent. With one attribute on an
+ancestor, every descendant inherits the shifted palette, and falling back
+below a threshold is just the attribute changing, with the colour transition
+running in reverse.
+
+### M1: Palette tokens became RGB channel triplets
+
+To let one attribute shift the whole palette while Tailwind's alpha modifiers
+(`bg-accent/10`, `border-good/30`) keep working, surface, ink, and accent
+colours moved from hex in the Tailwind config to `rgb(var(--token) /
+<alpha-value>)`, with the channel triplets defined in `:root` and overridden
+per risk state. The calm values are byte-identical to the v4 palette, so the
+default state is a visual no-op. The social card renderer (`lib/ogCard.tsx`)
+already restates the palette as standalone hex, so build-time image generation
+is unaffected.
+
+### M1: Risk thresholds centralised in lib/simulator/risk.ts
+
+The meter previously carried its own 40 and 65 constants. Both the meter tone
+and the shell treatment now read `riskState()` from one module, so the
+presentation can never disagree with the simulation's own outcome thresholds.
+This is a refactor of presentation code only; no engine behaviour changed and
+no assertion references it.
+
+### M1: good, warn, and bad stay fixed across states
+
+The semantic metric colours report state (a number rose, an outcome was
+negative). If they shifted with the room temperature they would stop being
+readable as fixed signals, so they remain fixed hex. Only surfaces and accent
+carry the risk treatment.
+
+### M1: Two pre-existing animations tightened to the budget
+
+The v5 motion budget caps every animation except the outcome resolution moment
+at 600ms. Two animations predating this run sat just over it: the risk pulse
+at 700ms and the delta fade at 1600ms. Both were brought to 600ms so the whole
+app obeys one rule rather than carrying grandfathered exceptions. The effect is
+cosmetic (a slightly quicker pulse and delta fade); no behaviour or assertion
+depends on their duration.
+
+### M1: High-risk surfaces darken rather than redden hard
+
+The brief asks the high-risk surface to read as a room where something is
+wrong. A literal red wash would have hurt contrast and read as cartoonish. The
+chosen treatment darkens the surfaces and adds only a faint warm cast, which
+raises text contrast rather than lowering it (every ink pairing improves over
+calm) while still shifting the room's temperature. Contrast for all three
+states is computed in `scripts/contrast.mjs` and recorded in docs/DESIGN.md;
+every pairing meets AA.
+
+### M1: The clock token is defined here, the clock is built in Milestone 2
+
+The "clock sharpens" treatment is expressed as a `--clock-tracking` token that
+tightens across the three states. The token and its per-state values are
+defined in this milestone; the workday clock that consumes it is rebuilt in
+Milestone 2, where the rest of the opening frame is restaged.

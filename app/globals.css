@@ -3,6 +3,63 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Base palette as RGB channel triplets. Calm is the default state; the
+       risk layer below shifts these globally. Channels (not hex) so Tailwind
+       alpha modifiers keep working through the variables. */
+    --surface: 14 17 23;
+    --surface-raised: 22 27 36;
+    --surface-overlay: 29 36 48;
+    --surface-line: 42 51 66;
+    --ink: 230 235 242;
+    --ink-muted: 154 166 184;
+    --ink-faint: 120 133 158;
+    --accent: 91 168 245;
+    --accent-soft: 43 69 100;
+
+    /* Motion primitives: one place for every duration and easing the
+       cinematic layer uses. */
+    --motion-fast: 120ms;
+    --motion-base: 240ms;
+    --motion-slow: 480ms;
+    --motion-resolution: 2500ms;
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* The global risk treatment eases rather than snaps. Long enough to read
+       as a temperature shift, short enough to stay inside the motion budget. */
+    --risk-shift: 360ms;
+
+    /* The clock tightens as risk rises. Calm is relaxed tracking. */
+    --clock-tracking: 0.02em;
+  }
+
+  /*
+   * Raised (risk has crossed 40): the accent warms toward amber and the clock
+   * sharpens. Surfaces are unchanged; the temperature shift carries the
+   * signal on its own.
+   */
+  [data-risk="raised"] {
+    --accent: 232 168 90;
+    --accent-soft: 92 70 38;
+    --clock-tracking: 0.08em;
+  }
+
+  /*
+   * High (risk has crossed 65): the surfaces darken with a faint warm cast and
+   * the accent reads as a warning. The whole interface becomes a room where
+   * something is wrong.
+   */
+  [data-risk="high"] {
+    --surface: 12 8 10;
+    --surface-raised: 24 14 17;
+    --surface-overlay: 33 19 24;
+    --surface-line: 58 38 46;
+    --accent: 242 135 111;
+    --accent-soft: 92 44 40;
+    --clock-tracking: 0.14em;
+  }
+
   body {
     @apply bg-surface text-ink antialiased;
   }
@@ -14,5 +71,46 @@
   /* Visible keyboard focus for every interactive element. */
   :focus-visible {
     @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-surface;
+  }
+
+  /*
+   * De-escalation reads as well as escalation: when the risk attribute
+   * changes, the surfaces and accent ease between states instead of snapping.
+   * Scoped to the colour properties the treatment actually moves; box-shadow
+   * and transform are left to the component-level animations. Elements that
+   * carry their own transition-colors utility keep their own timing.
+   */
+  [data-risk],
+  [data-risk] * {
+    transition:
+      background-color var(--risk-shift) var(--ease-standard),
+      border-color var(--risk-shift) var(--ease-standard),
+      color var(--risk-shift) var(--ease-standard);
+  }
+}
+
+@layer utilities {
+  /* The clock typography token, consumed by the workday clock. */
+  .clock-tracking {
+    letter-spacing: var(--clock-tracking);
+  }
+}
+
+/*
+ * Reduced-motion contract. With the preference set, every nonessential motion
+ * is removed: staged entrances, the ambient high-risk glow, the delta fade,
+ * and the eased risk transition all collapse to their final, fully legible
+ * state instantly. The outcome resolution sequence is gated off in component
+ * logic under this preference, so it never mounts here. Risk-state colour
+ * changes still apply; only their easing is removed.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
