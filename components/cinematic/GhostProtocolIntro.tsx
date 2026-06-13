@@ -22,11 +22,13 @@ import { SkipButton } from "./SkipButton";
  */
 
 // The authored timeline, in milliseconds. Every phase is derived from these so
-// the canvas engine and the DOM stages stay locked to one budget. Total run is
-// TRAVEL + the detonation tail = 4300ms, inside the 4.5s ceiling.
+// the canvas engine and the DOM stages stay locked to one budget. After the
+// fuse travels and the charge detonates, a slow 4s reveal fades the whole
+// overlay out so the homepage underneath fades into view.
 const TRAVEL_MS = 3000;
-const DETONATE_MS = 1300; // bloom -> whiteout -> fade-to-reveal
-const TOTAL_MS = TRAVEL_MS + DETONATE_MS;
+const DETONATE_MS = 1300; // bloom -> whiteout -> settle to void
+const REVEAL_MS = 4000; // the 4s fade-in of the homepage after the animation
+const TOTAL_MS = TRAVEL_MS + DETONATE_MS + REVEAL_MS;
 
 const SESSION_KEY = "shipday.ghostintro.seen";
 
@@ -165,6 +167,7 @@ function GhostProtocolSequence({ onDone }: { onDone: () => void }) {
   const [visibleFlashes, setVisibleFlashes] = useState<Set<number>>(new Set());
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [detonating, setDetonating] = useState(false);
+  const [revealing, setRevealing] = useState(false);
   const [finished, setFinished] = useState(false);
 
   // One scheduler drives the whole run off real timers; the canvas engine runs
@@ -199,9 +202,13 @@ function GhostProtocolSequence({ onDone }: { onDone: () => void }) {
     for (const line of BURN_LINES) {
       timers.current.push(setTimeout(() => add(setRevealed, line.id), line.at));
     }
-    // Detonation is also armed on a timer as a backstop to the engine callback,
-    // and the whole overlay reports done at the end of the budget.
+    // Detonation is armed on a timer as a backstop to the engine callback. When
+    // it settles, the 4s reveal fades the overlay out so the homepage fades into
+    // view, then the whole overlay reports done at the end of the budget.
     timers.current.push(setTimeout(() => setDetonating(true), TRAVEL_MS));
+    timers.current.push(
+      setTimeout(() => setRevealing(true), TRAVEL_MS + DETONATE_MS)
+    );
     timers.current.push(
       setTimeout(() => {
         setFinished(true);
@@ -243,7 +250,10 @@ function GhostProtocolSequence({ onDone }: { onDone: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-[70] overflow-hidden bg-void"
+      className={`fixed inset-0 z-[70] overflow-hidden bg-void ${
+        revealing ? "gp-reveal pointer-events-none" : ""
+      }`}
+      style={revealing ? { animationDuration: `${REVEAL_MS}ms` } : undefined}
       role="dialog"
       aria-label="ShipDay is starting"
     >
@@ -285,7 +295,7 @@ function GhostProtocolSequence({ onDone }: { onDone: () => void }) {
       </div>
 
       {/* The detonation: a white-hot core blooms from the centre, whites the
-          screen out, then fades to reveal the landing already behind it. */}
+          screen out, then settles to void so the overlay can fade away. */}
       {detonating ? (
         <div
           aria-hidden="true"
@@ -293,9 +303,13 @@ function GhostProtocolSequence({ onDone }: { onDone: () => void }) {
         />
       ) : null}
 
-      <div className="absolute bottom-8 right-8 z-20">
-        <SkipButton ref={skipRef} onSkip={skip} label="Skip intro" />
-      </div>
+      {/* The skip control retires once the charge detonates; Escape still ends
+          the run during the detonation and reveal. */}
+      {!detonating ? (
+        <div className="absolute bottom-8 right-8 z-20">
+          <SkipButton ref={skipRef} onSkip={skip} label="Skip intro" />
+        </div>
+      ) : null}
     </div>
   );
 }
