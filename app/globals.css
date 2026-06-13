@@ -381,8 +381,10 @@
   transform-origin: 50% 50%;
 }
 
-/* The detonation: a white-hot core blooms from the centre, fills the screen,
-   holds white for a beat, then fades to reveal the landing already behind it. */
+/* The detonation: a white-hot core blooms from the centre, fills the screen
+   white, holds the flash, then settles to the void colour so it becomes a full
+   dark cover. The separate gpReveal fade (below) then dissolves the whole
+   overlay, so the homepage fades in from black rather than from a long whiteout. */
 @keyframes gpDetonate {
   0% {
     opacity: 0;
@@ -405,15 +407,32 @@
     background: #fff;
   }
   100% {
-    opacity: 0;
+    opacity: 1;
     transform: translate(-50%, -50%) scale(3.6);
-    background: #fff;
+    background: rgb(var(--void));
   }
 }
 
 .gp-detonate {
   animation: gpDetonate 1300ms var(--ease-standard) both;
   will-change: transform, opacity;
+}
+
+/* The reveal: once the charge has settled to a dark cover, the whole intro
+   overlay fades from opaque to transparent, so the homepage underneath fades
+   into view over a slow 4s. Duration is set inline to match REVEAL_MS. */
+@keyframes gpReveal {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.gp-reveal {
+  animation: gpReveal 4000ms var(--ease-standard) both;
+  will-change: opacity;
 }
 
 /*
