@@ -26,7 +26,7 @@ export function Footer() {
                 ShipDay
               </span>
             </div>
-            <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-muted">
+            <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-muted text-center md:text-left">
               Every workday is a mission. A software engineering simulator about
               shipping safely under pressure.
             </p>
@@ -43,7 +43,7 @@ export function Footer() {
             ))}
           </nav>
         </div>
-        <p className="mt-8 border-t border-edge/20 pt-6 font-mono text-xs text-ink-faint">
+        <p className="mt-8 border-t border-edge/20 pt-6 font-mono text-xs text-ink-faint text-center md:text-left">
           fully deterministic · runs entirely in your browser · no API calls, no
           external AI
         </p>

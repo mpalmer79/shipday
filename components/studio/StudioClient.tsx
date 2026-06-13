@@ -192,13 +192,13 @@ export function StudioClient() {
   return (
     <AppShell footer>
       <div className="mx-auto max-w-4xl py-10">
-        <h1 className="text-3xl font-bold tracking-tight">Authoring studio</h1>
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+        <h1 className="text-3xl font-bold tracking-tight text-center md:text-left">Authoring studio</h1>
+        <p className="mt-2 text-sm leading-relaxed text-ink-muted text-center md:text-left">
           Build a scenario with forms instead of JSON. The draft is validated
           as you type, played in the simulator on demand, and exported in the
           same format the import page accepts.
         </p>
-        <p className="mt-1 text-xs text-ink-faint">
+        <p className="mt-1 text-xs text-ink-faint text-center md:text-left">
           The draft lives on this page only; leaving or reloading discards it.
           Export the JSON to keep your work.
         </p>

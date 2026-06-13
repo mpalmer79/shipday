@@ -26,10 +26,10 @@ export default function ScenariosPage() {
       <div className="mx-auto max-w-5xl py-10">
         <div className="flex flex-col gap-4">
           <ClassifiedStamp label="Mission select" className="self-start" />
-          <h1 className="text-display-sm font-bold tracking-tight text-ink">
+          <h1 className="text-display-sm font-bold tracking-tight text-ink text-center md:text-left">
             Choose your operation
           </h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
+          <p className="max-w-2xl text-sm leading-relaxed text-ink-muted text-center md:text-left">
             Five sealed case files. Each is one simulated workday run as a field
             operation: different pressure, different terrain, the same objective.
             Open a dossier to take the assignment.

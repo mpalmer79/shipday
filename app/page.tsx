@@ -70,20 +70,20 @@ export default function LandingPage() {
             </span>
           </div>
           <h1
-            className="mt-5 animate-stage-in text-display font-bold text-ink"
+            className="mt-5 animate-stage-in text-display font-bold text-ink text-center md:text-left"
             style={stageStyle(80)}
           >
             ShipDay
           </h1>
           <p
-            className="mt-4 max-w-xl animate-stage-in text-xl text-ink-muted"
+            className="mt-4 max-w-xl animate-stage-in text-xl text-ink-muted text-center md:text-left"
             style={stageStyle(160)}
           >
             You are an operative in an engineering agency. Every workday is a
             mission, and the clock is already running.
           </p>
           <p
-            className="mt-6 max-w-xl animate-stage-in text-base leading-relaxed text-ink-muted"
+            className="mt-6 max-w-xl animate-stage-in text-base leading-relaxed text-ink-muted text-center md:text-left"
             style={stageStyle(240)}
           >
             An assignment lands at 9:00 AM and you have until end of day to ship

@@ -61,8 +61,8 @@ export function ImportClient() {
   return (
     <AppShell footer>
       <div className="mx-auto max-w-3xl py-10">
-        <h1 className="text-3xl font-bold tracking-tight">Import a scenario</h1>
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+        <h1 className="text-3xl font-bold tracking-tight text-center md:text-left">Import a scenario</h1>
+        <p className="mt-2 text-sm leading-relaxed text-ink-muted text-center md:text-left">
           Paste a scenario as JSON. It is validated against the simulator
           format, then played in the simulator. Imported scenarios live in
           memory for this session only. Nothing is uploaded or stored.
