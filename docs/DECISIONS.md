@@ -2097,3 +2097,76 @@ variable. The landing first load holds at 114 KB and the Three.js scene stays in
 its own lazy chunk. A smoke test of every route returned 200 and the legacy
 `/simulator` redirect resolves to the default scenario. No distribution pin moved
 across the entire run, and no existing assertion was weakened.
+
+# Decision log: footer rebuild session
+
+A single task: replace the site footer with the approved design, rebuilt as a
+real React component in the repo's Tailwind token system. No engine, scenario,
+route, or assertion changed; no distribution pin moved.
+
+## Footer
+
+### Rebuilt against tokens, not the preview's inline styles
+
+The preview HTML was the layout, content, and styling reference only. The footer
+is rebuilt in `components/layout/Footer.tsx` using the existing design tokens
+(void, surface-line, edge, ink, ink-muted, ink-faint, accent, the monospace
+font) rather than the preview's hardcoded hex, so it inherits the site's real
+palette and shifts with it. No HTML file was embedded and no inline style was
+copied.
+
+### Icons are inline SVG, no new dependency
+
+The task suggested lucide-react "is already a dependency in the showcase," but it
+is not present in `package.json`, `package-lock.json`, `node_modules`, or any
+import in the codebase. Adding it would violate the no-new-runtime-dependencies
+rule, so the six Simulator Features icons and the two social icons are inline
+SVG (the path the task offers as the alternative). Feature icons are stroked
+with `currentColor` and marked `aria-hidden`; the adjacent label is the
+accessible name.
+
+### Quick Links resolve to real destinations
+
+The footer ships no dead links. The repo has one real internal page for these
+needs (the scenario picker) and otherwise points at the repository's own GitHub
+surfaces. Mapping and reasoning:
+
+| Label | Destination | Why |
+| :--- | :--- | :--- |
+| Get Started | `/scenarios` | The real internal entry point to the simulator. |
+| Documentation | `github.com/mpalmer79/shipday#readme` | The README is the project's documentation; `#readme` is GitHub's own anchor for it. |
+| Roadmap | `github.com/mpalmer79/shipday#roadmap` | Anchors to the `## Roadmap` heading in README.md, which exists. |
+| Changelog | `github.com/mpalmer79/shipday/commits/main` | No CHANGELOG file exists; the commit history on the default branch is the honest changelog. |
+| Contributing | `github.com/mpalmer79/shipday/blob/main/README.md` | No CONTRIBUTING file exists; the README is the contribution reference, linked as the file view to distinguish it from the Documentation anchor. |
+| Report an Issue | `github.com/mpalmer79/shipday/issues` | The repository's issue tracker. |
+
+LinkedIn uses the confirmed creator handle `mpalmer1234`; GitHub points at the
+repository. Both, and every external Quick Link, open in a new tab with
+`rel="noopener noreferrer"` and an accessible name that says so.
+
+### Copyright year is server-evaluated
+
+The year is `new Date().getFullYear()` read in the server component at render
+time, which keeps the footer a static server component (no client boundary, no
+hydration mismatch) and is re-evaluated on every build, so a redeploy never
+shows a stale year. This is one of the two options the task allows and the one
+that stays static-export safe without shipping client JS.
+
+### Mount points preserved
+
+The footer is rendered exactly where it already mounted: opt-in through
+`AppShell`'s `footer` prop on the framing pages (scenarios, import, run, studio,
+compare) and directly on the landing page. The component takes no props, the
+same as before, so no caller changed and the focused simulator gameplay view
+stays footer-free as designed. The whole previous footer file was replaced, so
+no dead footer code remains.
+
+### Responsiveness and contrast
+
+Four columns at the lg breakpoint, two at md, one below md, with the single
+mobile column centered (`text-center md:text-left`) to match the site's recent
+mobile-centering convention; tablet and desktop align left. Links inherit the
+global `:focus-visible` accent ring. Measured against the footer's void
+background, ink (16.63:1), ink-muted (8.08:1), ink-faint (5.36:1), and accent
+(7.94:1) all clear the AA threshold for normal text. Evidence and screenshots
+are under `docs/qa/footer-2026-06-13/`.
