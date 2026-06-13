@@ -276,6 +276,147 @@
 }
 
 /*
+ * The Ghost Protocol cold open. These power the fuse-intro overlay
+ * (GhostProtocolIntro): the burn-in title reveal, the chromatic-aberration
+ * memory flashes, the slow sweeping-camera drift, and the detonation whiteout.
+ * Every one is finite, transform/opacity/filter only, and neutralized by the
+ * reduced-motion contract below (the overlay also never mounts under the
+ * preference). The bending spark, sparks, and traveling light are drawn on a
+ * canvas by lib/cinematic/fuseEngine, not in CSS.
+ */
+
+/* Title and credits ignite, flare white-orange, then settle to a faint ember
+   glow as the spark sweeps past them. */
+@keyframes gpBurnIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+    filter: blur(9px) brightness(2.6);
+    text-shadow:
+      0 0 26px rgba(255, 150, 60, 0.95),
+      0 0 54px rgba(255, 90, 20, 0.7);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(1px) brightness(1.6);
+    text-shadow:
+      0 0 20px rgba(255, 170, 80, 0.95),
+      0 0 44px rgba(255, 110, 30, 0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0) brightness(1);
+    text-shadow: 0 0 12px rgba(255, 150, 60, 0.28);
+  }
+}
+
+.gp-burn {
+  animation: gpBurnIn 720ms var(--ease-entrance) both;
+}
+
+/* A memory flash: a frame stutters in under heavy motion blur with a hard
+   red/cyan chromatic split, holds for a beat, then smears back out. The per
+   instance duration is set inline via --gp-flash-dur (150-300ms). */
+@keyframes gpFlash {
+  0% {
+    opacity: 0;
+    transform: scale(1.16) translateX(-22px) skewX(-4deg);
+    filter: blur(16px) saturate(1.5)
+      drop-shadow(4px 0 rgba(255, 0, 60, 0.65))
+      drop-shadow(-4px 0 rgba(0, 200, 255, 0.65));
+  }
+  20% {
+    opacity: 0.95;
+    transform: scale(1.03) translateX(0) skewX(0deg);
+    filter: blur(3px) saturate(1.7)
+      drop-shadow(3px 0 rgba(255, 0, 60, 0.6))
+      drop-shadow(-3px 0 rgba(0, 200, 255, 0.6));
+  }
+  72% {
+    opacity: 0.85;
+    transform: scale(1);
+    filter: blur(2px)
+      drop-shadow(2px 0 rgba(255, 0, 60, 0.45))
+      drop-shadow(-2px 0 rgba(0, 200, 255, 0.45));
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.98) translateX(18px) skewX(3deg);
+    filter: blur(18px)
+      drop-shadow(5px 0 rgba(255, 0, 60, 0.5))
+      drop-shadow(-5px 0 rgba(0, 200, 255, 0.5));
+  }
+}
+
+.gp-flash {
+  animation: gpFlash var(--gp-flash-dur, 220ms) linear both;
+}
+
+/* A faint scanline sheen inside each flash frame, sold as captured footage. */
+.gp-flash-scan {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.22) 0px,
+    rgba(0, 0, 0, 0.22) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* The sweeping camera: the title/flash group drifts and leans slowly across the
+   travel, so the spark reads as filmed in one continuous push. */
+@keyframes gpCamera {
+  0% {
+    transform: scale(1.06) translate3d(2.5%, 1.5%, 0) rotate(0.6deg);
+  }
+  100% {
+    transform: scale(1) translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+
+.gp-camera {
+  animation: gpCamera 4300ms var(--ease-standard) both;
+  transform-origin: 50% 50%;
+}
+
+/* The detonation: a white-hot core blooms from the centre, fills the screen,
+   holds white for a beat, then fades to reveal the landing already behind it. */
+@keyframes gpDetonate {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.04);
+    background: radial-gradient(circle, #fff 0%, #ffd9a0 40%, rgba(255, 140, 40, 0) 70%);
+  }
+  16% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.22);
+    background: radial-gradient(circle, #fff 0%, #ffe7c2 55%, rgba(255, 160, 60, 0.2) 80%);
+  }
+  42% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(3.4);
+    background: radial-gradient(circle, #fff 0%, #fff 70%, rgba(255, 220, 180, 0.6) 100%);
+  }
+  62% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(3.6);
+    background: #fff;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(3.6);
+    background: #fff;
+  }
+}
+
+.gp-detonate {
+  animation: gpDetonate 1300ms var(--ease-standard) both;
+  will-change: transform, opacity;
+}
+
+/*
  * Reduced-motion contract. With the preference set, every nonessential motion
  * is removed: staged entrances, the ambient high-risk glow, the delta fade,
  * and the eased risk transition all collapse to their final, fully legible
