@@ -14,12 +14,17 @@ side by side, and copy a link that rebuilds the whole run for anyone you send
 it to. You can import a scenario as JSON and play it, or build one in the
 authoring studio with live validation and a distribution preview.
 
-The day is staged to feel like one continuous shift. The ticket arrives as a
-document, a workday clock keeps end of day in view, and the interface responds
-to the risk metric at its real thresholds: below 40 it stays calm, past 40 the
-accent warms and the clock sharpens, past 65 the surfaces darken. The final
-decision plays a short resolution moment matching the actual outcome, then the
-report presents as a debrief. All of it respects reduced motion.
+The whole experience is framed as a spy-thriller agency operation wrapped
+around the same engine. A cold open boots the agency on the first visit of a
+session, the scenarios are a wall of classified mission dossiers, and starting
+one plays a full mission briefing. A mission clock counts down to end of day,
+and the interface responds to the risk metric at its real thresholds: below 40
+it holds Condition green, past 40 the room goes tactical amber, past 65 it drops
+into a red-alert takeover, and it stands down on its own when a later decision
+pulls risk back. The final decision plays a resolution climax with a mission
+verdict matched to the actual outcome, then the report presents as a classified
+after-action file. The framing is presentation only: gameplay, metrics, and
+outcomes are unchanged, and all of it respects reduced motion.
 
 Fully deterministic. Runs entirely in the browser. No API calls, no backend,
 no database, no environment variables.
@@ -28,47 +33,68 @@ no database, no environment variables.
 
 The presentation layer is information design: visual tension exists only where
 simulation state justifies it, and it eases back when a decision lowers risk.
-The full system is documented in [docs/DESIGN.md](docs/DESIGN.md); in short:
+The spy-thriller framing (the `components/cinematic/` and `lib/cinematic/`
+layers) is pure presentation over the unchanged engine. The full system is
+documented in [docs/DESIGN.md](docs/DESIGN.md); in short:
 
+- **Mission framing.** A cold open boots the agency over the already-rendered
+  landing on the first visit of a session, the scenario picker is a wall of
+  classified dossiers with codenames and difficulty-derived threat levels, and
+  the chrome reads as agency operations. All of it is presentation: the codenames
+  and directives live in `lib/cinematic/dossier.ts`, never in scenario data.
 - **Risk as a global treatment.** One `data-risk` attribute on the app shell,
   driven by live risk through `lib/simulator/risk.ts`, shifts a CSS token layer
   for the whole interface at the same 40 and 65 thresholds the engine resolves
-  outcomes at. Calm, raised, and high are distinct rooms, and falling back below
-  a threshold de-escalates visibly.
-- **The briefing.** The first step is staged into view as a ticket document:
-  the timestamp, then the request, then a beat, then the options. Skippable and
-  absent under reduced motion.
-- **The workday clock.** A persistent clock leads the frame with the current
-  time and end of day always visible, tightening as risk rises.
-- **The outcome moment.** The final decision plays a full-screen resolution
-  sequence with system output matching the actual outcome (a clean ship, a ship
+  outcomes at. A second `data-alert` attribute drives the alert takeover: a
+  tactical amber strip at the raised threshold and a red-alert banner with an
+  alarm rail at the high threshold. Both render straight off live risk, so they
+  stand down on their own when a decision pulls you back out of trouble, and the
+  takeover never recolours body text, so contrast holds through the red state.
+- **The mission briefing.** Starting a scenario plays a full-screen briefing:
+  the case file opens, the operation codename and directive are read in, the
+  threat and starting readout appear, and the mission clock is armed. Skippable
+  with one focused control and absent under reduced motion.
+- **The mission clock.** A persistent clock leads the frame with the countdown
+  to end of day, the current time, and the day's beats, escalating through the
+  risk tokens and breathing in the final hour or under red alert.
+- **The resolution climax.** The final decision plays a full-screen sequence:
+  system output streams in matching the actual outcome (a clean ship, a ship
   that broke and rolled back, a deliberate hold, a change blocked by its gates),
-  then the verdict. Capped at 2.5 seconds, skippable, absent under reduced
-  motion, where the verdict and debrief present immediately.
+  then a mission verdict lands themed to the outcome, then it dismisses to the
+  after-action debrief. The verdict lines are original genre language; the
+  system output is the realistic part. Capped at about 2.6 seconds, skippable,
+  absent under reduced motion, where the verdict and debrief present immediately.
 - **Replay as scenes.** Each recorded step is staged as a scene with its
   decision, metric movement, and the paths not taken.
 - **Motion budget and accessibility.** All 2D motion is CSS transitions and
-  keyframes and React state, with no animation library. Nothing animates longer
-  than 600ms except the resolution moment, nothing loops except one ambient glow
-  in the high-risk state and the landing cursor blink, and
+  keyframes and React state, with no animation library. The cinematic sequences
+  run on a single bounded orchestration primitive (`lib/cinematic/sequence.ts`)
+  that is skippable and born finished under reduced motion, and
   `prefers-reduced-motion` removes all nonessential motion. Every state holds AA
-  contrast; the numbers are in docs/DESIGN.md. Browser evidence is in
-  [docs/qa/v5/](docs/qa/v5/) and [docs/qa/v6/](docs/qa/v6/).
+  contrast, including the red-alert takeover; the numbers are in docs/DESIGN.md
+  and the measured red-alert ratios are in
+  [docs/qa/v7/](docs/qa/v7/). Browser evidence is in
+  [docs/qa/v5/](docs/qa/v5/), [docs/qa/v6/](docs/qa/v6/), and
+  [docs/qa/v7/](docs/qa/v7/).
 
 ## The front door
 
-The public landing is a showpiece in a cinematic engineering operations-room
-language (the full visual system is in [docs/DESIGN.md](docs/DESIGN.md)):
+The public landing is the operative briefing, in a cinematic engineering
+operations-room language (the full visual system is in
+[docs/DESIGN.md](docs/DESIGN.md)):
 
-- **A WebGL hero.** A Three.js scene of systems under load: a drifting lattice
-  of glowing nodes wired into a faint network, lit cool and warming under
-  pointer activity. It is an enhancement, never a requirement. A static poster
-  (`public/hero/shipday-workspace.png`) is the base layer and the Largest
-  Contentful Paint image; the scene loads in its own lazy chunk and mounts only
-  when WebGL is available and motion is permitted. Under reduced motion,
-  save-data, a 2g link, or low-power hints, the poster stands alone. The render
-  loop pauses offscreen and when the tab is hidden, the device pixel ratio is
-  capped, and GL resources are disposed on unmount.
+- **A WebGL command center.** A Three.js scene of the operations room: a
+  converging floor grid for depth, a drifting tactical network of nodes wired
+  into a faint lattice, and a glowing core that breathes at centre, lit cool and
+  warming toward the hot accent under pointer activity. It is built from geometry
+  and one runtime sprite, with no model or texture asset files. It is an
+  enhancement, never a requirement. A server-rendered inline SVG poster
+  (`components/hero/HeroPoster.tsx`) is the base layer and the Largest Contentful
+  Paint image, so first paint never waits on WebGL; the scene loads in its own
+  lazy chunk and mounts only when WebGL is available and motion is permitted.
+  Under reduced motion, save-data, a 2g link, or low-power hints, the poster
+  stands alone. The render loop pauses offscreen and when the tab is hidden, the
+  device pixel ratio is capped, and GL resources are disposed on unmount.
 - **Living sections.** The mid-page is presentational set dressing built from
   showcase primitives, not screenshots: a sprint board, a deploy pipeline that
   runs its stages once on view, a stakeholder message feed, and a metrics panel
@@ -78,9 +104,14 @@ language (the full visual system is in [docs/DESIGN.md](docs/DESIGN.md)):
   default (legible without JavaScript), and a thin scroll-progress line tracks
   position. Both are transform and opacity only and inert under reduced motion.
 
-The hero illustration shipped here is a placeholder; see
-[public/hero/README.md](public/hero/README.md) for how to drop in the final
-16:9 art with no code change.
+The hero poster is an inline SVG drawn in
+[components/hero/HeroPoster.tsx](components/hero/HeroPoster.tsx), so it ships as
+part of the page with no image request and is the fallback whenever the scene
+cannot run. To change the hero art, edit that component or replace it with
+another server-rendered poster; the `alt` text lives in
+[components/hero/Hero.tsx](components/hero/Hero.tsx). The earlier raster
+placeholder under `public/hero/` and its generator script are no longer used by
+the page.
 
 ## Scenarios
 
@@ -218,10 +249,12 @@ no environment variables, backend, database, or API keys.
 app/                  Pages: landing, scenarios, simulator, run, import, studio, compare; metadata and icon
 components/layout/    App shell, header, footer, scroll progress
 components/simulator/ The simulator gameplay, report, replay, and metrics UI
+components/cinematic/ The spy-thriller layer: cold open, mission dossier, briefing, alert bar, resolution primitives
 components/showcase/  Showpiece primitives and the living landing sections
-components/hero/       The WebGL hero and its poster fallback
+components/hero/       The WebGL command-center scene and its inline SVG poster
 components/{run,import,studio,compare}/  The framing-page clients
 lib/simulator/        Types, pure engine, outcomes, risk states, report, replay, export, validate, lint, comparison, run codes, distribution
+lib/cinematic/        Mission sequence orchestration, mission-clock math, and dossier codenames and threat levels
 lib/site.ts           Site metadata helpers
 lib/runStore.ts       In-memory store of completed runs for the session
 lib/runLink.ts        Run link parsing and registry resolution
@@ -230,23 +263,24 @@ lib/sampleScenario.ts Sample scenario offered on the import page
 lib/useReducedMotion.ts  Reduced-motion preference hook for gating motion
 lib/useInView.ts      IntersectionObserver hook for the living sections and reveals
 data/scenarios/       Scenario content (steps, options, rules, flags)
-public/hero/          The hero poster placeholder and its swap instructions
+public/hero/          Legacy raster placeholder and notes; the live poster is the inline SVG in components/hero/
 docs/DESIGN.md        The design system: risk states, the showpiece layer, tokens, motion, contrast
 docs/DECISIONS.md     Audit trail of build decisions
 docs/qa/              Browser QA evidence and reports per release
 scripts/contrast.mjs  Contrast audit for the palette
-scripts/gen-hero-placeholder.mjs  Generates the placeholder hero PNG
+scripts/gen-hero-placeholder.mjs  Generates the legacy raster placeholder PNG (no longer used by the page)
 ```
 
 ## Dependencies
 
 The runtime dependencies are Next, React, and Three.js. Three.js powers the
-landing's WebGL hero and is the only heavy dependency; it is isolated in its own
-dynamically imported chunk (about 74 KB gzipped) that loads only when the hero
-scene mounts, so it is absent from the landing's first-load JavaScript and the
-Largest Contentful Paint never waits on it. Everything else (Tailwind,
-TypeScript, tsx) is a dev dependency. There is no animation library; all 2D
-motion is CSS and React.
+landing's WebGL command center and is the only heavy dependency; it is isolated
+in its own dynamically imported chunk (about 75.5 KB gzipped) that loads only
+when the hero scene mounts, so it is absent from the landing's first-load
+JavaScript and the Largest Contentful Paint never waits on it. Everything else
+(Tailwind, TypeScript, tsx) is a dev dependency. There is no animation library;
+all 2D motion is CSS and React, and the cinematic sequences run on a single
+bounded orchestration primitive with no dependency.
 
 ## Roadmap
 
@@ -273,7 +307,13 @@ motion is CSS and React.
 - [x] v6: Three.js WebGL hero with a static poster fallback and full lifecycle management
 - [x] v6: living dashboard sections (board, pipeline, feed, metrics) as set dressing
 - [x] v6: narrative scroll, restyled framing pages, header and footer
-- [ ] hero: drop in the final illustration (placeholder at public/hero/)
+- [x] v7: spy-thriller agency framing across the whole experience
+- [x] v7: cold open and a mission-select wall of classified dossiers
+- [x] v7: mission briefing and an escalating mission clock
+- [x] v7: alert-ladder takeover (tactical and red alert) and a resolution climax with a mission verdict
+- [x] v7: WebGL command-center hero with an inline SVG poster
+- [x] v7: browser pass with reduced-motion, fallback, AA, and lifecycle evidence
+- [ ] hero: a richer or final poster if wanted (the current poster is an inline SVG, swappable in components/hero/)
 - [ ] studio: duplicate and reorder steps and options
 - [ ] studio: suggest the draft's existing flags instead of free-text only
 - [ ] distribution preview: show an example decision trail per outcome
