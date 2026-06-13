@@ -1,3 +1,7 @@
+"use client";
+
+import { useCountUp } from "@/lib/useCountUp";
+
 type MetricCardProps = {
   label: string;
   value: number;
@@ -17,6 +21,7 @@ export function MetricCard({
 }: MetricCardProps) {
   const showDelta = delta !== undefined && delta !== 0;
   const deltaIsGood = invert ? delta! < 0 : delta! > 0;
+  const shown = useCountUp(value);
 
   return (
     <div className="relative rounded-lg border border-surface-line bg-surface-raised p-3">
@@ -33,7 +38,7 @@ export function MetricCard({
           </span>
         )}
       </div>
-      <div className="mt-1 font-mono text-2xl font-semibold">{value}</div>
+      <div className="mt-1 font-mono text-2xl font-semibold">{shown}</div>
       <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-overlay">
         <div
           className="h-full rounded-full bg-accent transition-all duration-500"

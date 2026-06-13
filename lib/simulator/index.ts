@@ -21,12 +21,28 @@ export type { ReplayFrame, ReconstructedRun } from "./replay";
 export { METRIC_LABELS, METRIC_ORDER } from "./metrics";
 export { reportFilename, reportToMarkdown } from "./exportReport";
 export {
+  CONDITION_KINDS,
   METRIC_KEYS,
   OUTCOME_IDS,
+  OUTCOME_TONES,
   parseScenarioJson,
   validateScenario,
 } from "./validate";
 export type { ValidationResult } from "./validate";
+export {
+  CONDITION_KIND_REFERENCE,
+  OPTION_SHAPE,
+  OUTCOME_SHAPE,
+  RULE_SHAPE,
+  SCENARIO_SHAPE,
+  SCHEMA_SHAPES,
+  STEP_SHAPE,
+} from "./schemaReference";
+export type {
+  ConditionKindReference,
+  SchemaField,
+  SchemaShape,
+} from "./schemaReference";
 export { lintScenario } from "./lint";
 export {
   countPaths,

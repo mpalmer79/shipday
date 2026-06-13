@@ -41,6 +41,95 @@ export function emptyDraft(): ScenarioDraft {
   };
 }
 
+const OUTCOME_SEED: { id: ScenarioDraft["fallbackOutcomeId"]; title: string; summary: string; tone: "positive" | "mixed" | "negative" | "neutral" }[] = [
+  { id: "safe-rollout", title: "Safe Rollout", summary: "The change shipped cleanly.", tone: "positive" },
+  { id: "minor-issue", title: "Minor Issue", summary: "A small problem, handled quickly.", tone: "mixed" },
+  { id: "customer-incident", title: "Customer Incident", summary: "Users were affected and it had to be undone.", tone: "negative" },
+  { id: "responsible-delay", title: "Responsible Delay", summary: "The work waited, with the reason written down.", tone: "neutral" },
+  { id: "overcontrolled", title: "Overcontrolled", summary: "The work was held with no word to anyone waiting.", tone: "negative" },
+];
+
+/**
+ * The draft the studio opens with: a minimal but fully valid scenario (two
+ * steps, the five standard outcomes, one example rule, valid metrics). The
+ * empty state is a working scenario the author edits, so the page opens green
+ * instead of into a wall of validation errors. Kept beside emptyDraft so a
+ * test can hold it to "validates with zero errors".
+ */
+export function starterDraft(): ScenarioDraft {
+  return {
+    id: "new-scenario",
+    name: "New scenario",
+    tagline: "A starting point. Edit every field to make it yours.",
+    initialStepId: "first-call",
+    initialMetrics: {
+      quality: 50,
+      speed: 50,
+      risk: 30,
+      trust: 60,
+      focus: 70,
+      testConfidence: 50,
+    },
+    steps: [
+      {
+        id: "first-call",
+        time: "9:00 AM",
+        title: "The first call",
+        narrative: "The day opens with a decision in front of you.",
+        context: "Edit this step, or add your own.",
+        options: [
+          {
+            id: "do-it-carefully",
+            label: "Take the careful path",
+            description: "Slow down and reduce the risk before moving on.",
+            impact: { risk: -10, quality: 5 },
+            nextStepId: "last-call",
+            flags: ["worked-carefully"],
+          },
+          {
+            id: "move-fast",
+            label: "Move fast",
+            description: "Trade some risk for speed.",
+            impact: { risk: 15, speed: 10 },
+            nextStepId: "last-call",
+          },
+        ],
+      },
+      {
+        id: "last-call",
+        time: "4:00 PM",
+        title: "The last call",
+        narrative: "One more decision closes out the day.",
+        context: "The fallback outcome covers any run no rule matches.",
+        options: [
+          {
+            id: "wrap-up",
+            label: "Wrap up and ship",
+            description: "Close out the day.",
+            impact: { trust: 5 },
+            nextStepId: "__end__",
+          },
+        ],
+      },
+    ],
+    outcomes: OUTCOME_SEED.map((o) => ({ ...o, time: "5:00 PM" })),
+    outcomeRules: [
+      {
+        outcomeId: "safe-rollout",
+        priority: 1,
+        when: {
+          kind: "allOf",
+          conditions: [
+            { kind: "hasFlag", flag: "worked-carefully" },
+            { kind: "metricAtMost", metric: "risk", value: 40 },
+          ],
+        },
+      },
+    ],
+    fallbackOutcomeId: "minor-issue",
+  };
+}
+
 /**
  * Structural normalization so the form can always render: containers the
  * editors iterate (steps, options, impact, flags, overrides, outcomes,

@@ -23,7 +23,14 @@ import { generateReport } from "../report";
 import { reconstructRun } from "../replay";
 import { reportFilename, reportToMarkdown } from "../exportReport";
 import { lintScenario } from "../lint";
-import { parseScenarioJson, validateScenario, OUTCOME_IDS } from "../validate";
+import {
+  parseScenarioJson,
+  validateScenario,
+  CONDITION_KINDS,
+  OUTCOME_IDS,
+} from "../validate";
+import { resolveOutcome } from "../outcomes";
+import { CONDITION_KIND_REFERENCE } from "../schemaReference";
 import { compareRuns } from "../comparison";
 import { decodeRunCode, encodeRun, playRunCode } from "../runCode";
 import { extractRunCode, loadRunFromCode } from "../../runLink";
@@ -31,8 +38,14 @@ import {
   exportDraft,
   lintTarget,
   loadDraft,
+  starterDraft,
   validationTarget,
 } from "../../studio";
+import {
+  priorityFixture,
+  RESOLVER_CASES,
+  silentCronFixture,
+} from "./scenarios";
 import {
   countPaths,
   enumerateDistribution,
@@ -45,7 +58,7 @@ import {
 } from "../distribution";
 import { METRIC_ORDER } from "../metrics";
 import { SAMPLE_SCENARIO } from "../../sampleScenario";
-import type { OutcomeId, Scenario, SimulatorState } from "../types";
+import type { Condition, OutcomeId, Scenario, SimulatorState } from "../types";
 import { END_STEP_ID } from "../types";
 
 const BANNED_WORDS = [
@@ -1639,6 +1652,131 @@ console.log(
 
   console.log(
     "\nDistribution preview: exact counts for built-ins, seeded sampling above the ceiling."
+  );
+}
+
+// --- Phase 10: outcome resolver fixtures ------------------------------
+
+{
+  function playFirstOption(scenario: Scenario): SimulatorState {
+    let state = createInitialState(scenario);
+    while (!state.completed) {
+      const step = getCurrentStep(scenario, state);
+      state = applyDecision(scenario, state, step.options[0].id);
+    }
+    return state;
+  }
+  function playPath(scenario: Scenario, optionIds: string[]): SimulatorState {
+    let state = createInitialState(scenario);
+    for (const id of optionIds) {
+      state = applyDecision(scenario, state, id);
+    }
+    assert.ok(state.completed, `path must finish ${scenario.id}`);
+    return state;
+  }
+
+  const usedKinds = new Set<string>();
+  function collectKinds(when: Condition): void {
+    usedKinds.add(when.kind);
+    if (when.kind === "anyOf" || when.kind === "allOf") {
+      when.conditions.forEach(collectKinds);
+    }
+  }
+
+  // Each fixture is importable (validates with zero errors), lints clean, and
+  // its deterministic first-option path resolves to the expected outcome.
+  for (const { scenario, expected } of RESOLVER_CASES) {
+    const result = validateScenario(JSON.parse(JSON.stringify(scenario)));
+    assert.ok(
+      result.ok,
+      `fixture ${scenario.id} must validate: ${result.ok ? "" : result.errors.join("; ")}`
+    );
+    assert.equal(
+      lintScenario(scenario).length,
+      0,
+      `fixture ${scenario.id} must lint clean`
+    );
+    const state = playFirstOption(scenario);
+    assert.equal(
+      state.outcomeId,
+      expected,
+      `fixture ${scenario.id} must resolve to ${expected}`
+    );
+    for (const rule of scenario.outcomeRules) {
+      collectKinds(rule.when);
+    }
+  }
+
+  // The fixtures together exercise every condition kind the validator accepts.
+  for (const kind of CONDITION_KINDS) {
+    assert.ok(usedKinds.has(kind), `no fixture exercises condition kind "${kind}"`);
+  }
+
+  // Priority ordering: with two matching rules the lower priority number wins,
+  // even when listed second. Swapping the priorities flips the outcome, so it
+  // is priority and not array order that decides.
+  assert.equal(
+    playFirstOption(priorityFixture).outcomeId,
+    "safe-rollout",
+    "the lower-priority-number rule wins when both match"
+  );
+  const swappedPriority: Scenario = {
+    ...priorityFixture,
+    outcomeRules: priorityFixture.outcomeRules.map((rule) => ({
+      ...rule,
+      priority: rule.outcomeId === "safe-rollout" ? 2 : 1,
+    })),
+  };
+  assert.equal(
+    resolveOutcome(swappedPriority, playFirstOption(swappedPriority)),
+    "customer-incident",
+    "swapping the priorities flips the winning rule"
+  );
+
+  // The Silent Cron resolves through two distinct branches of the same
+  // scenario depending on the choices made.
+  assert.equal(
+    playPath(silentCronFixture, ["read-logs", "test-then-flag"]).outcomeId,
+    "safe-rollout",
+    "the careful Silent Cron line reaches safe-rollout"
+  );
+  assert.equal(
+    playPath(silentCronFixture, ["rerun-now", "hotfix-quiet"]).outcomeId,
+    "customer-incident",
+    "the reckless Silent Cron line reaches customer-incident"
+  );
+  assert.ok(
+    validateScenario(JSON.parse(JSON.stringify(silentCronFixture))).ok,
+    "the Silent Cron fixture must validate"
+  );
+
+  // The import sample and the studio starter both pass the validator with zero
+  // errors, so "Load a sample" and the studio open green.
+  assert.ok(
+    validateScenario(JSON.parse(JSON.stringify(SAMPLE_SCENARIO))).ok,
+    "the import sample must validate with zero errors"
+  );
+  const starter = validateScenario(JSON.parse(JSON.stringify(starterDraft())));
+  assert.ok(
+    starter.ok,
+    `the studio starter must validate with zero errors: ${starter.ok ? "" : starter.errors.join("; ")}`
+  );
+  assert.equal(
+    lintScenario(starterDraft()).length,
+    0,
+    "the studio starter must lint clean"
+  );
+
+  // The in-UI schema reference lists exactly the condition kinds the validator
+  // accepts, so the cheatsheet cannot drift from the validator.
+  assert.deepEqual(
+    CONDITION_KIND_REFERENCE.map((c) => c.kind).sort(),
+    [...CONDITION_KINDS].sort(),
+    "schema reference condition kinds must match the validator's list"
+  );
+
+  console.log(
+    "\nResolver fixtures: every condition kind, all five outcomes, priority ordering, sample/starter green, and schema-reference parity verified."
   );
 }
 

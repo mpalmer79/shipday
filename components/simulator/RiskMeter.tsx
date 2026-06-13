@@ -1,4 +1,7 @@
+"use client";
+
 import { riskState } from "@/lib/simulator";
+import { useCountUp } from "@/lib/useCountUp";
 
 type RiskMeterProps = {
   value: number;
@@ -21,6 +24,7 @@ function riskTone(value: number) {
 export function RiskMeter({ value, delta, pulseKey }: RiskMeterProps) {
   const tone = riskTone(value);
   const changed = delta !== undefined && delta !== 0;
+  const shown = useCountUp(value);
 
   return (
     <div
@@ -37,7 +41,7 @@ export function RiskMeter({ value, delta, pulseKey }: RiskMeterProps) {
       </div>
       <div className="mt-2 flex items-baseline gap-2">
         <span className={`font-mono text-4xl font-bold ${tone.text}`}>
-          {value}
+          {shown}
         </span>
         {changed && (
           <span
