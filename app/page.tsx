@@ -11,7 +11,7 @@ import {
   MessageFeed,
   MetricsPanel,
 } from "@/components/showcase/sections";
-import { ColdOpen } from "@/components/cinematic/ColdOpen";
+import { GhostProtocolIntro } from "@/components/cinematic/GhostProtocolIntro";
 import { ClassifiedStamp } from "@/components/cinematic";
 import { MissionDossier } from "@/components/cinematic/MissionDossier";
 import { scenarioListings } from "@/data/scenarios";
@@ -55,7 +55,7 @@ const stageStyle = (delay: number) => ({ animationDelay: `${delay}ms` });
 export default function LandingPage() {
   return (
     <div className="relative flex min-h-screen flex-col bg-void">
-      <ColdOpen />
+      <GhostProtocolIntro />
       <ScrollProgress />
       <Header />
       <main>
