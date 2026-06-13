@@ -69,6 +69,7 @@ export const SAMPLE_SCENARIO: Scenario = {
           description: "Full rollout, right now.",
           impact: { risk: 15 },
           nextStepId: END_STEP_ID,
+          flags: ["shipped-without-flag"],
         },
       ],
     },
@@ -113,11 +114,21 @@ export const SAMPLE_SCENARIO: Scenario = {
       tone: "negative",
     },
   ],
+  // The rules show the grammar an author has to write: a combinator (anyOf
+  // and allOf), a flag test, and a metric threshold. Lower priority is checked
+  // first; the first rule whose condition holds wins, and the fallback covers
+  // any run no rule matches.
   outcomeRules: [
     {
       outcomeId: "customer-incident",
       priority: 1,
-      when: { kind: "metricAtLeast", metric: "risk", value: 60 },
+      when: {
+        kind: "anyOf",
+        conditions: [
+          { kind: "metricAtLeast", metric: "risk", value: 60 },
+          { kind: "hasFlag", flag: "shipped-without-flag" },
+        ],
+      },
     },
     {
       outcomeId: "safe-rollout",
@@ -132,4 +143,8 @@ export const SAMPLE_SCENARIO: Scenario = {
     },
   ],
   fallbackOutcomeId: "minor-issue",
+  missedSignals: {
+    "shipped-without-flag":
+      "Turning the flag on everywhere skipped the staged rollout that would have caught the bad path on a slice of traffic first.",
+  },
 };

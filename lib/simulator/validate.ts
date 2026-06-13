@@ -32,14 +32,22 @@ export const OUTCOME_IDS: OutcomeId[] = [
 
 const TONES = ["positive", "mixed", "negative", "neutral"];
 
-const CONDITION_KINDS = [
+/**
+ * Every condition kind the validator accepts. Exported so the in-app schema
+ * reference is generated from the same list the validator enforces, and a test
+ * can assert the two never drift apart.
+ */
+export const CONDITION_KINDS = [
   "metricAtLeast",
   "metricAtMost",
   "hasFlag",
   "lacksFlag",
   "anyOf",
   "allOf",
-];
+] as const;
+
+/** The outcome tones the validator accepts. Exported for the schema reference. */
+export const OUTCOME_TONES = TONES as readonly string[];
 
 export type ValidationResult =
   | { ok: true; scenario: Scenario }
@@ -106,7 +114,7 @@ function validateCondition(
     return;
   }
   const kind = value.kind;
-  if (!isString(kind) || !CONDITION_KINDS.includes(kind)) {
+  if (!isString(kind) || !(CONDITION_KINDS as readonly string[]).includes(kind)) {
     errors.push(`${where} has unknown condition kind "${String(kind)}"`);
     return;
   }

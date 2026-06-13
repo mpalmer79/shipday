@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { SchemaReference } from "@/components/authoring/SchemaReference";
 import { SimulatorClient } from "@/components/simulator/SimulatorClient";
 import {
   lintScenario,
@@ -67,6 +68,8 @@ export function ImportClient() {
           format, then played in the simulator. Imported scenarios live in
           memory for this session only. Nothing is uploaded or stored.
         </p>
+
+        <SchemaReference className="mt-6" />
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button

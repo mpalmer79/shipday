@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { SchemaReference } from "@/components/authoring/SchemaReference";
 import { SimulatorClient } from "@/components/simulator/SimulatorClient";
 import { scenarios } from "@/data/scenarios";
 import {
-  emptyDraft,
   exportDraft,
   loadDraft,
   lintTarget,
+  starterDraft,
   validationTarget,
   type IssueTarget,
   type ScenarioDraft,
@@ -67,7 +68,7 @@ function groupByKey(
 }
 
 export function StudioClient() {
-  const [draft, setDraft] = useState<ScenarioDraft>(emptyDraft);
+  const [draft, setDraft] = useState<ScenarioDraft>(starterDraft);
   // Remounts the editor tree when a different draft is loaded wholesale.
   const [draftEpoch, setDraftEpoch] = useState(0);
   const [jsonText, setJsonText] = useState("");
@@ -202,6 +203,8 @@ export function StudioClient() {
           The draft lives on this page only; leaving or reloading discards it.
           Export the JSON to keep your work.
         </p>
+
+        <SchemaReference className="mt-6" />
 
         <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-surface-line bg-surface-raised p-4">
           <span
