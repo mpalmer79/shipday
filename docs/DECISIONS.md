@@ -2041,3 +2041,59 @@ the full reduced-motion inventory, keyboard reach of the skips and the CTA, ever
 route returning 200, and the legacy redirect. Evidence is in `docs/qa/v7` with a
 `REPORT.md` and the contrast table, and the report states plainly that a human
 visual and on-device performance pass is still required.
+
+## Milestone 7: hardening and closeout
+
+### The sweep is clean
+
+A repository-wide sweep found no em dashes anywhere in source or docs. The only
+occurrences of the banned words are the verify assertion list that names them
+and pre-existing entries in this log; nothing introduced in the v7 run uses one.
+The mid-alert status copy reads "risk elevated", which is the status adjective,
+not the banned marketing verb "elevate", and it predates this session. The
+real-franchise sweep (film names, the fuse motif, recognizable taglines, agency
+and character names) found nothing: the only apparent hits were substrings
+inside a dependency name and a code comment. All genre language is original: the
+codenames (Blue Feather, Red Circuit, Silent Ledger, Night Window, Black Signal),
+the directives, the verdict lines, and the alert and clock labels.
+
+### Copy read end to end, register holds
+
+Every user-facing string added across the v7 run was read in full: the cold open
+boot lines, the mission-select wall, the briefing, the mission clock labels, the
+alert bar, the five resolution verdicts, the after-action debrief, the hero, and
+the landing sections. The register established in v5 and v6, plain and specific
+with tension only where the simulation justifies it, holds throughout. The genre
+framing stays grounded in the real work (a directive over a ticket, a countdown
+over a clock, a verdict over an outcome), so nothing reads as drama for its own
+sake. No copy change was needed.
+
+### README updated honestly for v7
+
+The README's experience section now describes the spy-thriller mission framing
+(cold open, mission-select dossiers, mission briefing, mission clock, the alert
+ladder takeover and stand-down, the resolution climax and after-action debrief)
+as presentation over the unchanged engine. The front-door section describes the
+WebGL command center and records its dependency cost (the Three.js lazy chunk at
+about 75.5 KB gzipped, absent from the landing first load). The hero asset swap
+instructions were updated because the swap mechanism changed in M5: the poster
+is now a server-rendered inline SVG in `components/hero/HeroPoster.tsx`, not a
+raster file, so the README and `public/hero/README.md` now document editing the
+component (the raster placeholder and its generator are no longer used by the
+page). The structure listing gained `components/cinematic/` and `lib/cinematic/`,
+and the roadmap marks the six v7 deliverables done.
+
+### CI workflow still matches the scripts
+
+`.github/workflows/ci.yml` runs `npm ci`, then `npm run verify`, then `npm run
+build`, on push to main and on every pull request. These are exactly the two
+scripts the run is gated on, unchanged, so the workflow still matches.
+
+### Final state is static and green
+
+Final `npm run verify` and `npm run build` both pass. Every route prerenders as
+static or statically generated content with no server, API key, or environment
+variable. The landing first load holds at 114 KB and the Three.js scene stays in
+its own lazy chunk. A smoke test of every route returned 200 and the legacy
+`/simulator` redirect resolves to the default scenario. No distribution pin moved
+across the entire run, and no existing assertion was weakened.
