@@ -15,6 +15,16 @@ driven by the Playwright Chromium build present in the environment at
 capture only (it does not shift the footer layout) so it could not bleed into
 the tall mobile capture.
 
+## Before
+
+The previous footer for comparison, captured the same way against the version
+on `main`:
+
+| File | Width |
+| :--- | :---- |
+| `00-before-desktop.png` | 1280 |
+| `00-before-mobile.png` | 390 |
+
 ## Screenshots
 
 Footer at three widths on two framing pages, plus the landing page, to confirm
