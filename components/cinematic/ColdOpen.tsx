@@ -40,11 +40,13 @@ const SESSION_KEY = "shipday.coldopen.seen";
 export function ColdOpen() {
   const reducedMotion = useReducedMotion();
   // "pending" until we decide on mount whether to play; this avoids reading
-  // sessionStorage or the motion preference during render.
+  // sessionStorage or the motion preference during render. The sequence itself
+  // is only mounted once the decision is "play", so it always starts with motion
+  // allowed and runs its stages; gating it here instead of inside the sequence
+  // keeps the run-once-per-session and reduced-motion rules in one place.
   const [decision, setDecision] = useState<"pending" | "play" | "off">(
     "pending"
   );
-  const skipRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     let seen = false;
@@ -66,18 +68,33 @@ export function ColdOpen() {
     }
   }, [reducedMotion]);
 
-  const playing = decision === "play";
+  if (decision !== "play") {
+    return null;
+  }
+
+  return <ColdOpenSequence onDone={() => setDecision("off")} />;
+}
+
+/**
+ * The cold-open sequence itself. Mounted only when the cold open is cleared to
+ * play, so it always runs with motion allowed and lands on its resting state.
+ * Skippable with one focused control; when it finishes or is skipped it reports
+ * done so the parent can unmount it and the landing stands alone.
+ */
+function ColdOpenSequence({ onDone }: { onDone: () => void }) {
+  const skipRef = useRef<HTMLButtonElement>(null);
   const { stageId, done, skip } = useCinematicSequence(STAGES, {
-    reducedMotion: !playing,
+    reducedMotion: false,
+    onDone,
   });
 
   useEffect(() => {
-    if (playing && !done) {
+    if (!done) {
       skipRef.current?.focus();
     }
-  }, [playing, done]);
+  }, [done]);
 
-  if (decision !== "play" || done) {
+  if (done) {
     return null;
   }
 

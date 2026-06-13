@@ -1970,3 +1970,74 @@ alert state clears AA.
 ### Verification
 
 `npm run verify` green (pins hold). `npm run build` green.
+
+## Milestone 6: the browser pass and evidence
+
+### One isolated pass, Playwright from the global install
+
+The pass built once, started the production server once on port 3211, drove
+every set piece and assertion in one run, and tore the server down, as the
+no-browser-before-this rule requires. Playwright was resolved from the
+environment's global install at `/opt/pw-browsers`, so the repository's
+dependency files are unchanged. No runtime dependency was added.
+
+### The capable-device path was forced to exercise the real 3D
+
+As in v5 and v6, headless Chromium renders WebGL through software and reports a
+low core count, which the hero's capability gate treats as a low-power device.
+To drive the real 3D path the capable context overrides `hardwareConcurrency`
+and `deviceMemory` to typical laptop values; the fallback and reduced-motion
+contexts override nothing, so they test the true gated behaviour. This is
+recorded plainly because the frame rate seen here is software, not a real GPU,
+and a human on-device pass is still required.
+
+### Defect found and fixed: the cold open never rendered
+
+The browser pass revealed that the cold open never appeared. `ColdOpen` was
+always mounted and gated itself with an internal "pending -> play" state. On the
+first render that state is "pending", so it passed a true reduced-motion flag
+into `useCinematicSequence`; the hook is born finished under that flag, and when
+the state later flipped to "play" the hook re-armed its timers but never cleared
+its finished flag, so the overlay returned nothing for the rest of the session.
+The briefing and the resolution avoid this because their parents mount them only
+when they should play, never self-gating from a pending state.
+
+The fix applies that same pattern to the cold open: `ColdOpen` now decides
+pending, play, or off, and mounts the inner sequence only once the decision is
+play, so the sequence always starts with motion allowed and runs its stages. The
+run-once-per-session and reduced-motion gating stay in the parent, unchanged. The
+visuals, the single skip control, the session key, and the reduced-motion and
+return-visit behaviour are all unchanged. This is a defect fix within the
+original v7 rules: no new dependency, no assertion weakened, no distribution pin
+moved. The affected checks (the cold open plays, skips, is keyboard operable, and
+is inert under reduced motion) were re-run green.
+
+### Red-alert contrast clears AA, measured in the live state
+
+The red-alert (high) state was reached through real play of the expert scenario,
+and every visible text element's colour was paired by computed style with its
+nearest opaque background and the WCAG ratio computed. Sixteen unique pairings
+were found and all clear AA: body text 14.97 to 16.62, the red-alert banner
+7.81, the clock's Condition red and red risk readout 6.84, the escalated
+countdown 7.63, and the weakest pairing (muted ink on the raised card) 4.82,
+above the 4.5 floor. The takeover never recolours body text or surfaces, so the
+strongest ink contrast holds through the most intense state. No contrast fix was
+needed.
+
+### Render-loop pause proven by frame counting
+
+The render loop was counted, not trusted: wrapping requestAnimationFrame before
+the scene loads, the loop advanced 17 to 19 frames per 400ms while the hero was
+visible, 0 after emulating a hidden tab, and 0 after scrolling the hero
+offscreen. The loop runs only when on screen and visible.
+
+### 33 of 33 checks passed
+
+Every set piece was captured and every assertion run: the cold open mid and
+skipped, the mission-select wall, the briefing, the clock calm and escalated,
+the tactical and red-alert states and the stand-down, all five resolution
+outcomes and the debrief, the 3D hero and the no-WebGL fallback, mobile width,
+the full reduced-motion inventory, keyboard reach of the skips and the CTA, every
+route returning 200, and the legacy redirect. Evidence is in `docs/qa/v7` with a
+`REPORT.md` and the contrast table, and the report states plainly that a human
+visual and on-device performance pass is still required.
