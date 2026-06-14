@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { AgencyBadge, FooterLinkIcon, type FooterIconName } from "@/components/media";
 
 /**
  * The shared site footer. Four columns on desktop (brand, about, features,
@@ -14,19 +15,21 @@ import Link from "next/link";
 const LINKEDIN_URL = "https://www.linkedin.com/in/mpalmer1234";
 const GITHUB_URL = "https://github.com/mpalmer79/shipday";
 
-// Quick links resolve only to real destinations: one internal page and the
-// repository's own GitHub surfaces. See docs/DECISIONS.md for the mapping.
-const QUICK_LINKS: { label: string; href: string; external: boolean }[] = [
-  { label: "Get Started", href: "/scenarios", external: false },
-  { label: "Documentation", href: `${GITHUB_URL}#readme`, external: true },
-  { label: "Roadmap", href: `${GITHUB_URL}#roadmap`, external: true },
-  { label: "Changelog", href: `${GITHUB_URL}/commits/main`, external: true },
-  {
-    label: "Contributing",
-    href: `${GITHUB_URL}/blob/main/README.md`,
-    external: true,
-  },
-  { label: "Report an Issue", href: `${GITHUB_URL}/issues`, external: true },
+// Primary in-app navigation, each pointing at the real app route and paired
+// with an inline icon. These are the operative's quick links into the product.
+const NAV_LINKS: { label: string; href: string; icon: FooterIconName }[] = [
+  { label: "Missions", href: "/scenarios", icon: "missions" },
+  { label: "Studio", href: "/studio", icon: "studio" },
+  { label: "Import", href: "/import", icon: "import" },
+  { label: "Compare", href: "/compare", icon: "compare" },
+];
+
+// Project links resolve only to real destinations on the repository's own
+// GitHub surfaces. See docs/DECISIONS.md for the mapping.
+const PROJECT_LINKS: { label: string; href: string }[] = [
+  { label: "Documentation", href: `${GITHUB_URL}#readme` },
+  { label: "Changelog", href: `${GITHUB_URL}/commits/main` },
+  { label: "Report an Issue", href: `${GITHUB_URL}/issues` },
 ];
 
 const MONO_TOKENS = ["realistic", "engineering", "simulator"];
@@ -138,20 +141,23 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-10 text-center md:grid-cols-2 md:text-left lg:grid-cols-4">
           {/* Brand column */}
           <div className="lg:pr-4">
-            <p
-              id="footer-brand"
-              className="flex items-center justify-center gap-2 md:justify-start"
-            >
-              <span
-                aria-hidden="true"
-                className="font-mono text-lg font-bold text-accent"
+            <div className="flex items-center justify-center gap-3 md:justify-start">
+              <AgencyBadge className="h-11 w-11" />
+              <p
+                id="footer-brand"
+                className="flex items-center gap-2"
               >
-                {">_"}
-              </span>
-              <span className="text-xl font-semibold tracking-tight text-ink">
-                <span className="text-accent">Ship</span>Day
-              </span>
-            </p>
+                <span
+                  aria-hidden="true"
+                  className="font-mono text-lg font-bold text-accent"
+                >
+                  {">_"}
+                </span>
+                <span className="text-xl font-semibold tracking-tight text-ink">
+                  <span className="text-accent">Ship</span>Day
+                </span>
+              </p>
+            </div>
             <p className="mt-4 text-sm leading-relaxed text-ink-muted">
               A day in the life of a software engineer. Every decision. Every
               trade-off. Every day.
@@ -193,30 +199,38 @@ export function Footer() {
           <nav aria-label="Footer quick links">
             <ColumnHeading>Quick Links</ColumnHeading>
             <ul className="mt-4 space-y-2.5 text-sm">
-              {QUICK_LINKS.map((link) =>
-                link.external ? (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded text-ink-muted transition-colors hover:text-ink"
-                    >
-                      {link.label}
-                      <span className="sr-only"> (opens in a new tab)</span>
-                    </a>
-                  </li>
-                ) : (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="rounded text-ink-muted transition-colors hover:text-ink"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                )
-              )}
+              {NAV_LINKS.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="flex items-center justify-center gap-2.5 rounded text-ink-muted transition-colors hover:text-ink md:justify-start"
+                  >
+                    <span className="text-accent">
+                      <FooterLinkIcon name={link.icon} />
+                    </span>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            <ColumnHeading>
+              <span className="mt-6 block">Project</span>
+            </ColumnHeading>
+            <ul className="mt-4 space-y-2.5 text-sm">
+              {PROJECT_LINKS.map((link) => (
+                <li key={link.label}>
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded text-ink-muted transition-colors hover:text-ink"
+                  >
+                    {link.label}
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                </li>
+              ))}
             </ul>
           </nav>
         </div>

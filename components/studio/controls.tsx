@@ -168,9 +168,21 @@ export function IssueList({
   );
 }
 
-export function SectionHeading({ children }: { children: ReactNode }) {
+export function SectionHeading({
+  children,
+  icon,
+}: {
+  children: ReactNode;
+  /** Optional decorative glyph rendered before the label as a section divider. */
+  icon?: ReactNode;
+}) {
   return (
-    <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
+    <h2 className="flex items-center gap-2 border-b border-surface-line pb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+      {icon && (
+        <span aria-hidden="true" className="text-accent">
+          {icon}
+        </span>
+      )}
       {children}
     </h2>
   );

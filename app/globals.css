@@ -145,6 +145,59 @@
 }
 
 /*
+ * The import-page data-ingestion drift: faint dots rise from the base toward
+ * the import panel and fade as they travel. Decorative, transform/opacity only,
+ * and neutralized by the reduced-motion contract below (the dots hold still).
+ */
+@keyframes dataFlowDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.8);
+  }
+  15% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(56px) scale(1);
+  }
+}
+
+@keyframes dataFlowUp {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.8);
+  }
+  15% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-56px) scale(1);
+  }
+}
+
+.data-flow-dot-down,
+.data-flow-dot-up {
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+
+.data-flow-dot-down {
+  animation-name: dataFlowDown;
+}
+
+.data-flow-dot-up {
+  animation-name: dataFlowUp;
+}
+
+/*
  * The red-alert takeover. When the simulator crosses the high-risk threshold
  * the shell carries data-alert="high"; a fixed, pointer-transparent overlay
  * lays a red vignette over the room and a slow alarm breath pulses the edges.

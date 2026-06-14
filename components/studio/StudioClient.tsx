@@ -39,6 +39,20 @@ import {
   OutcomesEditor,
   RulesEditor,
 } from "./OutcomeEditors";
+import { MediaPanel, MetricGauge } from "@/components/media";
+import { studioMedia } from "@/lib/shipdayMedia";
+import { STUDIO_SECTION_ICONS } from "./sectionIcons";
+
+// Risk reads inversely: a high initial risk is a worse starting position, so the
+// gauge tints by semantic tone rather than raw magnitude.
+const GAUGE_TONES: Record<string, "accent" | "good" | "warn" | "bad"> = {
+  quality: "good",
+  speed: "accent",
+  risk: "bad",
+  trust: "good",
+  focus: "accent",
+  testConfidence: "warn",
+};
 
 function targetKey(target: IssueTarget): string {
   switch (target.section) {
@@ -193,16 +207,26 @@ export function StudioClient() {
   return (
     <AppShell footer>
       <div className="mx-auto max-w-4xl py-10">
-        <h1 className="text-3xl font-bold tracking-tight text-center md:text-left">Authoring studio</h1>
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted text-center md:text-left">
-          Build a scenario with forms instead of JSON. The draft is validated
-          as you type, played in the simulator on demand, and exported in the
-          same format the import page accepts.
-        </p>
-        <p className="mt-1 text-xs text-ink-faint text-center md:text-left">
-          The draft lives on this page only; leaving or reloading discards it.
-          Export the JSON to keep your work.
-        </p>
+        <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_minmax(0,22rem)]">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-center md:text-left">Authoring studio</h1>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted text-center md:text-left">
+              Build a scenario with forms instead of JSON. The draft is validated
+              as you type, played in the simulator on demand, and exported in the
+              same format the import page accepts.
+            </p>
+            <p className="mt-1 text-xs text-ink-faint text-center md:text-left">
+              The draft lives on this page only; leaving or reloading discards it.
+              Export the JSON to keep your work.
+            </p>
+          </div>
+          <MediaPanel
+            src={studioMedia.authoringConsole}
+            alt="The ShipDay scenario authoring console."
+            aspect="3/2"
+            badge="Console"
+          />
+        </div>
 
         <SchemaReference className="mt-6" />
 
@@ -233,14 +257,18 @@ export function StudioClient() {
         </div>
 
         <section className="mt-8">
-          <SectionHeading>Outcome distribution</SectionHeading>
+          <SectionHeading icon={STUDIO_SECTION_ICONS.distribution}>
+            Outcome distribution
+          </SectionHeading>
           <div className="mt-3">
             <DistributionPanel draft={draft} valid={validation.ok} />
           </div>
         </section>
 
         <section className="mt-8">
-          <SectionHeading>JSON in and out</SectionHeading>
+          <SectionHeading icon={STUDIO_SECTION_ICONS.json}>
+            JSON in and out
+          </SectionHeading>
           <div className="mt-3 flex flex-wrap gap-3">
             <button
               type="button"
@@ -312,7 +340,9 @@ export function StudioClient() {
 
         <div key={draftEpoch}>
           <section className="mt-8">
-            <SectionHeading>Scenario</SectionHeading>
+            <SectionHeading icon={STUDIO_SECTION_ICONS.scenario}>
+              Scenario
+            </SectionHeading>
             <div className="mt-3 rounded-lg border border-surface-line bg-surface-raised p-5">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <TextField
@@ -356,10 +386,29 @@ export function StudioClient() {
                 />
               </div>
               <fieldset className="mt-4 rounded-lg border border-surface-line p-3">
-                <legend className="px-1 text-xs text-ink-muted">
+                <legend className="flex items-center gap-2 px-1 text-xs text-ink-muted">
+                  <span aria-hidden="true" className="text-accent">
+                    {STUDIO_SECTION_ICONS.metrics}
+                  </span>
                   Initial metrics
                 </legend>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {/* Compact gauges mirror the numeric fields below, giving the
+                    starting position an instrument-panel read at a glance. */}
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  {METRIC_KEYS.map((key) => (
+                    <MetricGauge
+                      key={key}
+                      label={METRIC_LABELS[key]}
+                      value={
+                        typeof draft.initialMetrics?.[key] === "number"
+                          ? draft.initialMetrics[key]
+                          : 0
+                      }
+                      tone={GAUGE_TONES[key] ?? "accent"}
+                    />
+                  ))}
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {METRIC_KEYS.map((key) => (
                     <NumberField
                       key={key}
@@ -390,7 +439,16 @@ export function StudioClient() {
           </section>
 
           <section className="mt-8">
-            <SectionHeading>Steps</SectionHeading>
+            <SectionHeading icon={STUDIO_SECTION_ICONS.steps}>
+              Steps
+            </SectionHeading>
+            <MediaPanel
+              src={studioMedia.stepTimeline}
+              alt="A vertical timeline of the scenario's steps from morning to end of day."
+              aspect="21/9"
+              badge="Step timeline"
+              className="mt-3"
+            />
             <div className="mt-3 flex flex-col gap-4">
               {steps.map((step, i) => {
                 const stepIssues = issuesFor(`step-${i}`);
@@ -435,7 +493,9 @@ export function StudioClient() {
           </section>
 
           <section className="mt-8">
-            <SectionHeading>Outcomes</SectionHeading>
+            <SectionHeading icon={STUDIO_SECTION_ICONS.outcomes}>
+              Outcomes
+            </SectionHeading>
             <div className="mt-3">
               <OutcomesEditor
                 outcomes={outcomes}
@@ -446,7 +506,9 @@ export function StudioClient() {
           </section>
 
           <section className="mt-8">
-            <SectionHeading>Outcome rules</SectionHeading>
+            <SectionHeading icon={STUDIO_SECTION_ICONS.rules}>
+              Outcome rules
+            </SectionHeading>
             <p className="mt-2 text-xs leading-relaxed text-ink-muted">
               Rules are checked in priority order against the finished run;
               the first one whose condition holds decides the outcome, and the
@@ -462,7 +524,9 @@ export function StudioClient() {
           </section>
 
           <section className="mt-8">
-            <SectionHeading>Missed signals</SectionHeading>
+            <SectionHeading icon={STUDIO_SECTION_ICONS.signals}>
+              Missed signals
+            </SectionHeading>
             <div className="mt-3">
               <MissedSignalsEditor
                 missedSignals={draft.missedSignals}

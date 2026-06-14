@@ -14,6 +14,9 @@ import {
 import { GhostProtocolIntro } from "@/components/cinematic/GhostProtocolIntro";
 import { ClassifiedStamp } from "@/components/cinematic";
 import { MissionDossier } from "@/components/cinematic/MissionDossier";
+import { MediaPanel } from "@/components/media";
+import { TaskTypeLegend } from "@/components/showcase/TaskTypeLegend";
+import { homeMedia } from "@/lib/shipdayMedia";
 import { scenarioListings } from "@/data/scenarios";
 
 const ctaHref = "/scenarios";
@@ -115,20 +118,30 @@ export default function LandingPage() {
           title="The job is judgment under fire"
           description="ShipDay is not about algorithms or syntax. It is the real work of the field: ambiguous tickets, failing pipelines, a live production page, and a release call at the end, with quality, speed, risk, and trust all moving with every decision."
         >
-          <Reveal>
-            <GlowPanel className="p-5">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
-                Operations dossier
-              </h3>
-              <div className="mt-3">
-                <DataRow label="Missions on file" value="5" tone="accent" />
-                <DataRow label="Distinct runs, fully enumerated" value="24,832" />
-                <DataRow label="Outcomes per mission" value="5" />
-                <DataRow label="Metrics tracked" value="6" />
-                <DataRow label="External calls" value="0" tone="good" dot />
-              </div>
-            </GlowPanel>
-          </Reveal>
+          <div className="grid grid-cols-1 items-center gap-5 lg:grid-cols-2">
+            <Reveal>
+              <MediaPanel
+                src={homeMedia.judgment}
+                alt="Bugs, chores, features, a failing pipeline, and an ambiguous request converging on one engineer's desk."
+                badge="The work"
+                caption="Bugs, chores, features, failing pipelines, ambiguous requests — all at once."
+              />
+            </Reveal>
+            <Reveal delayMs={80}>
+              <GlowPanel className="p-5">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
+                  Operations dossier
+                </h3>
+                <div className="mt-3">
+                  <DataRow label="Missions on file" value="5" tone="accent" />
+                  <DataRow label="Distinct runs, fully enumerated" value="24,832" />
+                  <DataRow label="Outcomes per mission" value="5" />
+                  <DataRow label="Metrics tracked" value="6" />
+                  <DataRow label="External calls" value="0" tone="good" dot />
+                </div>
+              </GlowPanel>
+            </Reveal>
+          </div>
         </SectionFrame>
 
         <SectionFrame
@@ -138,6 +151,17 @@ export default function LandingPage() {
           description="Not screenshots. A live read of the surfaces you work across through one day: the board, the pipeline, the team channel, and the metrics it all adds up to."
         >
           <div className="flex flex-col gap-5">
+            <Reveal>
+              <MediaPanel
+                src={homeMedia.operationBoard}
+                alt="The operation board rendered as an engineering blueprint, tasks laid out across the day."
+                aspect="21/9"
+                badge="Operation board"
+              />
+            </Reveal>
+            <Reveal delayMs={60}>
+              <TaskTypeLegend />
+            </Reveal>
             <Reveal>
               <SprintBoard />
             </Reveal>
@@ -150,6 +174,15 @@ export default function LandingPage() {
               </Reveal>
             </div>
             <Reveal delayMs={60}>
+              <MediaPanel
+                src={homeMedia.ciPipeline}
+                alt="A CI pipeline — build, deploy to staging, smoke test, production readiness — beside the team channel reacting to it."
+                aspect="21/9"
+                badge="Pipeline + channel"
+                caption="Build · Deploy to staging · Smoke test · Production readiness."
+              />
+            </Reveal>
+            <Reveal delayMs={60}>
               <MetricsPanel />
             </Reveal>
           </div>
@@ -161,6 +194,15 @@ export default function LandingPage() {
           title="The room responds to risk"
           description="Tension is never decorative. The interface tracks the risk metric at the same thresholds the engine resolves outcomes at, and stands down when a decision pulls you out of trouble."
         >
+          <Reveal>
+            <MediaPanel
+              src={homeMedia.alertLadder}
+              alt="The mission alert ladder: a risk gauge climbing from condition green through amber to red."
+              aspect="21/9"
+              badge="Alert ladder"
+              className="mb-5"
+            />
+          </Reveal>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {ALERT_STATES.map((panel, i) => (
               <Reveal key={panel.state} delayMs={i * 80}>
@@ -192,6 +234,15 @@ export default function LandingPage() {
           title="Pick your operation"
           description="Each mission is one simulated day. Different pressure, same objective: ship safely."
         >
+          <Reveal>
+            <MediaPanel
+              src={homeMedia.missionOverview}
+              alt="A spread of classified operation dossiers, one per mission, fanned across a briefing table."
+              aspect="21/9"
+              badge="Five sealed dossiers"
+              className="mb-6"
+            />
+          </Reveal>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {scenarioListings.map((listing, i) => (
               <Reveal key={listing.id} delayMs={(i % 2) * 60}>

@@ -6,6 +6,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { addRun, useCompletedRuns, type SavedRun } from "@/lib/runStore";
 import { compareRuns, METRIC_LABELS, METRIC_ORDER } from "@/lib/simulator";
 import { extractRunCode, loadRunFromCode } from "@/lib/runLink";
+import { EmptyStateGraphic, MediaPanel } from "@/components/media";
+import { compareMedia } from "@/lib/shipdayMedia";
 
 function formatDelta(delta: number): string {
   return delta > 0 ? `+${delta}` : `${delta}`;
@@ -43,7 +45,21 @@ function RunLinkLoader() {
 
   return (
     <div className="mt-6 rounded-lg border border-surface-line bg-surface-raised p-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
+      <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4 text-accent"
+        >
+          <path d="M9 12h6" />
+          <path d="M10 8H8a4 4 0 0 0 0 8h2" />
+          <path d="M14 8h2a4 4 0 0 1 0 8h-2" />
+        </svg>
         Load a run from a link
       </h2>
       <p className="mt-2 text-xs leading-relaxed text-ink-muted">
@@ -144,21 +160,26 @@ export function CompareClient() {
     return (
       <AppShell footer>
         <div className="mx-auto max-w-2xl py-16">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight">Compare runs</h1>
-            <p className="mt-4 text-sm leading-relaxed text-ink-muted">
-              Complete a scenario, choose "Add to comparison" on the report,
-              and do it again. Once you have two finished runs of the same
-              scenario, they show up here side by side. Shared run links count
-              too: load one below and compare it against your own day.
-            </p>
+          <EmptyStateGraphic
+            src={compareMedia.emptyState}
+            alt="A quiet comparison console standing by for two completed runs."
+            title="Compare runs"
+            description={
+              <>
+                Complete a scenario, choose &quot;Add to comparison&quot; on the
+                report, and do it again. Once you have two finished runs of the
+                same scenario, they show up here side by side. Shared run links
+                count too: load one below and compare it against your own day.
+              </>
+            }
+          >
             <Link
               href="/scenarios"
               className="mt-8 inline-block rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-surface transition-colors hover:bg-accent/90"
             >
               Pick a scenario
             </Link>
-          </div>
+          </EmptyStateGraphic>
           <RunLinkLoader />
         </div>
       </AppShell>
@@ -189,6 +210,14 @@ export function CompareClient() {
           Two runs of the same scenario, side by side: the decisions, the
           metric trajectories, and where the day landed.
         </p>
+
+        <MediaPanel
+          src={compareMedia.splitScreen}
+          alt="Two runs of the same mission shown on a split screen, decision by decision."
+          aspect="21/9"
+          badge="Side by side"
+          className="mt-6"
+        />
 
         <RunLinkLoader />
 
