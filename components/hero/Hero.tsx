@@ -3,6 +3,8 @@
 import { type ReactNode, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { ImageFrame } from "@/components/media";
+import { homeMedia } from "@/lib/shipdayMedia";
 import { HeroPoster } from "./HeroPoster";
 
 // The 3D scene loads in its own chunk, only on the client, only after the
@@ -70,6 +72,19 @@ export function Hero({ children }: { children?: ReactNode }) {
       className="relative flex min-h-[88vh] w-full items-center overflow-hidden bg-void"
     >
       <div className="absolute inset-0">
+        {/* Optional command-center photograph, wired to the local asset path
+            and sitting beneath the poster. With no placeholder it stays
+            transparent until the art is placed, so today the SVG poster below
+            renders exactly as before — no layout shift, no broken image. */}
+        <ImageFrame
+          src={homeMedia.hero}
+          alt=""
+          decorative
+          fill
+          priority
+          showPlaceholder={false}
+          className="opacity-60"
+        />
         {/* Static poster: the fallback and the LCP base. Server-rendered inline
             SVG, so it paints on first paint and the LCP never waits on WebGL. */}
         <div className="absolute inset-0 opacity-80">

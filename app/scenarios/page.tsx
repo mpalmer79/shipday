@@ -23,7 +23,13 @@ export const metadata: Metadata = {
 export default function ScenariosPage() {
   return (
     <AppShell footer>
-      <div className="mx-auto max-w-5xl py-10">
+      <div className="relative mx-auto max-w-5xl py-10">
+        {/* A faint engineering grid behind the dossiers, so the select screen
+            reads as a briefing-room wall. Decorative and non-interactive. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 -top-6 bottom-0 -z-10 bg-grid-faint bg-[size:34px_34px] opacity-[0.15] [mask-image:radial-gradient(110%_70%_at_50%_0%,black,transparent)]"
+        />
         <div className="flex flex-col gap-4">
           <ClassifiedStamp label="Mission select" className="self-start" />
           <h1 className="text-display-sm font-bold tracking-tight text-ink text-center md:text-left">

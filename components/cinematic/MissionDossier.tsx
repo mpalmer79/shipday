@@ -8,8 +8,8 @@ import {
   fileTagFor,
   threatFor,
 } from "@/lib/cinematic/dossier";
+import { MissionDossierArt, ThreatIndicator } from "@/components/media";
 import { HudFrame } from "./HudFrame";
-import { ThreatBadge } from "./ThreatBadge";
 import { DecodeText } from "./DecodeText";
 
 /**
@@ -39,8 +39,16 @@ export function MissionDossier({
     >
       <HudFrame
         tone="calm"
-        className="h-full p-5 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-accent/60 group-focus-visible:-translate-y-0.5 group-focus-visible:border-accent/60"
+        className="h-full overflow-hidden p-5 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-accent/60 group-focus-visible:-translate-y-0.5 group-focus-visible:border-accent/60"
       >
+        {/* Classified still for the operation, resolved from the mission visual
+            map. Decorative: the codename and name below carry the meaning. */}
+        <MissionDossierArt
+          missionId={listing.id}
+          aspect="3/2"
+          className="-mx-5 -mt-5 mb-4 !rounded-none"
+        />
+
         <div className="flex items-center justify-between">
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-faint">
             Case {fileTag}
@@ -69,11 +77,13 @@ export function MissionDossier({
           {directive}
         </p>
 
-        <div className="mt-5 flex items-center justify-between border-t border-edge/30 pt-3">
-          <ThreatBadge threat={threat} />
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-faint">
-            {listing.stepCount} calls
-          </span>
+        <div className="mt-5 border-t border-edge/30 pt-3">
+          <ThreatIndicator threat={threat} />
+          <div className="mt-3 text-right">
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-faint">
+              {listing.stepCount} calls
+            </span>
+          </div>
         </div>
 
         <div className="mt-4 flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-accent">
