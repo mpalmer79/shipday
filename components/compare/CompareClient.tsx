@@ -184,8 +184,10 @@ export function CompareClient() {
   return (
     <AppShell footer>
       <div className="mx-auto max-w-4xl py-10">
-        <h1 className="text-3xl font-bold tracking-tight">Compare runs</h1>
-        <p className="mt-2 text-sm text-ink-muted">
+        <h1 className="text-center text-3xl font-bold tracking-tight md:text-left">
+          Compare runs
+        </h1>
+        <p className="mt-2 text-center text-sm text-ink-muted md:text-left">
           Two runs of the same scenario, side by side: the decisions, the
           metric trajectories, and where the day landed.
         </p>

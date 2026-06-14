@@ -25,11 +25,14 @@ export default function ScenariosPage() {
     <AppShell footer>
       <div className="mx-auto max-w-5xl py-10">
         <div className="flex flex-col gap-4">
-          <ClassifiedStamp label="Mission select" className="self-start" />
-          <h1 className="text-display-sm font-bold tracking-tight text-ink">
+          <ClassifiedStamp
+            label="Mission select"
+            className="self-center md:self-start"
+          />
+          <h1 className="text-center text-display-sm font-bold tracking-tight text-ink md:text-left">
             Choose your operation
           </h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
+          <p className="max-w-2xl text-center text-sm leading-relaxed text-ink-muted md:text-left">
             Five sealed case files. Each is one simulated workday run as a field
             operation: different pressure, different terrain, the same objective.
             Open a dossier to take the assignment.

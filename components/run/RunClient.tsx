@@ -72,8 +72,10 @@ export function RunClient() {
     return (
       <AppShell footer>
         <div className="mx-auto max-w-2xl py-16">
-          <h1 className="text-3xl font-bold tracking-tight">Shared run</h1>
-          <p className="mt-4 text-sm leading-relaxed text-ink-muted">
+          <h1 className="text-center text-3xl font-bold tracking-tight md:text-left">
+            Shared run
+          </h1>
+          <p className="mt-4 text-center text-sm leading-relaxed text-ink-muted md:text-left">
             This page shows a completed workday from a shared link. The link
             carries the scenario and every decision; the run is rebuilt here,
             so nothing is uploaded or stored.
@@ -88,7 +90,9 @@ export function RunClient() {
     return (
       <AppShell footer>
         <div className="mx-auto max-w-2xl py-16">
-          <h1 className="text-3xl font-bold tracking-tight">Shared run</h1>
+          <h1 className="text-center text-3xl font-bold tracking-tight md:text-left">
+            Shared run
+          </h1>
           <div className="mt-6 rounded-lg border border-bad/40 bg-bad/5 p-5">
             <h2 className="text-sm font-semibold text-bad">
               This run link does not work
@@ -126,13 +130,13 @@ export function RunClient() {
   return (
     <AppShell footer>
       <div className="mx-auto max-w-2xl py-10">
-        <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
+        <p className="text-center text-xs font-semibold uppercase tracking-wider text-ink-faint md:text-left">
           Shared run
         </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight">
+        <h1 className="mt-1 text-center text-3xl font-bold tracking-tight md:text-left">
           {scenario.name}
         </h1>
-        <p className="mt-2 text-sm text-ink-muted">
+        <p className="mt-2 text-center text-sm text-ink-muted md:text-left">
           {scenario.tagline}{" "}
           <Link
             href={`/simulator/${scenario.id}`}

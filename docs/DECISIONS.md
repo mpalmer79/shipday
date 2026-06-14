@@ -2097,3 +2097,65 @@ variable. The landing first load holds at 114 KB and the Three.js scene stays in
 its own lazy chunk. A smoke test of every route returned 200 and the legacy
 `/simulator` redirect resolves to the default scenario. No distribution pin moved
 across the entire run, and no existing assertion was weakened.
+
+## Mobile-only centered text
+
+Evidence for this pass is under `docs/qa/2026-06-13-mobile-center/`.
+
+### Centering keys off the `md` breakpoint, never desktop
+
+The change centers display text below the `md` breakpoint (768px) and is
+delivered entirely through `text-center md:text-left` and its flex equivalents
+(`justify-center md:justify-start`, `items-center md:items-start`, `self-center
+md:self-start`). At `md` and wider every element falls back to its original
+alignment, so desktop is unchanged by construction. The browser pass confirms it:
+all seven desktop full-page screenshots are byte-for-byte identical before and
+after.
+
+### What was centered
+
+Centered on mobile, left from `md` up: section eyebrow labels and the page-header
+stamps; the display headings (the hero `h1`, every `SectionFrame` title, and the
+`h1` on scenarios, compare, import, run, and studio); the hero eyebrow row and
+the primary CTA cluster; and the shared footer (brand mark, tagline, nav links,
+and the deterministic note). Eyebrows and the footer note are monospace but are
+presentational labels, not system output, so they are centered with their
+header; this is distinct from the terminal-style readouts excluded below.
+
+### What was deliberately left-aligned at every breakpoint
+
+The monospace system output and terminal lines (the alert-ladder ci/deploy/alert
+readouts and the `T-5:30` clock values), the sprint board, the mission dossier
+cards and their case tags, threat rows, and call counts, the operations data
+rows, the comparison decisions list and metric-trajectory table, the studio and
+import/run form fields and their labels, the JSON textareas, and the section
+labels that head those data structures. The entire simulator gameplay view is in
+this set and was not touched; its mobile screenshot is byte-for-byte identical
+before and after. Centering any of these would trade legibility for the broken
+look of a centered label stranded over a left-aligned table or readout.
+
+### Body paragraphs: which were centered and which were left
+
+Short intro standfirsts that sit directly under a centered heading were centered:
+every `SectionFrame` description, the scenarios/import/run/studio/compare page
+intros, the footer tagline, and the first hero line ("You are an operative... the
+clock is already running"). One body block was deliberately left left-aligned
+even on mobile: the long second hero paragraph ("An assignment lands at 9:00
+AM..."), four sentences of running prose, because centered multi-line prose is
+hard to read. The studio "Outcome rules" explanatory paragraph also stays left,
+as it documents the editor immediately beneath it rather than standing as a
+header standfirst.
+
+### Pre-existing all-breakpoint centered blocks left as-is
+
+Two blocks were already centered at every breakpoint before this change: the
+landing closing CTA panel (`GlowPanel` with `text-center`) and the compare
+empty-state block. Centering them on mobile is already the case, and touching
+them would change desktop, which is out of bounds, so both were left exactly as
+they were.
+
+### Final state is green
+
+`npm run verify` and `npm run build` both pass. No dependency was added, no
+distribution pin moved, and no existing assertion was changed. The diff is
+alignment utility classes only.

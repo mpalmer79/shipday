@@ -25,17 +25,17 @@ export function SectionFrame({
       aria-labelledby={headingId}
       className="mx-auto w-full max-w-5xl px-4 py-20 sm:px-6"
     >
-      <p className="font-mono text-xs uppercase tracking-widest text-accent">
+      <p className="text-center font-mono text-xs uppercase tracking-widest text-accent md:text-left">
         {eyebrow}
       </p>
       <h2
         id={headingId}
-        className="mt-3 text-display-sm font-bold tracking-tight text-ink"
+        className="mt-3 text-center text-display-sm font-bold tracking-tight text-ink md:text-left"
       >
         {title}
       </h2>
       {description && (
-        <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-muted">
+        <p className="mt-3 max-w-2xl text-center text-base leading-relaxed text-ink-muted md:text-left">
           {description}
         </p>
       )}

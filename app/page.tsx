@@ -61,7 +61,7 @@ export default function LandingPage() {
       <main>
         <Hero>
           <div
-            className="animate-stage-in flex items-center gap-3"
+            className="flex animate-stage-in items-center justify-center gap-3 md:justify-start"
             style={stageStyle(0)}
           >
             <ClassifiedStamp label="Operative briefing" />
@@ -70,13 +70,13 @@ export default function LandingPage() {
             </span>
           </div>
           <h1
-            className="mt-5 animate-stage-in text-display font-bold text-ink"
+            className="mt-5 animate-stage-in text-center text-display font-bold text-ink md:text-left"
             style={stageStyle(80)}
           >
             ShipDay
           </h1>
           <p
-            className="mt-4 max-w-xl animate-stage-in text-xl text-ink-muted"
+            className="mt-4 max-w-xl animate-stage-in text-center text-xl text-ink-muted md:text-left"
             style={stageStyle(160)}
           >
             You are an operative in an engineering agency. Every workday is a
@@ -94,7 +94,7 @@ export default function LandingPage() {
             you read the after-action file.
           </p>
           <div
-            className="mt-10 flex animate-stage-in flex-wrap items-center gap-4"
+            className="mt-10 flex animate-stage-in flex-wrap items-center justify-center gap-4 md:justify-start"
             style={stageStyle(320)}
           >
             <Link

@@ -17,7 +17,7 @@ export function Footer() {
       <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2 md:justify-start">
               <span
                 aria-hidden="true"
                 className="h-2 w-2 rounded-full bg-accent shadow-glow-sm"
@@ -26,12 +26,15 @@ export function Footer() {
                 ShipDay
               </span>
             </div>
-            <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-muted">
+            <p className="mt-2 max-w-xs text-center text-sm leading-relaxed text-ink-muted md:text-left">
               Every workday is a mission. A software engineering simulator about
               shipping safely under pressure.
             </p>
           </div>
-          <nav aria-label="Footer" className="flex flex-col gap-2 text-sm">
+          <nav
+            aria-label="Footer"
+            className="flex flex-col items-center gap-2 text-sm md:items-start"
+          >
             {LINKS.map((link) => (
               <Link
                 key={link.href}
@@ -43,7 +46,7 @@ export function Footer() {
             ))}
           </nav>
         </div>
-        <p className="mt-8 border-t border-edge/20 pt-6 font-mono text-xs text-ink-faint">
+        <p className="mt-8 border-t border-edge/20 pt-6 text-center font-mono text-xs text-ink-faint md:text-left">
           fully deterministic · runs entirely in your browser · no API calls, no
           external AI
         </p>
