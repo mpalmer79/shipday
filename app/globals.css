@@ -4,43 +4,68 @@
 
 @layer base {
   :root {
-    /* Base palette as RGB channel triplets. Calm is the default state; the
-       risk layer below shifts these globally. Channels (not hex) so Tailwind
-       alpha modifiers keep working through the variables. */
-    --surface: 14 17 23;
-    --surface-raised: 22 27 36;
-    --surface-overlay: 29 36 48;
-    --surface-line: 42 51 66;
-    --ink: 230 235 242;
-    --ink-muted: 154 166 184;
-    --ink-faint: 120 133 158;
-    --accent: 91 168 245;
-    --accent-soft: 43 69 100;
+    /*
+     * LEGACY DARK THEME — pre-lighten
+     * Snapshot of the prior near-black palette, retained so the previous look is
+     * recoverable. These values are superseded by the dark-slate re-tone below.
+     *   --surface: 14 17 23;          --surface-raised: 22 27 36;
+     *   --surface-overlay: 29 36 48;  --surface-line: 42 51 66;
+     *   --ink: 230 235 242;           --ink-muted: 154 166 184;
+     *   --ink-faint: 120 133 158;     --accent: 91 168 245;
+     *   --accent-soft: 43 69 100;     --void: 7 9 13;
+     *   --panel: 17 21 29;            --edge: 56 68 88;
+     *   --hot: 245 158 66;            --hot-soft: 92 60 28;
+     *   --classified: 245 197 66;     --signal: 74 222 128;
+     *   --alert: 248 113 113;         --alert-bright: 255 120 120;
+     *   --alert-deep: 40 10 12;       --alert-banner: 140 22 26;
+     *   [data-risk="raised"]: --accent 232 168 90; --accent-soft 92 70 38
+     *   [data-risk="high"]:   --surface 12 8 10; --surface-raised 24 14 17;
+     *                         --surface-overlay 33 19 24; --surface-line 58 38 46;
+     *                         --accent 242 135 111; --accent-soft 92 44 40
+     */
 
-    /* Showpiece (v6) palette: a deeper operations-room layer for the public
-       front door. Static tokens; the simulator's risk tokens above are
-       untouched. Hot is the showcase pressure colour. */
-    --void: 7 9 13;
-    --panel: 17 21 29;
-    --edge: 56 68 88;
-    --hot: 245 158 66;
-    --hot-soft: 92 60 28;
+    /* DARK SLATE RE-TONE
+       Base palette as RGB channel triplets. Calm is the default state; the risk
+       layer below shifts these globally. Channels (not hex) so Tailwind alpha
+       modifiers keep working through the variables. No value is pure white; the
+       lightest permitted colour is --highlight (235 238 244). */
 
-    /* Agency-ops (v7) cinematic palette. The command-center darks reuse void
-       and panel above. These add the tactical and alarm language: a classified
-       amber for stamps and the tactical state, a tactical online green for
-       secure/nominal signals, and an unmistakable alert red for the red-alert
-       takeover. Every pairing against the surfaces clears WCAG AA (computed and
-       logged in docs/DECISIONS.md under M1). Channels, not hex, so alpha
-       modifiers keep working. */
-    --classified: 245 197 66;
-    --signal: 74 222 128;
-    --alert: 248 113 113;
-    --alert-bright: 255 120 120;
-    /* Deep alert surface and the solid red-alert banner colour. Light ink on
-       the banner clears AA (8.58:1). */
-    --alert-deep: 40 10 12;
-    --alert-banner: 140 22 26;
+    /* Backgrounds — lifted to dark-slate, layers spread ~10pts for separation */
+    --void: 18 21 27;
+    --surface: 26 30 38;
+    --panel: 34 39 49;
+    --surface-raised: 44 50 62;
+    --surface-overlay: 56 63 77;
+
+    /* Borders — lifted to match new panels so structure reads without heavy fills */
+    --surface-line: 64 73 90;
+    --edge: 78 90 112;
+
+    /* Ink — bright off-white, intentionally NOT pure white */
+    --ink: 224 229 237; /* ~12.9:1 on --surface */
+    --ink-muted: 160 171 188; /* secondary text, ~7.0:1 on --surface */
+    --ink-faint: 128 140 162; /* tertiary/labels, ~4.8:1 on --surface */
+
+    /* Accent + soft supports — keep blue identity, lift soft tint off the floor */
+    --accent: 96 170 245;
+    --accent-soft: 52 80 112;
+
+    /* Status — slightly muted so they read as signal, not alarm, on a lighter base */
+    --hot: 240 160 80;
+    --hot-soft: 96 66 34;
+    --classified: 240 196 84;
+    --signal: 88 214 138;
+
+    /* Alert family — retuned against the lifted base; NO 255 channel anywhere */
+    --alert: 238 116 116;
+    --alert-bright: 240 128 128; /* was 255 120 120 — 255 red channel removed */
+    --alert-deep: 48 16 18; /* lifted from near-black so the alert ground isn't a void */
+    --alert-banner: 150 30 34;
+
+    /* Highlight ceiling — the single lightest permitted value. No pure white
+       anywhere: the brightest glints, flashes, and white-hot effects resolve to
+       this cool off-white instead of a maxed-out channel triple. */
+    --highlight: 235 238 244;
 
     /* Mission-clock typography. The clock face widens its tracking as the day
        escalates; these are the resting (calm) values, overridden by risk. */
@@ -76,17 +101,21 @@
   }
 
   /*
-   * High (risk has crossed 65): the surfaces darken with a faint warm cast and
-   * the accent reads as a warning. The whole interface becomes a room where
-   * something is wrong.
+   * High (risk has crossed 65): the room turns red. Rather than dimming toward
+   * near-black, the surfaces drop onto the lifted alert ground (--alert-deep,
+   * 48 16 18) and step up from there, so the shift reads as the room changing
+   * colour, not the lights merely going out. Against the lifted calm base
+   * (--surface 26 30 38) this is a dramatic, unmistakable temperature swing.
+   * Body ink holds ~13.7:1 on the alert ground; secondary ~7.5:1; tertiary
+   * ~5.1:1; the warning accent ~7.6:1 — all clear of their targets.
    */
   [data-risk="high"] {
-    --surface: 12 8 10;
-    --surface-raised: 24 14 17;
-    --surface-overlay: 33 19 24;
-    --surface-line: 58 38 46;
-    --accent: 242 135 111;
-    --accent-soft: 92 44 40;
+    --surface: 48 16 18;
+    --surface-raised: 62 24 26;
+    --surface-overlay: 78 32 34;
+    --surface-line: 104 48 50;
+    --accent: 244 146 122;
+    --accent-soft: 104 50 46;
     --clock-tracking: 0.18em;
     --countdown-tracking: 0.16em;
   }
@@ -202,7 +231,7 @@
  * the shell carries data-alert="high"; a fixed, pointer-transparent overlay
  * lays a red vignette over the room and a slow alarm breath pulses the edges.
  * Body text and surfaces are untouched, so contrast holds (light ink on the
- * darkened high surface stays at 16.6:1). At data-alert="mid" a cooler tactical
+ * lifted alert high surface stays at ~13.7:1). At data-alert="mid" a cooler tactical
  * vignette signals the elevated state without the alarm. The overlay sits
  * behind content (z-0 in the shell) and is aria-hidden.
  */
@@ -442,22 +471,22 @@
   0% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.04);
-    background: radial-gradient(circle, #fff 0%, #ffd9a0 40%, rgba(255, 140, 40, 0) 70%);
+    background: radial-gradient(circle, rgb(var(--highlight)) 0%, #ffd9a0 40%, rgba(255, 140, 40, 0) 70%);
   }
   16% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(0.22);
-    background: radial-gradient(circle, #fff 0%, #ffe7c2 55%, rgba(255, 160, 60, 0.2) 80%);
+    background: radial-gradient(circle, rgb(var(--highlight)) 0%, #ffe7c2 55%, rgba(255, 160, 60, 0.2) 80%);
   }
   42% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(3.4);
-    background: radial-gradient(circle, #fff 0%, #fff 70%, rgba(255, 220, 180, 0.6) 100%);
+    background: radial-gradient(circle, rgb(var(--highlight)) 0%, rgb(var(--highlight)) 70%, rgba(255, 220, 180, 0.6) 100%);
   }
   62% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(3.6);
-    background: #fff;
+    background: rgb(var(--highlight));
   }
   100% {
     opacity: 1;

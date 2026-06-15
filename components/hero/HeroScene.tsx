@@ -39,9 +39,11 @@ function makeSprite(): CanvasTexture {
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.35, "rgba(255,255,255,0.55)");
-  g.addColorStop(1, "rgba(255,255,255,0)");
+  // No pure white anywhere: the sprite core resolves to the cool off-white
+  // highlight ceiling (235 238 244) rather than a maxed-out channel triple.
+  g.addColorStop(0, "rgba(235,238,244,1)");
+  g.addColorStop(0.35, "rgba(235,238,244,0.55)");
+  g.addColorStop(1, "rgba(235,238,244,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
   return new CanvasTexture(canvas);

@@ -272,10 +272,10 @@ function GhostProtocolSequence({ onDone }: { onDone: () => void }) {
             <div
               key={flash.id}
               aria-hidden="true"
-              className={`gp-flash absolute overflow-hidden rounded-md ring-1 ring-white/20 ${flash.className}`}
+              className={`gp-flash absolute overflow-hidden rounded-md ring-1 ring-ink/20 ${flash.className}`}
               style={{ ...flash.style, ["--gp-flash-dur" as string]: `${flash.dur}ms` }}
             >
-              <span className="absolute bottom-1 left-2 font-mono text-[9px] uppercase tracking-[0.3em] text-white/70">
+              <span className="absolute bottom-1 left-2 font-mono text-[9px] uppercase tracking-[0.3em] text-ink/70">
                 {flash.label}
               </span>
               <span className="gp-flash-scan absolute inset-0" />

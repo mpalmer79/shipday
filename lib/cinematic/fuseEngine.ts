@@ -115,7 +115,9 @@ export function createFuseEngine(
   const { durationMs, onProgress, onComplete } = options;
   const ctx = canvas.getContext("2d", { alpha: true })!;
 
-  const dotWhite = makeDot("rgba(255,255,255,1)", "rgba(255,210,150,0.7)");
+  // The hot spark dot tops out at the cool off-white highlight ceiling
+  // (235 238 244) — no pure white anywhere — over a warm ember falloff.
+  const dotWhite = makeDot("rgba(235,238,244,1)", "rgba(255,210,150,0.7)");
   const dotEmber = makeDot("rgba(255,200,120,1)", "rgba(255,120,40,0.65)");
 
   // Build the smooth spline through the waypoints once, in normalized space.
@@ -272,9 +274,10 @@ export function createFuseEngine(
     }
     ctx.globalAlpha = 1;
 
-    // The white-hot spark core at the head.
+    // The hot spark core at the head, topping out at the off-white highlight
+    // ceiling (235 238 244) rather than pure white.
     const core = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 16);
-    core.addColorStop(0, "rgba(255,255,255,1)");
+    core.addColorStop(0, "rgba(235,238,244,1)");
     core.addColorStop(0.5, "rgba(255,220,150,0.8)");
     core.addColorStop(1, "rgba(255,140,40,0)");
     ctx.fillStyle = core;

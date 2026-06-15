@@ -14,8 +14,8 @@ import type { RiskState } from "@/lib/simulator";
  * with no live risk state simply omit it and render calm.
  *
  * The alert overlay never recolours body text or surfaces, so contrast holds
- * through the most intense state (light ink on the darkened high surface stays
- * at 16.6:1). The overlay is fixed, pointer-transparent, and aria-hidden.
+ * through the most intense state (light ink on the lifted alert high surface
+ * stays at ~13.7:1). The overlay is fixed, pointer-transparent, and aria-hidden.
  *
  * The footer is opt-in so the framing pages can carry it while the focused
  * simulator gameplay view stays uncluttered.

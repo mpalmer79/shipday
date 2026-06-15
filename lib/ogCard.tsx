@@ -11,14 +11,16 @@ import type { ReactElement } from "react";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
+// Mirrors the app's dark-slate surface tokens (globals.css) restated as hex so
+// the generated card stands alone. Kept in lockstep with the :root palette.
 const COLORS = {
-  surface: "#0e1117",
-  raised: "#161b24",
-  line: "#2a3342",
-  ink: "#e6ebf2",
-  inkMuted: "#9aa6b8",
-  inkFaint: "#78859e",
-  accent: "#5ba8f5",
+  surface: "#1a1e26", // --surface 26 30 38
+  raised: "#2c323e", // --surface-raised 44 50 62
+  line: "#40495a", // --surface-line 64 73 90
+  ink: "#e0e5ed", // --ink 224 229 237
+  inkMuted: "#a0abbc", // --ink-muted 160 171 188
+  inkFaint: "#808ca2", // --ink-faint 128 140 162
+  accent: "#60aaf5", // --accent 96 170 245
 };
 
 export function renderOgCard(params: {
