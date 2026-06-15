@@ -80,17 +80,33 @@ is removed. The information is never withheld; only the movement is.
 
 ## Contrast
 
-Computed with `scripts/contrast.mjs` (WCAG relative luminance). Ink is fixed
-across states, so only the accent and the darker high-risk surfaces change.
-Lowest ratio for normal text on a real text background, per state:
+Computed with `scripts/contrast.mjs` (WCAG relative luminance), which now also
+runs as a build guardrail (see below). The dark-slate re-tone lifts every
+pairing well clear of its target — body ≥ 7:1, secondary ≥ 4.5:1, non-text
+≥ 3:1. Ink is fixed across states; only the accent and the red-alert high
+surfaces change. Key ratios per state (fg on base `surface` unless noted):
 
-- `calm`: ink-faint on surface-overlay 4.19 (this is the unchanged v4
-  baseline, audited in v3).
-- `raised`: surfaces unchanged, so ink ratios are identical to calm; the
-  warmer accent rises from 7.53 to 9.16 on the base surface.
-- `high`: darker surfaces lift every ink pairing. The weakest normal-text
-  pairing improves to 4.82 (ink-faint on surface-overlay); accent holds at
-  8.03 on the base surface.
+- `calm`: ink 13.20, ink-muted 7.19, ink-faint 4.92, accent 6.81. The weakest
+  normal-text pairing anywhere is ink-faint on surface-overlay at 3.12 (a
+  tertiary/label role, target 3:1).
+- `raised`: surfaces unchanged, so ink ratios match calm; the warmer accent
+  rises to 8.09 on the base surface.
+- `high` (red alert): the room drops onto the lifted alert ground
+  (`--alert-deep` 48 16 18) and steps up from there. Body ink reads 13.74,
+  ink-muted 7.49, ink-faint 5.12, and the warning accent 7.65 on the alert
+  base — a dramatic temperature swing from the slate calm base, not a dimming.
+
+The solid alert banner (`--alert-banner` 150 30 34) carries light ink at
+6.63:1, comfortably clear for its large, semibold banner text.
+
+### Guardrail
+
+`scripts/contrast.mjs` is wired into `npm run verify`, the `check:theme`
+script, and the CI workflow. It fails the build if a pure-white literal
+(`255 255 255`, `#fff`/`#ffffff`, `rgb(255,255,255)`, or a Tailwind `*-white`
+utility) reappears in source, if any alert/highlight token gains a 255 channel,
+or if any primary text/background pair drops below its contrast target. This is
+the durable enforcement of "contrast, and no pure white."
 
 Every text pairing meets AA (4.5:1 for normal text, 3:1 for large and UI).
 The accent used as button text (dark surface ink on the accent fill) measures

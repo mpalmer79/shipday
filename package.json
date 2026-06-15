@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "verify": "tsx lib/simulator/__tests__/verify.ts"
+    "check:theme": "node scripts/contrast.mjs",
+    "verify": "tsx lib/simulator/__tests__/verify.ts && node scripts/contrast.mjs"
   },
   "dependencies": {
     "next": "^15.3.3",

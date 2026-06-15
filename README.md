@@ -267,7 +267,7 @@ public/hero/          Legacy raster placeholder and notes; the live poster is th
 docs/DESIGN.md        The design system: risk states, the showpiece layer, tokens, motion, contrast
 docs/DECISIONS.md     Audit trail of build decisions
 docs/qa/              Browser QA evidence and reports per release
-scripts/contrast.mjs  Contrast audit for the palette
+scripts/contrast.mjs  Theme guardrail: contrast audit + no-pure-white check (CI-gated)
 scripts/gen-hero-placeholder.mjs  Generates the legacy raster placeholder PNG (no longer used by the page)
 ```
 
