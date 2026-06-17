@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -16,8 +17,19 @@ import { ClassifiedStamp } from "@/components/cinematic";
 import { MissionDossier } from "@/components/cinematic/MissionDossier";
 import { MediaPanel } from "@/components/media";
 import { TaskTypeLegend } from "@/components/showcase/TaskTypeLegend";
+import { SITE_DESCRIPTION, SITE_NAME, socialMetadata } from "@/lib/site";
 import { homeMedia } from "@/lib/shipdayMedia";
 import { scenarioListings } from "@/data/scenarios";
+
+export const metadata: Metadata = {
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  ...socialMetadata({
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    path: "/",
+  }),
+};
 
 const ctaHref = "/scenarios";
 
