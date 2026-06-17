@@ -4,16 +4,16 @@ export const SITE_NAME = "ShipDay";
 export const SITE_DESCRIPTION =
   "A real-life software engineering simulator about shipping safely under pressure.";
 
+const PRODUCTION_SITE_URL = "https://shipday-topaz.vercel.app";
+
 function resolveSiteUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+
+  if (configuredUrl) {
+    return configuredUrl;
   }
 
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-
-  return "https://shipday-topaz.vercel.app";
+  return PRODUCTION_SITE_URL;
 }
 
 export const SITE_URL = resolveSiteUrl();
@@ -37,19 +37,36 @@ export function socialMetadata(params: {
   const canonicalUrl = new URL(path, SITE_URL).toString();
 
   return {
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       type: "website",
       siteName: SITE_NAME,
       title,
       description,
       url: canonicalUrl,
-      images: [SITE_OG_IMAGE],
+      images: [
+        {
+          url: SITE_OG_IMAGE.url,
+          width: SITE_OG_IMAGE.width,
+          height: SITE_OG_IMAGE.height,
+          alt: SITE_OG_IMAGE.alt,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [SITE_OG_IMAGE],
+      images: [
+        {
+          url: SITE_OG_IMAGE.url,
+          width: SITE_OG_IMAGE.width,
+          height: SITE_OG_IMAGE.height,
+          alt: SITE_OG_IMAGE.alt,
+        },
+      ],
     },
   };
 }
