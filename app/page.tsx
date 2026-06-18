@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ScrollProgress } from "@/components/layout/ScrollProgress";
 import { Hero } from "@/components/hero/Hero";
+import { MissionClock } from "@/components/hero/MissionClock";
 import { Reveal } from "@/components/showcase/Reveal";
 import { SectionFrame, GlowPanel, DataRow } from "@/components/showcase";
 import {
@@ -83,6 +84,12 @@ export default function LandingPage() {
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
               clearance verified
             </span>
+          </div>
+          <div
+            className="mt-4 flex animate-stage-in justify-center md:justify-start"
+            style={stageStyle(40)}
+          >
+            <MissionClock />
           </div>
           <h1
             className="mt-5 animate-stage-in text-display font-bold text-ink text-center md:text-left"
