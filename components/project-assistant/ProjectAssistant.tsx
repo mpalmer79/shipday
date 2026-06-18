@@ -24,10 +24,16 @@ import type { KnowledgeEntry } from "@/lib/project-assistant/knowledge";
 const TEMPLATE_QUESTIONS = [
   "What is ShipDay?",
   "How does the simulator work?",
-  "Why is it deterministic?",
   "What can I do in the Studio?",
   "What does this project demonstrate technically?",
+  "How do I get in touch with Michael Palmer?",
 ];
+
+/** The launcher's full prompt. Shown in full on wider screens and always used
+ * as the accessible label; a shorter form renders on the smallest screens so
+ * the floating control never covers too much of the page. */
+const LAUNCHER_LABEL = "Questions about how this was built? Ask me here.";
+const LAUNCHER_LABEL_SHORT = "Ask about this build";
 
 type Turn = {
   id: number;
@@ -130,21 +136,29 @@ export function ProjectAssistant() {
 
   return (
     <>
-      {/* Floating launcher, bottom-right. */}
+      {/* Floating launcher, bottom-right. The full prompt shows from the small
+          breakpoint up; on the narrowest screens a shorter label keeps the
+          control from covering too much content. The accessible name is always
+          the full prompt regardless of which text is visually rendered. */}
       <button
         ref={launcherRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label="Project Assistant"
-        className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full border border-edge bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink shadow-glow transition-colors hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-void"
+        aria-label={LAUNCHER_LABEL}
+        className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full border border-edge bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink shadow-glow transition-colors hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-void"
       >
         <span
           aria-hidden="true"
-          className="h-2 w-2 rounded-full bg-accent shadow-glow-sm"
+          className="h-2 w-2 shrink-0 rounded-full bg-accent shadow-glow-sm"
         />
-        Project Assistant
+        <span aria-hidden="true" className="hidden truncate sm:inline">
+          {LAUNCHER_LABEL}
+        </span>
+        <span aria-hidden="true" className="truncate sm:hidden">
+          {LAUNCHER_LABEL_SHORT}
+        </span>
       </button>
 
       {open && (

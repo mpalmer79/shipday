@@ -23,7 +23,8 @@ export type KnowledgeCategory =
   | "Studio"
   | "Technical Design"
   | "Accessibility"
-  | "Recruiter Summary";
+  | "Recruiter Summary"
+  | "Contact";
 
 /** A single, self-contained piece of project knowledge. */
 export type KnowledgeEntry = {
@@ -478,6 +479,45 @@ export const knowledgeBase: KnowledgeEntry[] = [
       "What technology is it built with?",
       "What is ShipDay?",
       "Why is it deterministic?",
+    ],
+  },
+  {
+    id: "contact",
+    title: "Contacting the developer",
+    category: "Contact",
+    questions: [
+      "How do I get in touch with Michael Palmer?",
+      "How do I contact the developer?",
+      "Who built ShipDay?",
+      "Who is the developer?",
+      "How can I reach the author?",
+      "Where can I find your GitHub or LinkedIn?",
+    ],
+    keywords: [
+      "contact",
+      "touch",
+      "reach",
+      "michael",
+      "palmer",
+      "developer",
+      "creator",
+      "author",
+      "made",
+      "who",
+      "linkedin",
+      "github",
+      "profile",
+      "about",
+      "connect",
+      "hire",
+      "email",
+    ],
+    answer:
+      "You can learn more about Michael Palmer, the developer of ShipDay, on the About Me page. It includes his GitHub and LinkedIn profiles.",
+    relatedLinks: [{ label: "About Michael Palmer", href: "/about" }],
+    relatedQuestions: [
+      "What does this project demonstrate technically?",
+      "What is ShipDay?",
     ],
   },
 ];

@@ -37,7 +37,6 @@ const TOKEN_ALIASES: Record<string, string> = {
   // Product / domain aliases
   builder: "studio",
   authoring: "studio",
-  author: "studio",
   editor: "studio",
   dossier: "scenario",
   dossiers: "scenario",
@@ -60,6 +59,20 @@ const TOKEN_ALIASES: Record<string, string> = {
   threejs: "three",
   // Risk aliases
   amber: "risk",
+  // Contact / developer aliases
+  author: "developer",
+  creator: "developer",
+  dev: "developer",
+  michaels: "michael",
+  palmers: "palmer",
+  linkdin: "linkedin",
+  linkedln: "linkedin",
+  githb: "github",
+  githug: "github",
+  develper: "developer",
+  developor: "developer",
+  contvt: "contact",
+  contct: "contact",
   // Common misspellings
   simlator: "simulator",
   simualtor: "simulator",
@@ -93,6 +106,11 @@ const PHRASE_ALIASES: { pattern: RegExp; replacement: string }[] = [
   { pattern: /\btest confidence\b/g, replacement: "testconfidence" },
   { pattern: /\btech stack\b/g, replacement: "technology" },
   { pattern: /\bbuilt with\b/g, replacement: "technology" },
+  { pattern: /\bget in touch\b/g, replacement: "contact" },
+  { pattern: /\bin touch\b/g, replacement: "contact" },
+  { pattern: /\breach out\b/g, replacement: "contact" },
+  { pattern: /\babout me\b/g, replacement: "contact" },
+  { pattern: /\bmichael palmer\b/g, replacement: "michael palmer contact" },
 ];
 
 /** Very common words that carry no signal toward any particular entry. */
