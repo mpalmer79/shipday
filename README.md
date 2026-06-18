@@ -1,6 +1,21 @@
 # ShipDay
 
+![ShipDay — a deterministic software engineering simulator about shipping safely under pressure](public/shipday-og.png)
+
 A real-life software engineering simulator about shipping safely under pressure.
+
+**[Live demo](https://shipday-topaz.vercel.app)** · No backend, no sign-in, runs entirely in the browser.
+
+**Stack:** Next.js · React · TypeScript · Three.js · Tailwind CSS · zero backend, zero database, zero environment variables.
+
+> **Engineering rigor.** ShipDay is built on a pure, deterministic engine, not a
+> scripted game. `npm run verify` enumerates every possible run of every
+> scenario — 24,832 in total — asserts each of the five outcomes is reachable
+> within tuned distribution bounds, pins the exact distributions against
+> regression, asserts the customer-impact curve is non-decreasing across the
+> difficulty ramp, and proves replay and shareable-run-code reconstruction
+> reproduce every run exactly. The spy-thriller presentation is a layer over an
+> engine that is fully tested and reproducible.
 
 Each scenario is one simulated workday: ambiguous requirements, failing
 tests, a production page, stakeholder pressure, and a release decision at the
