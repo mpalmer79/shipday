@@ -147,11 +147,11 @@ export function ProjectAssistant() {
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label={LAUNCHER_LABEL}
-        className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full border border-edge bg-surface-raised px-4 py-2.5 text-sm font-semibold text-ink shadow-glow transition-colors hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-void"
+        className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full border border-[#c3d4ea] bg-[#eef3fb] px-4 py-2.5 text-sm font-semibold text-[#15233a] shadow-glow transition-colors hover:bg-[#e2ebf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-void"
       >
         <span
           aria-hidden="true"
-          className="h-2 w-2 shrink-0 rounded-full bg-accent shadow-glow-sm"
+          className="h-2 w-2 shrink-0 rounded-full bg-[#2563c9] shadow-glow-sm"
         />
         <span aria-hidden="true" className="hidden truncate sm:inline">
           {LAUNCHER_LABEL}
